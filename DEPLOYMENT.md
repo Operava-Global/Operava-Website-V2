@@ -42,7 +42,7 @@ Set these on the production Pages project:
 - `CLIENT_INBOX` = `hello@operavaglobal.com`
 - `TALENT_INBOX` = `talents@operavaglobal.com`
 - `APPLICANT_CC` (optional, comma-separated extra CCs for career tickets)
-- `NODE_VERSION` = `20`
+- `NODE_VERSION` = `22` (Vite 8 requires modern Node.js)
 
 **How to set `OTP_SECRET`**
 
@@ -84,3 +84,14 @@ Since the application already treats `RESUMES_BUCKET` as optional at runtime (fa
 ## AVA chat
 
 Production `/api/chat` uses the Workers AI binding. No Gemini key is required. Client-side `avaConversationEngine` is the offline fallback.
+
+## Website build on Cloudflare Pages (`ax-website`)
+
+The live `ax-website-c4y.pages.dev` project is Git-connected to `jelvan-operava/Operava-Website` on the `main` branch. Use the **repository build**, not the legacy static snapshot reconstruction:
+
+- **Build command:** `npm install --no-audit --no-fund && npx vite build`
+- **Build output directory:** `dist`
+- **Root directory:** repository root
+- **Node.js version:** `22`
+
+The seven original branded website photos are committed as `public/media/operava-*.webp` and copied into `dist/media` by Vite. A successful deployment should serve paths such as `/media/operava-customer-support.webp` directly. Do not set `SKIP_DEPENDENCY_INSTALL` in the build environment.
