@@ -140,6 +140,7 @@ export const MEGA_TABS: MegaTab[] = [
           { label: 'Business Process Outsourcing', to: '/services/bpo' },
           { label: 'Automation', to: '/services/automation' },
           { label: 'Engagement Models', to: '/services/engagement-models' },
+      { label: 'Outsourcing Risks & Controls', to: '/insights/outsourcing-risks' },
           { label: 'Request a Quote', to: '/quote' },
         ],
         cta: { label: 'View all Services →', to: '/services' },
