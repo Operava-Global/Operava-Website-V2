@@ -127,11 +127,11 @@ export default function Careers() {
 
       <CtaBanner
         image={PHOTO.developer}
-        kicker="Recruitment AVA"
-        title="Start with an AI-assisted first evaluation"
-        cta="Open Recruitment AVA →"
-        to="/ai-job-screening"
-        secondary={{ label: 'Apply with the form', to: '/apply' }}
+        kicker="Join the team"
+        title="Start your OPERAVA application"
+        cta="Apply with the form →"
+        to="/apply"
+        secondary={{ label: 'See our hiring process', to: '/careers/hiring-process' }}
       />
     </Page>
   )
