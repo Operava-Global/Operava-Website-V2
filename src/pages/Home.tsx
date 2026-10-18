@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { usePageMeta } from '../site/seo'
 import { Img, NumberPanel, StoryCard, CtaBanner, SectionHead, OutlineButton } from '../site/ui'
-import { LOCAL, PHOTO, LOGO, SERVICE_PHOTO, CAREER_PHOTO } from '../site/media'
+import { LOCAL, PHOTO, SERVICE_PHOTO, CAREER_PHOTO } from '../site/media'
 import { industries } from '../site/content/industries'
 import { COMPANY, STATEMENT } from '../site/content/company'
 import { itServices, bpoServices } from '../data/services'
@@ -217,9 +217,6 @@ export default function Home() {
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-[22px] lg:text-[34px] font-light italic leading-[1.15] tracking-tight">“{STATEMENT}”</p>
           <div className="mt-10 flex items-center justify-center gap-4">
-            <div className="w-10 h-10 rounded-full border border-neutral-800 flex items-center justify-center bg-[#0a0a0a]">
-              <img src={LOGO.mark} alt="" className="w-4 h-4" />
-            </div>
             <div className="text-left">
               <p className="text-xs font-bold uppercase tracking-widest">{COMPANY.name}</p>
               <p className="text-[11px] text-neutral-500 uppercase tracking-widest">Company statement</p>
