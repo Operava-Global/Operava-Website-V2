@@ -56,7 +56,7 @@ export default function HiringProcess() {
       <SplitText label="Before you apply" title={<>Good to know</>}>
         <Bullets
           items={[
-            'Apply through the online application form or start with Recruitment AVA — please don’t send resumes by email only unless instructed.',
+            'Apply through the online application form — please don’t send resumes by email only unless instructed.',
             'Choose the career track and specialization that best matches your experience; you can attach a resume (PDF, Word or TXT).',
             'Your email is verified with a one-time code and you receive a reference ID for your application.',
             'AI-assisted steps support — not replace — human review by the Talent Acquisition team.',
@@ -83,7 +83,7 @@ export default function HiringProcess() {
         title="Start your application today"
         cta="Apply now →"
         to="/apply"
-        secondary={{ label: 'Recruitment AVA', to: '/ai-job-screening' }}
+        secondary={{ label: 'Browse open roles', to: '/careers#open-roles' }}
       />
     </Page>
   )
