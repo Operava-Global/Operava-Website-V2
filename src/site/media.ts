@@ -20,22 +20,22 @@ export const LOCAL = {
 }
 
 export const SERVICE_PHOTO: Record<string, string> = {
-  'software-development': original('software-engineering'),
-  'web-mobile-development': original('software-engineering'),
-  'saas-platform-development': original('digital-strategy'),
-  'it-systems-development': original('technical-operations'),
-  'computer-programming': original('software-engineering'),
-  'it-consulting': original('digital-strategy'),
-  'systems-integration': original('technical-operations'),
-  'database-services': original('business-analytics'),
-  'customer-service': original('customer-support'),
-  'technical-support': original('technical-operations'),
-  'help-desk': original('customer-support'),
-  'back-office-operations': original('team-collaboration'),
-  'data-processing': original('business-analytics'),
-  'data-entry': original('business-analytics'),
-  'document-processing': original('business-analytics'),
-  'virtual-assistance': original('remote-work'),
+  'software-development': original('scene-operava-developers-collaborating-in-tech-workspace'),
+  'web-mobile-development': original('scene-collaborative-coding-at-operava'),
+  'saas-platform-development': original('scene-operava-digital-transformation-collaboration'),
+  'it-systems-development': original('scene-operava-infrastructure-operations-team'),
+  'computer-programming': original('scene-purple-lit-operava-coding-collaboration'),
+  'it-consulting': original('scene-collaborative-digital-strategy-roadmap'),
+  'systems-integration': original('scene-operava-cloud-operations-command-center'),
+  'database-services': original('scene-operava-analytics-in-blue-light'),
+  'customer-service': original('scene-friendly-operava-support-team'),
+  'technical-support': original('scene-operava-engineer-in-a-purple-lit-data-center'),
+  'help-desk': original('scene-friendly-operava-support-team-workspace'),
+  'back-office-operations': original('scene-collaborative-analysis-at-operava'),
+  'data-processing': original('scene-operava-team-analyzing-performance-dashboards'),
+  'data-entry': original('scene-operava-support-team-in-purple-lights'),
+  'document-processing': original('scene-collaborative-operava-office-team-meeting'),
+  'virtual-assistance': original('scene-warm-purple-home-office-video-call'),
 }
 
 export const PHOTO = {
