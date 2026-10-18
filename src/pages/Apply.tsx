@@ -43,7 +43,6 @@ export default function Apply() {
           items: [
             { label: 'Talent Acquisition', value: COMPANY.email.talents, href: `mailto:${COMPANY.email.talents}` },
             { label: 'Hiring process', value: 'Five steps to day one', href: '/careers/hiring-process' },
-            { label: 'AI-assisted first evaluation', value: 'Recruitment AVA', href: '/ai-job-screening' },
           ],
         },
       ]}
