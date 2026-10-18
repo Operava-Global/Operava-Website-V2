@@ -1,15 +1,5 @@
 import type { Service } from './services'
 
-/** Generated OPERAVA photography — shared with the site's image library. */
-const IMG = {
-  aiAutomation: '/media/operava-digital-strategy.webp',
-  customAutomation: '/media/operava-business-analytics.webp',
-  customerService: '/media/operava-customer-support.webp',
-  documentProcessing: '/media/operava-business-analytics.webp',
-  dataProcessing: '/media/operava-business-analytics.webp',
-  systemsIntegration: '/media/operava-technical-operations.webp',
-} as const
-
 /** Dedicated Automation catalogue — shown when carousel selects Automation */
 export const automationServices: Service[] = [
   {
@@ -18,7 +8,7 @@ export const automationServices: Service[] = [
     category: 'it',
     number: '01',
     name: 'Workflow Automation',
-    image: IMG.customAutomation,
+    image: '/media/operava-scene-operava-team-collaboration-hub.webp',
     shortDescription:
       'Connect business tasks into structured digital processes so work moves automatically from one step to the next.',
     description:
@@ -52,7 +42,7 @@ export const automationServices: Service[] = [
     category: 'it',
     number: '02',
     name: 'Business Process Automation',
-    image: IMG.customAutomation,
+    image: '/media/operava-scene-collaborative-operava-roadmap-meeting.webp',
     shortDescription:
       'Automate structured end-to-end business processes across departments, systems, approvals, and records.',
     description:
@@ -85,7 +75,7 @@ export const automationServices: Service[] = [
     category: 'it',
     number: '03',
     name: 'AI Automation',
-    image: IMG.aiAutomation,
+    image: '/media/operava-scene-operava-developers-collaborating-in-neon-office.webp',
     shortDescription:
       'Combine automation with AI for language, classification, extraction, summarization, and intelligent routing.',
     description:
@@ -119,7 +109,7 @@ export const automationServices: Service[] = [
     category: 'it',
     number: '04',
     name: 'Customer Service Automation',
-    image: IMG.customerService,
+    image: '/media/operava-scene-modern-operava-call-center-team.webp',
     shortDescription:
       'Automate repetitive support work—routing, FAQs, tickets, follow-ups—while keeping complex cases with people.',
     description:
@@ -154,7 +144,7 @@ export const automationServices: Service[] = [
     category: 'it',
     number: '05',
     name: 'Email Automation',
-    image: IMG.customAutomation,
+    image: '/media/operava-scene-operava-remote-work-moments.webp',
     shortDescription:
       'Trigger, send, organize, and route emails from business events, customer actions, and system data.',
     description:
@@ -189,7 +179,7 @@ export const automationServices: Service[] = [
     category: 'it',
     number: '06',
     name: 'Lead & Sales Automation',
-    image: IMG.customAutomation,
+    image: '/media/operava-scene-operava-team-collaboration-at-work.webp',
     shortDescription:
       'Automate lead capture, qualification, assignment, follow-up, CRM updates, and sales handoffs.',
     description:
@@ -224,7 +214,7 @@ export const automationServices: Service[] = [
     category: 'it',
     number: '07',
     name: 'Data & Reporting Automation',
-    image: IMG.dataProcessing,
+    image: '/media/operava-scene-from-strategy-to-impact-workshop.webp',
     shortDescription:
       'Collect, organize, and process data from connected systems into recurring reports and dashboards.',
     description:
@@ -258,7 +248,7 @@ export const automationServices: Service[] = [
     category: 'it',
     number: '08',
     name: 'Document Automation',
-    image: IMG.documentProcessing,
+    image: '/media/operava-scene-collaborative-team-in-a-purple-lit-office.webp',
     shortDescription:
       'Generate, update, organize, route, and process business documents from predefined data and rules.',
     description:
@@ -292,7 +282,7 @@ export const automationServices: Service[] = [
     category: 'it',
     number: '09',
     name: 'HR & Workforce Automation',
-    image: IMG.customAutomation,
+    image: '/media/operava-scene-operava-career-growth-workshop.webp',
     shortDescription:
       'Automate recruitment admin, onboarding, employee requests, documentation, notifications, and offboarding.',
     description:
@@ -327,7 +317,7 @@ export const automationServices: Service[] = [
     category: 'it',
     number: '10',
     name: 'Finance & Invoicing Automation',
-    image: IMG.customAutomation,
+    image: '/media/operava-scene-operava-teamwork-in-purple-light.webp',
     shortDescription:
       'Streamline invoice preparation, delivery, payment reminders, approvals, and financial workflow routing.',
     description:
