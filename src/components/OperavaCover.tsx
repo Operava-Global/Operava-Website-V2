@@ -6,32 +6,27 @@ export interface OperavaCoverSlide {
   src: string
 }
 
-/**
- * Four approved hero states only.
- * Images already contain the people + OPERAVA 3D/ribbon lettering.
- * OPERAVA is treated as the fixed visual anchor across all states.
- * Do not generate, redraw, or substitute these assets.
- */
+/** Original OPERAVA photo series, with consistent purple uniforms and signage. */
 export const OPERAVA_COVERS: readonly OperavaCoverSlide[] = [
   {
     id: 'operava-cover-1',
     name: 'Operava Cover 1',
-    src: 'https://res.cloudinary.com/b5i5bwwa/image/upload/v1788584251/Operava-cover1.webp',
+    src: '/media/operava-team-collaboration.webp',
   },
   {
     id: 'operava-cover-2',
     name: 'Operava Cover 2',
-    src: 'https://res.cloudinary.com/b5i5bwwa/image/upload/v1788584250/Operava-cover2.webp',
+    src: '/media/operava-customer-support.webp',
   },
   {
     id: 'operava-cover-3',
     name: 'Operava Cover 3',
-    src: 'https://res.cloudinary.com/b5i5bwwa/image/upload/v1788584250/Operava-cover3.webp',
+    src: '/media/operava-software-engineering.webp',
   },
   {
     id: 'operava-cover-4',
     name: 'Operava Cover 4',
-    src: 'https://res.cloudinary.com/b5i5bwwa/image/upload/v1788584250/Operava-cover4.webp',
+    src: '/media/operava-digital-strategy.webp',
   },
 ] as const
 
@@ -85,7 +80,7 @@ export default function OperavaCover({ className = '' }: OperavaCoverProps) {
   return (
     <div
       id="operava-cover-container"
-      className={`relative w-full overflow-hidden bg-white pointer-events-none select-none ${className}`}
+      className={`relative w-full overflow-hidden bg-black pointer-events-none select-none ${className}`}
       style={{ aspectRatio: `${HERO_W} / ${HERO_H}` }}
     >
       {/*
@@ -121,7 +116,7 @@ export default function OperavaCover({ className = '' }: OperavaCoverProps) {
               alt={cover.name}
               width={HERO_W}
               height={HERO_H}
-              className="block w-full h-full object-contain object-center pointer-events-none select-none"
+              className="block w-full h-full object-cover object-center pointer-events-none select-none"
               // CRITICAL: no transform, no scale, no animation on the image itself
               style={{
                 transform: 'none',
