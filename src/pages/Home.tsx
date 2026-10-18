@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import EcosystemLogos from '../components/EcosystemLogos'
 import { Link } from 'react-router-dom'
 import { usePageMeta } from '../site/seo'
 import { Img, NumberPanel, StoryCard, CtaBanner, SectionHead, OutlineButton } from '../site/ui'
@@ -211,6 +212,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <EcosystemLogos />
 
       {/* STATEMENT */}
       <section className="border-y border-neutral-900 py-16 lg:py-20 px-6 lg:px-12 reveal">
