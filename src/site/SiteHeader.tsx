@@ -2,7 +2,9 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { MEGA_TABS, type MegaTab } from './nav'
 import { Img } from './ui'
+import { Moon, Sun } from 'lucide-react'
 import { searchSite } from './searchIndex'
+import ThemeToggle from './ThemeToggle'
 
 type TabId = MegaTab['id']
 
@@ -18,7 +20,7 @@ function tabForPath(path: string): TabId | null {
 
 export function Wordmark({ size = 'md', intro = true }: { size?: 'md' | 'lg'; intro?: boolean }) {
   return (
-    <span className="flex items-center">      <span className={`${size === 'lg' ? 'text-[22px]' : 'text-[20px]'} font-black tracking-tight uppercase leading-none`}>OPERAVA</span>
+    <span className="flex items-center"><span className={`${size === 'lg' ? 'text-[22px]' : 'text-[20px]'} font-black tracking-tight uppercase leading-none`}>OPERAVA</span>
     </span>
   )
 }
@@ -101,6 +103,13 @@ export default function SiteHeader() {
   const [accordion, setAccordion] = useState<TabId | null>(null)
   const [scrolled, setScrolled] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => typeof document !== 'undefined' && document.documentElement.dataset.theme === 'light' ? 'light' : 'dark')
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    document.documentElement.dataset.theme = next
+    try { localStorage.setItem('operava-theme', next) } catch { /* storage is optional */ }
+    setTheme(next)
+  }
   const [query, setQuery] = useState('')
   const lastY = useRef(0)
   const progressRef = useRef<HTMLDivElement>(null)
@@ -207,6 +216,7 @@ export default function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-3 relative z-10 shrink-0">
+          <ThemeToggle />
           <button
             type="button"
             onClick={() => setSearchOpen((s) => !s)}
