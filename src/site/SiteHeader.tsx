@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { MEGA_TABS, type MegaTab } from './nav'
 import { Img } from './ui'
+import { Moon, Sun } from 'lucide-react'
 import { searchSite } from './searchIndex'
 import ThemeToggle from './ThemeToggle'
 
@@ -102,6 +103,13 @@ export default function SiteHeader() {
   const [accordion, setAccordion] = useState<TabId | null>(null)
   const [scrolled, setScrolled] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => typeof document !== 'undefined' && document.documentElement.dataset.theme === 'light' ? 'light' : 'dark')
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    document.documentElement.dataset.theme = next
+    try { localStorage.setItem('operava-theme', next) } catch { /* storage is optional */ }
+    setTheme(next)
+  }
   const [query, setQuery] = useState('')
   const lastY = useRef(0)
   const progressRef = useRef<HTMLDivElement>(null)
