@@ -27,11 +27,11 @@ export const COMPANY = {
     partners: 'partners@operavaglobal.com',
   },
   social: [
-    { label: 'Facebook', short: 'f', href: 'https://facebook.com/operavaglobal' },
+    { label: 'LinkedIn', short: 'in', href: 'https://www.linkedin.com/company/operavaglobal/' },
+    { label: 'Facebook', short: 'f', href: 'https://www.facebook.com/operavaglobal' },
+    { label: 'Instagram', short: '◎', href: 'https://www.instagram.com/operavaglobal/' },
     { label: 'X', short: '𝕏', href: 'https://x.com/operavaglobal' },
-    { label: 'LinkedIn', short: 'in', href: 'https://linkedin.com/company/operavaglobal' },
-    { label: 'Instagram', short: '◎', href: 'https://instagram.com/operavaglobal' },
-    { label: 'TikTok', short: '♪', href: 'https://tiktok.com/@operavaglobal' },
+    { label: 'TikTok', short: '♪', href: 'https://www.tiktok.com/@operavaglobal' },
   ],
 }
 
