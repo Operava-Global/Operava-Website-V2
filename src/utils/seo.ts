@@ -56,7 +56,7 @@ export interface PageMetadata {
 }
 
 export const BASE_URL = 'https://www.operavaglobal.com'
-export const DEFAULT_OG_IMAGE = 'https://res.cloudinary.com/sdaxzncs/image/upload/v1786240859/Cover%20Photo.png'
+export const DEFAULT_OG_IMAGE = 'https://ax-website-c4y.pages.dev/media/operava-team-collaboration.webp'
 export const SITE_NAME = 'OPERAVA GLOBAL SOLUTIONS'
 
 export const ALL_SERVICE_NAMES = {
