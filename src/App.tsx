@@ -38,6 +38,7 @@ const Terms = lazy(() => import('./pages/Terms'))
 const RefundPolicy = lazy(() => import('./pages/RefundPolicy'))
 const CookiePolicy = lazy(() => import('./pages/CookiePolicy'))
 const Academy = lazy(() => import('./pages/Academy'))
+const Learning = lazy(() => import('./pages/Learning'))
 const AiJobScreening = lazy(() => import('./pages/AiJobScreening'))
 
 function Loading() {
@@ -76,6 +77,8 @@ export default function App() {
             <Route path="/apply" element={<Apply />} />
             <Route path="/ai-job-screening" element={<AiJobScreening />} />
             <Route path="/academy" element={<Academy />} />
+            <Route path="/learning" element={<Learning />} />
+            <Route path="/learnings" element={<Learning />} />
 
             {/* About */}
             <Route path="/about" element={<About />} />
