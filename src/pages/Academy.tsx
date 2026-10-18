@@ -128,6 +128,7 @@ export default function Academy() {
           >
             Learning platform ↗
           </SmartLink>
+          <SmartLink to="/learning" className="inline-flex items-center h-12 px-8 border border-accent text-xs tracking-widest font-semibold uppercase hover:bg-accent-solid hover:text-white transition-colors">Free public lessons →</SmartLink>
           <a
             href="#enroll"
             className="inline-flex items-center h-12 px-8 border border-white text-xs tracking-widest font-semibold uppercase hover:bg-white hover:text-black transition-colors"
