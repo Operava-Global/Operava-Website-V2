@@ -67,14 +67,14 @@ export const roleBySlug = (slug: string) => CAREER_OPENINGS.find((o) => ROLE_SLU
 export const insightHref = (cat: string, article?: string) => (article ? `/insights/${cat}/${article}` : `/insights/${cat}`)
 
 export const INSIGHT_IMAGE: Record<string, string> = {
-  automation: LOCAL.aiDashboard,
-  'information-technology': PHOTO.cloudEngineer,
-  outsourcing: PHOTO.customerSupport,
-  offshoring: LOCAL.network,
-  'global-operations': PHOTO.handshake,
-  'business-processes': PHOTO.backOffice,
-  workforce: PHOTO.developer,
-  'business-growth': PHOTO.analyst,
+  automation: '/media/operava-scene-operava-digital-transformation-collaboration.webp',
+  'information-technology': '/media/operava-scene-operava-cloud-operations-command-center.webp',
+  outsourcing: '/media/operava-scene-friendly-operava-support-team.webp',
+  offshoring: '/media/operava-scene-warm-remote-work-welcome.webp',
+  'global-operations': '/media/operava-scene-bright-virtual-team-connection.webp',
+  'business-processes': '/media/operava-scene-collaborative-operava-roadmap-meeting.webp',
+  workforce: '/media/operava-scene-operava-career-growth-workshop.webp',
+  'business-growth': '/media/operava-scene-operava-team-analyzing-performance-dashboards.webp',
 }
 
 const shortName = (name: string) =>
