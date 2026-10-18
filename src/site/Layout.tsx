@@ -73,8 +73,8 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div
-      className="min-h-screen bg-black text-white overflow-x-clip flex flex-col"
-      style={{ paddingTop: 'var(--safe-area-inset-top)', boxSizing: 'border-box', background: '#000' }}
+      className="app-shell min-h-screen bg-black text-white overflow-x-clip flex flex-col"
+      style={{ paddingTop: 'var(--safe-area-inset-top)', boxSizing: 'border-box' }}
     >
       <a
         href="#main"
