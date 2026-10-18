@@ -1,19 +1,13 @@
 import type { Service } from './services'
 
-/** New circular service diagrams — cloud b5i5bwwa (2026-09 collections) */
+/** Generated OPERAVA photography — shared with the site's image library. */
 const IMG = {
-  aiAutomation:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883998/795188595_1550334969738376_2629002611050598156_n.jpg',
-  customAutomation:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883997/818443341_1800198281153233_3417928797306308459_n.jpg',
-  customerService:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883179/818075191_1115987964333249_1393699877683613432_n.jpg',
-  documentProcessing:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883178/818133246_2111726673554111_7094790966613170147_n.jpg',
-  dataProcessing:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883178/816394333_4717468435148344_6455644252070295893_n.jpg',
-  systemsIntegration:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883197/795704726_4530308263854726_754283952295949774_n.jpg',
+  aiAutomation: '/media/operava-digital-strategy.webp',
+  customAutomation: '/media/operava-business-analytics.webp',
+  customerService: '/media/operava-customer-support.webp',
+  documentProcessing: '/media/operava-business-analytics.webp',
+  dataProcessing: '/media/operava-business-analytics.webp',
+  systemsIntegration: '/media/operava-technical-operations.webp',
 } as const
 
 /** Dedicated Automation catalogue — shown when carousel selects Automation */
