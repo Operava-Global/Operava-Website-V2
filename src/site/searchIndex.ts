@@ -27,7 +27,6 @@ const pages: SearchEntry[] = [
   { title: 'Hiring Process', path: '/careers/hiring-process', section: 'Careers', text: 'interview assessment recruitment steps' },
   { title: 'Talent Development', path: '/careers/talent-development', section: 'Careers', text: 'scholarship training mentorship accessibility students mothers' },
   { title: 'Apply Now', path: '/apply', section: 'Careers', text: 'application form resume' },
-  { title: 'Recruitment AVA', path: '/ai-job-screening', section: 'Careers', text: 'ai job screening interview' },
   { title: 'OPERAVA Academy', path: '/academy', section: 'Careers', text: 'learning courses certifications training' },
   { title: 'About OPERAVA', path: '/about', section: 'About', text: 'company profile mission philippines' },
   { title: 'Operating Philosophy', path: '/about/operating-philosophy', section: 'About', text: 'culture principles quality technology people process' },
