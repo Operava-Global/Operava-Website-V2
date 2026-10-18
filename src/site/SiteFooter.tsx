@@ -24,9 +24,9 @@ export default function SiteFooter() {
                 rel="noopener noreferrer"
                 aria-label={`OPERAVA on ${s.label} (@operavaglobal)`}
                 title={`${s.label} · @operavaglobal`}
-                className="w-8 h-8 rounded-full border border-neutral-800 flex items-center justify-center text-xs hover:border-white transition-colors"
+                className="w-9 h-9 rounded-full border border-neutral-800 bg-[#0e0e0e] flex items-center justify-center hover:border-accent hover:bg-[#1b122b] transition-[border-color,background-color]"
               >
-                {s.short}
+                <img src={`/social/brand-${s.label.toLowerCase()}.svg`} alt="" width="16" height="16" loading="lazy" className="w-4 h-4" />
               </a>
             ))}
           </div>
