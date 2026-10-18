@@ -1,0 +1,59 @@
+/* OPERAVA appearance — black by default; calm high-contrast lavender light theme.
+   No external animation dependency or borrowed proprietary design. */
+html[data-theme="light"] {
+  color-scheme: light;
+  --bg:#f7f5fb; --surface:#fff; --surface-2:#f1ecf8;
+  --border:#dad4e6; --text:#19132b; --muted:#554d65;
+  --accent:#6c27bc; --color-accent:#6c27bc; --color-accent-solid:#6220ac;
+  --color-surface:#fff; --color-surface-2:#f1ecf8;
+}
+html[data-theme="light"],html[data-theme="light"] body { background:#f7f5fb !important; color:#19132b; }
+html[data-theme="light"] #site-shell { background:#f7f5fb !important; color:#19132b !important; }
+html[data-theme="light"] .site-header { background:rgba(250,248,255,.94)!important; border-color:#d9d2e4!important; }
+html[data-theme="light"] .site-header--scrolled { background:rgba(251,249,255,.97)!important; box-shadow:0 12px 38px #33235218; }
+html[data-theme="light"] .site-mega-menu { background:#fff!important; border-color:#dcc9ef!important; }
+html[data-theme="light"] :is(.bg-black,.bg-neutral-900,.bg-neutral-950,[class*="bg-[#0"],[class*="bg-[#1"]) { background-color:#fff!important; }
+html[data-theme="light"] :is(.text-white,.text-neutral-100,.text-neutral-200,.text-neutral-300) { color:#19132b!important; }
+html[data-theme="light"] :is(.text-neutral-400,.text-neutral-500,.text-neutral-600,.text-neutral-700) { color:#62596d!important; }
+html[data-theme="light"] :is(.border-white,.border-neutral-700,.border-neutral-800,.border-neutral-900) { border-color:#d9d2e4!important; }
+html[data-theme="light"] .site-nav-link { color:#20172e!important; }
+html[data-theme="light"] .site-nav-link:hover,html[data-theme="light"] .site-nav-link[aria-expanded=true] { color:#6c27bc!important; }
+html[data-theme="light"] .grain { opacity:.016; }
+html[data-theme="light"] .site-theme-toggle { background:#fff; border-color:#c9bcdd; color:#50208e; }
+html[data-theme="light"] .site-theme-toggle:hover { background:#efe3fc; }
+html[data-theme="light"] select option { background:#fff; color:#211631; }
+html[data-theme="light"] :is(input:not([type=checkbox]),select,textarea) { color:#211631; }
+html[data-theme="light"] :is(input,textarea)::placeholder { color:#80758c; }
+html[data-theme="light"] :is(.btn-sweep,.bg-accent-solid) { color:#fff!important; }
+html[data-theme="light"] .bg-accent-solid { background:#6520ad!important; }
+html[data-theme="light"] .btn-sweep::before { background:#6c27bc; }
+html[data-theme="light"] .btn-sweep:hover { color:white!important; }
+html[data-theme="light"] footer { border-color:#d9d2e4; }
+html[data-theme="light"] footer img[src^="/social/"] { filter:invert(1); }
+html[data-theme="light"] .text-accent { color:#6827b3!important; }
+/* Keep text readable over photographic hero overlays on either theme. */
+html[data-theme="light"] .photo-overlay :is(.text-white,.text-neutral-300) { color:#fff!important; }
+html[data-theme="light"] .bg-white { background:#fff; }
+html[data-theme="light"] .bg-white.text-black { color:#17112a; }
+
+/* Lightweight, custom moving atmospheric gradient: CSS-only, not a copy of any brand background. */
+.operava-ambient {
+  position:fixed; inset:64px 0 auto; height:min(65vh,650px); z-index:0;
+  pointer-events:none; overflow:hidden; opacity:.46;
+  background:
+    radial-gradient(closest-side at 18% 45%,rgba(92,29,174,.28),transparent 78%),
+    radial-gradient(closest-side at 82% 20%,rgba(126,47,223,.24),transparent 72%);
+  background-size:150% 140%,145% 160%;
+  animation:operava-ambient-drift 25s ease-in-out infinite alternate;
+}
+html[data-theme="light"] .operava-ambient {
+  opacity:.68;
+  background:
+    radial-gradient(closest-side at 10% 34%,rgba(201,163,249,.28),transparent 78%),
+    radial-gradient(closest-side at 88% 28%,rgba(226,206,251,.5),transparent 74%);
+  background-size:155% 140%,145% 155%;
+}
+#site-shell > main,#site-shell > footer { position:relative; z-index:1; }
+#site-shell > header { z-index:50; }
+@keyframes operava-ambient-drift { from { background-position:0% 20%,100% 80%; } to { background-position:100% 80%,0% 15%; } }
+@media (prefers-reduced-motion:reduce) { .operava-ambient { animation:none!important; } }

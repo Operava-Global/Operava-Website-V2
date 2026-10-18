@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react'
 interface Props {
   maskedEmail: string
   draftId: string
-  devCode?: string
   onVerified: (result: { referenceId: string; name: string; formType: string }) => void
   onChangeEmail: () => void
   onBack: () => void
@@ -13,13 +12,12 @@ interface Props {
 export default function OtpVerify({
   maskedEmail,
   draftId: initialDraftId,
-  devCode,
   onVerified,
   onChangeEmail,
   onBack,
   onDraftIdChange,
 }: Props) {
-  const [digits, setDigits] = useState(devCode && devCode.length === 6 ? devCode.split('') : ['', '', '', '', '', ''])
+  const [digits, setDigits] = useState(['', '', '', '', '', ''])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [seconds, setSeconds] = useState(45)
@@ -87,7 +85,10 @@ export default function OtpVerify({
   }
 
   const resend = async () => {
-    if (seconds > 0) return
+    if (seconds > 0 || busy) return
+    setBusy(true)
+    setError('')
+    try {
     const res = await fetch('/api/forms/resend', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -106,6 +107,11 @@ export default function OtpVerify({
     setError('')
     setDigits(['', '', '', '', '', ''])
     refs.current[0]?.focus()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to resend. Check your connection and try again.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -132,7 +138,7 @@ export default function OtpVerify({
         {busy ? 'Verifying…' : 'VERIFY EMAIL'}
       </button>
       <p className="text-xs text-neutral-500">Didn't receive the code?</p>
-      <button type="button" onClick={resend} disabled={seconds > 0} className="text-[11px] tracking-widest uppercase font-semibold text-accent disabled:text-neutral-600">
+      <button type="button" onClick={resend} disabled={seconds > 0 || busy} className="text-[11px] tracking-widest uppercase font-semibold text-accent disabled:text-neutral-600">
         Resend code{seconds > 0 ? ` in 00:${String(seconds).padStart(2, '0')}` : ''}
       </button>
       <div className="flex justify-center gap-4 text-xs">
