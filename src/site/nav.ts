@@ -102,7 +102,7 @@ export const MEGA_TABS: MegaTab[] = [
         links: ['automation', 'information-technology', 'outsourcing', 'offshoring', 'global-operations'].map((s) => ({
           label: cat(s).name,
           to: insightHref(s),
-        })),
+        })).concat([{ label: 'Free Learning Hub', to: '/learning' }]),
       },
       {
         heading: 'Trending',
@@ -115,7 +115,7 @@ export const MEGA_TABS: MegaTab[] = [
         heading: 'Operations Lens',
         links: ['business-processes', 'workforce', 'business-growth'].map((s) => ({ label: cat(s).name, to: insightHref(s) })),
       },
-      { heading: 'Explore', cta: { label: 'View all Insights →', to: '/insights' } },
+      { heading: 'Explore', links: [{ label: 'Public YouTube Lessons', to: '/learning' }], cta: { label: 'View all Insights →', to: '/insights' } },
     ],
     feature: {
       kind: 'image',
@@ -196,6 +196,7 @@ export const MEGA_TABS: MegaTab[] = [
           { label: 'Life at OPERAVA', to: '/careers/life-at-operava' },
           { label: 'Talent Development', to: '/careers/talent-development' },
           { label: 'OPERAVA Academy', to: '/academy' },
+          { label: 'Free Learning Hub', to: '/learning' },
         ],
       },
       {
@@ -276,6 +277,7 @@ export const FOOTER_COLUMNS: { heading: string; links: NavLink[] }[] = [
       { label: 'Outsourcing', to: insightHref('outsourcing') },
       { label: 'Global Operations', to: insightHref('global-operations') },
       { label: 'All Insights', to: '/insights' },
+      { label: 'Free Learning Hub', to: '/learning' },
     ],
   },
   {
@@ -294,6 +296,7 @@ export const FOOTER_COLUMNS: { heading: string; links: NavLink[] }[] = [
       { label: 'About Us', to: '/about' },
       { label: 'Industries', to: '/industries' },
       { label: 'Careers', to: '/careers' },
+      { label: 'Learning Hub', to: '/learning' },
       { label: 'Contact Directory', to: '/contacts' },
       { label: 'Verification', to: '/verification' },
       { label: 'Payment Portal', to: '/payment-portal' },
