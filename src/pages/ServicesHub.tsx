@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { usePageMeta } from '../site/seo'
 import { Page, Crumbs, PageHero, NumberPanel, SectionHead, Section, CtaBanner, ArrowLink } from '../site/ui'
 import { SERVICE_CATEGORIES, CATEGORY_ORDER } from '../site/content/serviceCategories'
@@ -95,6 +96,16 @@ export default function ServicesHub() {
         </div>
       </Section>
 
+      <Section>
+        <div className="rounded-xl border border-neutral-800 bg-[#0e0d14] p-8 lg:p-14 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-7">
+          <div className="max-w-[740px]">
+            <p className="text-accent text-xs tracking-widest font-bold uppercase">Planning beyond the job title</p>
+            <h2 className="text-3xl lg:text-4xl font-black uppercase mt-3">Direct hire, managed teams or automation?</h2>
+            <p className="text-sm lg:text-base text-neutral-400 leading-relaxed mt-4">Compare eight practical risk scenarios involving virtual assistance, data access, customer service, continuity, software handover and automation. Learn which safeguards to discuss before starting.</p>
+          </div>
+          <Link to="/insights/outsourcing-risks" className="px-6 py-4 border border-neutral-500 rounded-lg font-bold tracking-wider text-xs uppercase shrink-0 hover:border-accent hover:text-accent transition-colors">Explore risks & controls →</Link>
+        </div>
+      </Section>
       <CtaBanner
         image={PHOTO.handshake}
         kicker="Talk to us"

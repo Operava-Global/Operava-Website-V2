@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import EcosystemLogos from '../components/EcosystemLogos'
 import { Link } from 'react-router-dom'
 import { usePageMeta } from '../site/seo'
 import { Img, NumberPanel, StoryCard, CtaBanner, SectionHead, OutlineButton } from '../site/ui'
@@ -90,9 +89,9 @@ export default function Home() {
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-0 items-stretch">
           <div className="lg:w-[40%] flex flex-col justify-between lg:pr-8">
             <h1 className="text-[48px] sm:text-[64px] lg:text-[length:min(6.6vw,108px)] font-black uppercase leading-[0.85] tracking-[-0.04em]">
-              {['We', 'Operate', 'In', 'Advance'].map((w, n) => (
+              {['Operate,', 'Automate,', 'Accelerate.'].map((w, n) => (
                 <span key={w} className="line-mask">
-                  <span className={`line-rise ${n > 1 ? 'text-neutral-600' : ''}`} style={{ ['--d' as string]: `${0.15 + n * 0.12}s` }}>
+                  <span className={`line-rise ${n === 2 ? 'text-neutral-600' : ''}`} style={{ ['--d' as string]: `${0.15 + n * 0.12}s` }}>
                     {w}
                   </span>
                 </span>
@@ -107,7 +106,7 @@ export default function Home() {
                 ↓
               </a>
               <p className="text-xs tracking-widest uppercase text-neutral-500 max-w-[220px] leading-relaxed">
-                Scroll to explore how we operate with clients
+                Discover how we operate, automate and accelerate business
               </p>
             </div>
           </div>
@@ -212,8 +211,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      <EcosystemLogos />
 
       {/* STATEMENT */}
 

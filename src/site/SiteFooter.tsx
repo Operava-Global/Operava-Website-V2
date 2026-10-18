@@ -4,7 +4,6 @@ import { COMPANY } from './content/company'
 import { Wordmark } from './SiteHeader'
 
 export default function SiteFooter() {
-  const year = new Date().getFullYear()
   return (
     <footer className="border-t border-neutral-900 px-6 lg:px-12 py-16 text-sm">
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-10">
@@ -45,19 +44,16 @@ export default function SiteFooter() {
                   </Link>
                 </li>
               ))}
-              {col.heading === 'Legal' && (
-                <li className="text-neutral-600">© {year} OPERAVA Global Solutions. All Rights Reserved.</li>
-              )}
             </ul>
           </div>
         ))}
       </div>
       <div className="mt-16 pt-8 border-t border-neutral-900 flex flex-col lg:flex-row justify-between gap-4 text-[11px] tracking-widest uppercase text-neutral-600">
-        <span>{COMPANY.motto}</span>
+        <span className="copyright-chip inline-flex items-center px-4 py-2 rounded-full border border-neutral-700 normal-case tracking-normal font-semibold">© 2026 OPERAVA Global Solutions. All Rights Reserved.</span>
         <span className="flex flex-wrap gap-x-6 gap-y-2">
           <span>SEC Reg. No. {COMPANY.sec}</span>
           <span>Philippines • Global Operations</span>
-          <span className="text-white">operavaglobal.com</span>
+          <a className="hover:text-accent transition-colors" href="https://www.operavaglobal.com/" target="_blank" rel="noopener noreferrer">operavaglobal.com</a>
         </span>
       </div>
     </footer>

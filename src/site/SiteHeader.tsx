@@ -71,7 +71,7 @@ function MegaPanel({ tab, onNavigate }: { tab: MegaTab; onNavigate: () => void }
         ))}
       </div>
       {f.kind === 'image' ? (
-        <Link to={f.to} onClick={onNavigate} className="relative h-[300px] overflow-hidden bg-neutral-900 rounded group mega-col" style={{ ['--i' as string]: 5 }}>
+        <Link to={f.to} onClick={onNavigate} className="photo-overlay relative h-[300px] overflow-hidden bg-neutral-900 rounded group mega-col" style={{ ['--i' as string]: 5 }}>
           <Img src={f.image} alt={f.title} className="w-full h-full object-cover brightness-75 group-hover:scale-[1.04] transition-transform duration-700" />
           <div className="absolute bottom-0 left-0 p-6 bg-gradient-to-t from-black via-black/70 to-transparent w-full">
             <p className="text-xs tracking-widest uppercase text-accent mb-2">{f.kicker}</p>
