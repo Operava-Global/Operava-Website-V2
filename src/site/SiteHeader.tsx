@@ -9,7 +9,7 @@ type TabId = MegaTab['id']
 
 /** Which top-level tab a path belongs to (for the active underline) */
 function tabForPath(path: string): TabId | null {
-  if (path.startsWith('/insights')) return 'insights'
+  if (path.startsWith('/insights') || path.startsWith('/learning')) return 'insights'
   if (path.startsWith('/services') || path.startsWith('/quote') || path.startsWith('/request-a-quote')) return 'services'
   if (path.startsWith('/industries')) return 'industries'
   if (/^\/(careers|apply|academy|ai-job-screening)/.test(path)) return 'careers'
