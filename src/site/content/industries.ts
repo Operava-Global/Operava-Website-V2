@@ -1,4 +1,3 @@
-import { PHOTO, SERVICE_PHOTO, LOCAL } from '../media'
 
 /**
  * Industries — source: create/Business References
@@ -52,7 +51,7 @@ export const industries: Industry[] = [
       { cat: 'it', slug: 'web-mobile-development', use: 'E-commerce platforms, storefronts and mobile experiences.' },
       { cat: 'it', slug: 'systems-integration', use: 'Payment, marketplace, CRM and ERP integrations.' },
     ],
-    image: SERVICE_PHOTO['customer-service'],
+    image: '/media/operava-customer-support.webp',
   },
   {
     slug: 'saas-digital-platforms',
@@ -76,7 +75,7 @@ export const industries: Industry[] = [
       { cat: 'it', slug: 'database-services', use: 'Database design, administration and optimization.' },
       { cat: 'it', slug: 'systems-integration', use: 'API, SaaS and cloud integrations.' },
     ],
-    image: SERVICE_PHOTO['saas-platform-development'],
+    image: '/media/operava-software-engineering.webp',
   },
   {
     slug: 'financial-services',
@@ -101,7 +100,7 @@ export const industries: Industry[] = [
       { cat: 'it', slug: 'systems-integration', use: 'Payment, CRM and ERP integrations.' },
     ],
     note: REGULATED,
-    image: PHOTO.analyst,
+    image: '/media/operava-business-analytics.webp',
   },
   {
     slug: 'insurance',
@@ -125,7 +124,7 @@ export const industries: Industry[] = [
       { cat: 'it', slug: 'it-systems-development', use: 'Workflow, approval and reporting systems.' },
     ],
     note: REGULATED,
-    image: SERVICE_PHOTO['document-processing'],
+    image: '/media/operava-scene-operava-team-collaboration-in-purple-glow.webp',
   },
   {
     slug: 'healthcare-administration',
@@ -150,7 +149,7 @@ export const industries: Industry[] = [
     ],
     note:
       'Healthcare engagements are subject to applicable privacy, security and healthcare requirements, which are defined contractually and technically for each engagement.',
-    image: PHOTO.backOffice,
+    image: '/media/operava-team-collaboration.webp',
   },
   {
     slug: 'logistics-transportation',
@@ -174,7 +173,7 @@ export const industries: Industry[] = [
       { cat: 'it', slug: 'it-systems-development', use: 'Operations management and reporting systems.' },
       { cat: 'it', slug: 'systems-integration', use: 'Application-to-application and ERP integrations.' },
     ],
-    image: SERVICE_PHOTO['back-office-operations'],
+    image: '/media/operava-scene-operava-data-center-operations.webp',
   },
   {
     slug: 'real-estate',
@@ -197,7 +196,7 @@ export const industries: Industry[] = [
       { cat: 'bpo', slug: 'customer-service', use: 'Buyer, tenant and owner inquiries.' },
       { cat: 'it', slug: 'web-mobile-development', use: 'Property websites, portals and booking platforms.' },
     ],
-    image: SERVICE_PHOTO['virtual-assistance'],
+    image: '/media/operava-remote-work.webp',
   },
   {
     slug: 'education-edtech',
@@ -220,7 +219,7 @@ export const industries: Industry[] = [
       { cat: 'it', slug: 'web-mobile-development', use: 'Websites, web applications and mobile learning experiences.' },
       { cat: 'it', slug: 'saas-platform-development', use: 'Learning platforms and subscription systems.' },
     ],
-    image: SERVICE_PHOTO['web-mobile-development'],
+    image: '/media/operava-scene-warm-remote-work-welcome.webp',
   },
   {
     slug: 'professional-services',
@@ -243,7 +242,7 @@ export const industries: Industry[] = [
       { cat: 'it', slug: 'software-development', use: 'Internal tools and client portals.' },
       { cat: 'it', slug: 'it-consulting', use: 'Technology assessments and roadmaps.' },
     ],
-    image: PHOTO.handshake,
+    image: '/media/operava-digital-strategy.webp',
   },
   {
     slug: 'startups-smes',
@@ -267,7 +266,7 @@ export const industries: Industry[] = [
       { cat: 'bpo', slug: 'customer-service', use: 'Customer care while the team focuses on product.' },
       { cat: 'bpo', slug: 'technical-support', use: 'User assistance and technical ticket handling.' },
     ],
-    image: PHOTO.developer,
+    image: '/media/operava-scene-bright-virtual-team-connection.webp',
   },
 ]
 
