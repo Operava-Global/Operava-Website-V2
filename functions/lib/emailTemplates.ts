@@ -32,23 +32,23 @@ const AUTO_NOTE = 'Note: This is an email generated email, please do not reply.&
  */
 export function mandatoryEmailShell(fullNamePlaceholder: string, bodyPlaceholder: string): string {
   return (
-    '<table width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="width: 100%; margin: 0; padding: 0; background: rgb(255, 255, 255); background-color: rgb(255, 255, 255); color: rgb(17, 17, 17)">' +
+    '<table width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#160a27" style="width: 100%; margin: 0; padding: 0; background: #160a27; background-color: #160a27; color: #f4eefe">' +
     '<tbody>' +
     '<tr>' +
-    '<td align="center" bgcolor="#ffffff" style="margin: 0; padding: 0; background: rgb(255, 255, 255); background-color: rgb(255, 255, 255); color: rgb(17, 17, 17)">' +
-    '<table width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="width: 100%; max-width: 900px; margin: 0 auto; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.45; background: rgb(255, 255, 255); background-color: rgb(255, 255, 255); color: rgb(17, 17, 17)">' +
+    '<td align="center" bgcolor="#160a27" style="margin: 0; padding: 0; background: #160a27; background-color: #160a27; color: #f4eefe">' +
+    '<table width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#160a27" style="width: 100%; max-width: 900px; margin: 0 auto; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.45; background: #160a27; background-color: #160a27; color: #f4eefe">' +
     '<tbody>' +
     /* Header image — do not change */
     '<tr>' +
-    '<td width="100%" bgcolor="#ffffff" style="padding: 0; margin: 0; font-size: 0; line-height: 0; color: rgb(17, 17, 17); background: rgb(255, 255, 255); background-color: rgb(255, 255, 255)">' +
+    '<td width="100%" bgcolor="#160a27" style="padding: 0; margin: 0; font-size: 0; line-height: 0; color: #f4eefe; background: #160a27; background-color: #160a27">' +
     '<img src="' +
     HEADER_IMG +
-    '" width="900" alt="OPERAVA GLOBAL SOLUTIONS" style="display: block; width: 100%; max-width: 900px; height: auto; border: 0; margin: 0; padding: 0; background: rgb(255, 255, 255); background-color: rgb(255, 255, 255)">' +
+    '" width="900" alt="OPERAVA GLOBAL SOLUTIONS" style="display: block; width: 100%; max-width: 900px; height: auto; border: 0; margin: 0; padding: 0; background: #160a27; background-color: #160a27">' +
     '</td>' +
     '</tr>' +
     /* Body: Hi {full_name}, then body, then Operava Team + note */
     '<tr>' +
-    '<td bgcolor="#ffffff" style="padding: 18px 0 14px 0; margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.45; background: rgb(255, 255, 255); background-color: rgb(255, 255, 255); color: rgb(17, 17, 17)">' +
+    '<td bgcolor="#160a27" style="padding: 18px 0 14px 0; margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.45; background: #160a27; background-color: #160a27; color: #f4eefe">' +
     '<p style="margin: 0px 0px 8px; padding: 0px; font-weight: normal;">' +
     '<span style="color:rgb(17, 17, 17); font-family:Arial, Helvetica, sans-serif; font-size: 11px;">' +
     'Hi ' +
@@ -71,15 +71,15 @@ export function mandatoryEmailShell(fullNamePlaceholder: string, bodyPlaceholder
     '</tr>' +
     /* Footer image — do not change */
     '<tr>' +
-    '<td width="100%" bgcolor="#ffffff" style="padding: 0; margin: 0; font-size: 0; line-height: 0; color: rgb(17, 17, 17); background: rgb(255, 255, 255); background-color: rgb(255, 255, 255)">' +
+    '<td width="100%" bgcolor="#160a27" style="padding: 0; margin: 0; font-size: 0; line-height: 0; color: #f4eefe; background: #160a27; background-color: #160a27">' +
     '<img src="' +
     FOOTER_IMG +
-    '" width="900" alt="OPERAVA GLOBAL SOLUTIONS" style="display: block; width: 100%; max-width: 900px; height: auto; border: 0; margin: 0; padding: 0; background: rgb(255, 255, 255); background-color: rgb(255, 255, 255)">' +
+    '" width="900" alt="OPERAVA GLOBAL SOLUTIONS" style="display: block; width: 100%; max-width: 900px; height: auto; border: 0; margin: 0; padding: 0; background: #160a27; background-color: #160a27">' +
     '</td>' +
     '</tr>' +
     /* Legal */
     '<tr>' +
-    '<td bgcolor="#ffffff" style="padding: 0; margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.45; text-align: left; background: rgb(255, 255, 255); background-color: rgb(255, 255, 255); color: rgb(85, 85, 85)" align="left">' +
+    '<td bgcolor="#160a27" style="padding: 0; margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.45; text-align: left; background: #160a27; background-color: #160a27; color: rgb(85, 85, 85)" align="left">' +
     '<p style="padding: 0px; margin: 0px; line-height: 1.45;">' +
     '<span style="color:rgb(85, 85, 85); font-family:Arial, Helvetica, sans-serif; font-size: 11px;">' +
     LEGAL_TEXT +
@@ -89,7 +89,7 @@ export function mandatoryEmailShell(fullNamePlaceholder: string, bodyPlaceholder
     '</tr>' +
     /* Copyright */
     '<tr>' +
-    '<td bgcolor="#ffffff" style="padding: 0; margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.45; text-align: left; background: rgb(255, 255, 255); background-color: rgb(255, 255, 255); color: rgb(85, 85, 85)" align="left">' +
+    '<td bgcolor="#160a27" style="padding: 0; margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.45; text-align: left; background: #160a27; background-color: #160a27; color: rgb(85, 85, 85)" align="left">' +
     '<p style="padding: 0px; margin: 0px; line-height: 1.45;">' +
     '<span style="color:rgb(85, 85, 85); font-family:Arial, Helvetica, sans-serif; font-size: 11px;">' +
     COPYRIGHT_TEXT +
