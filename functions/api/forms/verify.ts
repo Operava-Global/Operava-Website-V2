@@ -131,16 +131,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const nowIso = new Date().toISOString()
     const payloadJson = JSON.stringify(payload)
 
-    // Consume exactly once before sending notifications. A replay cannot create
-    // another submission; a failed insert must never appear successful.
+    // A single D1 transaction stores the verified submission and consumes its OTP.
+    // The insert only runs for an unused, unexpired code. Replayed requests create no new records.
     try {
-      const consumed = await db.prepare(
-        'UPDATE form_otps SET consumed = 1 WHERE draft_id = ? AND consumed = 0 AND code_hash = ? AND expires_at > ? AND attempts < 5',
-      ).bind(draftId, signed.codeHash, Date.now()).run()
-      if (!consumed.meta?.changes) return json({ error: 'This code was already used or expired.' }, 409)
-      await db.prepare(
-        "INSERT INTO form_submissions (reference_id, form_type, name, email, payload, verification_status, status, resume_key, created_at, verified_at) VALUES (?, ?, ?, ?, ?, 'VERIFIED', 'VERIFIED', ?, ?, ?)",
-      ).bind(referenceId, formType, name, email, payloadJson, resumeKey, nowIso, nowIso).run()
+      const time = Date.now()
+      const results = await db.batch([
+        db.prepare(
+          "INSERT INTO form_submissions (reference_id, form_type, name, email, payload, verification_status, status, resume_key, created_at, verified_at) SELECT ?, ?, ?, ?, ?, 'VERIFIED', 'VERIFIED', ?, ?, ? FROM form_otps WHERE draft_id = ? AND code_hash = ? AND consumed = 0 AND expires_at > ? AND attempts < 5",
+        ).bind(referenceId, formType, name, email, payloadJson, resumeKey, nowIso, nowIso, draftId, signed.codeHash, time),
+        db.prepare(
+          'UPDATE form_otps SET consumed = 1 WHERE draft_id = ? AND code_hash = ? AND consumed = 0 AND expires_at > ?',
+        ).bind(draftId, signed.codeHash, time),
+      ])
+      if (Number(results[0]?.meta?.changes || 0) !== 1 || Number(results[1]?.meta?.changes || 0) !== 1) {
+        return json({ error: 'This verification was already completed or expired. Start again.' }, 409)
+      }
       if (payload.resumeText) {
         try {
           await ensureResumeTables(db)
@@ -149,8 +154,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         } catch (resumeErr) { console.error('optional resume update failed', resumeErr) }
       }
     } catch (storageError) {
-      console.error('Verified submission save failed', storageError instanceof Error ? storageError.message : 'unknown')
-      return json({ error: 'Your verification succeeded, but the submission could not be saved. Contact support before submitting again.', code: 'SUBMISSION_SAVE_FAILED' }, 503)
+      console.error('Verified submission transaction failed', storageError instanceof Error ? storageError.message : 'unknown')
+      return json({ error: 'Unable to save your verified form. Please try again later.', code: 'SUBMISSION_SAVE_FAILED' }, 503)
     }
 
     const megaTask = backupFormSubmissionToMega(env, {
