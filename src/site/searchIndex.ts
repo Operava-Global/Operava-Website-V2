@@ -21,6 +21,7 @@ const pages: SearchEntry[] = [
   { title: 'Engagement Models', path: '/services/engagement-models', section: 'Services', text: 'dedicated team project staff augmentation one professional multiple teams pricing billing' },
   { title: 'Industries', path: '/industries', section: 'Industries', text: 'verticals sectors' },
   { title: 'Insights', path: '/insights', section: 'Insights', text: 'articles guides research' },
+  { title: 'Free Learning Hub', path: '/learning', section: 'Learning', text: 'free public youtube videos artificial intelligence AI automation power automate n8n python javascript programming data analytics sql machine learning courses lessons' },
   { title: 'Careers', path: '/careers', section: 'Careers', text: 'jobs hiring remote work open roles' },
   { title: 'Life at OPERAVA', path: '/careers/life-at-operava', section: 'Careers', text: 'benefits remote flexible culture' },
   { title: 'Hiring Process', path: '/careers/hiring-process', section: 'Careers', text: 'interview assessment recruitment steps' },
