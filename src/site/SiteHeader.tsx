@@ -29,8 +29,8 @@ export function Wordmark({ size = 'md', intro = true }: { size?: 'md' | 'lg'; in
 function MegaPanel({ tab, onNavigate }: { tab: MegaTab; onNavigate: () => void }) {
   const f = tab.feature
   return (
-    <div className="p-12 grid grid-cols-5 gap-10">
-      <div className={`col-span-4 grid ${tab.cols === 4 ? 'grid-cols-4' : 'grid-cols-3'} gap-10`}>
+    <div className="site-mega-panel mx-auto w-full max-w-[1480px] p-8 xl:p-12 grid grid-cols-5 gap-6 xl:gap-10">
+      <div className={`col-span-4 grid ${tab.cols === 4 ? 'grid-cols-4' : 'grid-cols-3'} gap-6 xl:gap-10`}>
         {tab.imageCards?.map((c) => (
           <Link key={c.to} to={c.to} onClick={onNavigate} className="space-y-6 group mega-col" style={{ ['--i' as string]: tab.imageCards!.indexOf(c) }}>
             <div className="h-32 overflow-hidden rounded bg-neutral-900">
@@ -102,7 +102,7 @@ export default function SiteHeader() {
   const [hover, setHover] = useState<TabId | null>(null)
   const [drawer, setDrawer] = useState(false)
   const [accordion, setAccordion] = useState<TabId | null>(null)
-  const [hidden, setHidden] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
   const lastY = useRef(0)
@@ -117,7 +117,7 @@ export default function SiteHeader() {
       const y = window.scrollY
       const max = document.documentElement.scrollHeight - window.innerHeight
       progressRef.current?.style.setProperty('--p', String(max > 0 ? Math.min(1, y / max) : 0))
-      setHidden(y > lastY.current && y > 120)
+      setScrolled(y > 20)
       lastY.current = y
       setHover(null)
     }
@@ -179,17 +179,17 @@ export default function SiteHeader() {
   return (
     <>
       <header
-        className={`sticky z-50 bg-black border-b border-neutral-900 h-16 flex items-center justify-between px-6 lg:px-8 transition-transform duration-300 ${
-          hidden && !searchOpen ? '-translate-y-full' : 'translate-y-0'
+        className={`site-header sticky z-50 border-b border-neutral-900 h-16 flex items-center justify-between px-6 lg:px-8 transition-[background-color,border-color,box-shadow] duration-500 ${scrolled ? 'site-header--scrolled' : ''} ${
+          'translate-y-0'
         }`}
         style={{ top: 'var(--safe-area-inset-top)' }}
       >
         <div ref={progressRef} aria-hidden className="scroll-progress absolute left-0 bottom-[-1px] h-px w-full bg-accent pointer-events-none" />
-        <Link to="/" onClick={() => goTo('/')} className="flex items-center group" aria-label="OPERAVA Global Solutions — Home">
+        <Link to="/" onClick={() => goTo('/')} className="flex items-center group relative z-10 shrink-0" aria-label="OPERAVA Global Solutions — Home">
           <Wordmark />
         </Link>
 
-        <nav aria-label="Primary" className="hidden lg:flex items-center gap-8 h-full">
+        <nav aria-label="Primary" className="hidden lg:flex items-center justify-center gap-1 h-full absolute left-1/2 -translate-x-1/2">
           {MEGA_TABS.map((t) => (
             <div key={t.id} className="h-full flex items-center relative" onMouseEnter={() => open(t.id)} onMouseLeave={scheduleClose}>
               <Link
@@ -199,7 +199,7 @@ export default function SiteHeader() {
                 onFocus={() => open(t.id)}
                 aria-expanded={hover === t.id}
                 aria-haspopup="true"
-                className={`h-full flex items-center text-[11px] tracking-[0.22em] font-semibold uppercase hover:text-accent transition-colors ${
+                className={`site-nav-link h-full px-3 xl:px-4 flex items-center justify-center text-[11px] tracking-[0.14em] font-semibold uppercase hover:text-accent transition-colors ${
                   active === t.id ? 'text-white border-b border-white' : hover === t.id ? 'text-accent' : 'text-white/90'
                 }`}
               >
@@ -209,7 +209,7 @@ export default function SiteHeader() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 relative z-10 shrink-0">
           <button
             type="button"
             onClick={() => setSearchOpen((s) => !s)}
@@ -223,7 +223,7 @@ export default function SiteHeader() {
           </button>
           <Link
             to="/contact"
-            className="hidden lg:flex h-9 px-5 border border-white text-[11px] tracking-widest font-semibold uppercase items-center btn-sweep hover:text-black transition-colors duration-300"
+            className="hidden lg:flex h-9 px-4 xl:px-5 border border-white text-[11px] tracking-widest font-semibold uppercase items-center btn-sweep hover:text-black transition-colors duration-300"
           >
             Contact
           </Link>
@@ -275,7 +275,7 @@ export default function SiteHeader() {
         )}
 
         <div
-          className={`hidden lg:block absolute left-0 w-full bg-[#0a0a0a] border-t border-accent transition-all duration-200 ease-out ${
+          className={`site-mega-menu hidden lg:block absolute left-0 w-full bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-accent/50 shadow-2xl transition-all duration-300 ease-out ${
             current ? 'opacity-100 translate-y-0 pointer-events-auto visible' : 'opacity-0 -translate-y-2 pointer-events-none invisible'
           }`}
           style={{ top: '64px' }}
