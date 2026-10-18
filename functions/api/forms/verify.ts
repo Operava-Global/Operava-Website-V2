@@ -9,7 +9,6 @@ import {
   resolveSecret,
   otpSecretMissingResponse,
   readSignedDraft,
-  issueSignedDraft,
   staffNotificationEmail,
   senderFor,
   extractPlainEmail,
@@ -73,6 +72,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
     const secret = resolveSecret(env)
     if (!secret) return otpSecretMissingResponse()
+    const db = env.SUBMISSIONS_DB
+    if (!db) return json({ error: 'Secure form storage is temporarily unavailable.', code: 'STORAGE_UNAVAILABLE' }, 503)
 
     let body: { draftId?: string; code?: string }
     try {
@@ -87,27 +88,23 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const signed = await readSignedDraft(secret, draftId)
     if (!signed) return json({ error: 'This code is no longer valid. Start the form again.' }, 400)
     if (Date.now() > Number(signed.expiresAt)) return json({ error: 'This code has expired.' }, 400)
-    if (Number(signed.attempts) >= 5) return json({ error: 'Too many attempts. Request a new code.' }, 429)
-
-    if (!(await otpCodeMatches(secret, code, String(signed.codeHash || '')))) {
-      const bumped = await issueSignedDraft(secret, {
-        email: signed.email,
-        formType: signed.formType,
-        payload: signed.payload,
-        codeHash: signed.codeHash,
-        expiresAt: signed.expiresAt,
-        attempts: Number(signed.attempts || 0) + 1,
-        resends: signed.resends,
-        lastSentAt: signed.lastSentAt,
-      })
-      return json(
-        {
-          error: 'Invalid verification code.',
-          draftId: bumped,
-          attemptsRemaining: Math.max(0, 4 - Number(signed.attempts || 0)),
-        },
-        401,
-      )
+    // The database, not the browser's signed draft, is the verification authority.
+    try {
+      await ensureTables(db)
+      const record = await db.prepare('SELECT code_hash, attempts, consumed, expires_at, email, form_type FROM form_otps WHERE draft_id = ? ORDER BY id DESC LIMIT 1')
+        .bind(draftId).first<{ code_hash: string; attempts: number; consumed: number; expires_at: number; email: string; form_type: string }>()
+      if (!record || record.consumed || record.expires_at < Date.now() || record.email !== signed.email || record.form_type !== signed.formType) {
+        return json({ error: 'This verification session is no longer valid. Request a new code.' }, 400)
+      }
+      if (record.attempts >= 5) return json({ error: 'Too many attempts. Start the verification again.' }, 429)
+      if (!(await otpCodeMatches(secret, code, record.code_hash))) {
+        await db.prepare('UPDATE form_otps SET attempts = attempts + 1 WHERE draft_id = ? AND consumed = 0 AND attempts < 5')
+          .bind(draftId).run()
+        return json({ error: 'Invalid verification code.', attemptsRemaining: Math.max(0, 4 - record.attempts) }, 401)
+      }
+    } catch (storageError) {
+      console.error('OTP lookup failed', storageError instanceof Error ? storageError.message : 'unknown')
+      return json({ error: 'Unable to verify this code right now.', code: 'STORAGE_FAILED' }, 503)
     }
 
     let payload: Record<string, unknown> = {}
@@ -134,35 +131,31 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const nowIso = new Date().toISOString()
     const payloadJson = JSON.stringify(payload)
 
-    if (env.SUBMISSIONS_DB) {
-      try {
-        await ensureTables(env.SUBMISSIONS_DB)
-        await ensureResumeTables(env.SUBMISSIONS_DB)
-        await env.SUBMISSIONS_DB.prepare(
-          "INSERT INTO form_submissions (reference_id, form_type, name, email, payload, verification_status, status, resume_key, created_at, verified_at) VALUES (?, ?, ?, ?, ?, 'VERIFIED', 'VERIFIED', ?, ?, ?)",
-        )
-          .bind(referenceId, formType, name, email, payloadJson, resumeKey, nowIso, nowIso)
-          .run()
-
-        // Best-effort: also set resume_text / resume_parsed columns when present
-        if (payload.resumeText) {
-          try {
-            await env.SUBMISSIONS_DB.prepare(
-              'UPDATE form_submissions SET resume_text = ?, resume_parsed = ? WHERE reference_id = ?',
-            )
-              .bind(
-                String(payload.resumeText).slice(0, 200000),
-                JSON.stringify(payload.resumeDataMandatory || {}),
-                referenceId,
-              )
-              .run()
-          } catch {
-            /* columns may not exist yet */
-          }
-        }
-      } catch {
-        console.error('D1 insert optional failed')
+    // A single D1 transaction stores the verified submission and consumes its OTP.
+    // The insert only runs for an unused, unexpired code. Replayed requests create no new records.
+    try {
+      const time = Date.now()
+      const results = await db.batch([
+        db.prepare(
+          "INSERT INTO form_submissions (reference_id, form_type, name, email, payload, verification_status, status, resume_key, created_at, verified_at) SELECT ?, ?, ?, ?, ?, 'VERIFIED', 'VERIFIED', ?, ?, ? FROM form_otps WHERE draft_id = ? AND code_hash = ? AND consumed = 0 AND expires_at > ? AND attempts < 5",
+        ).bind(referenceId, formType, name, email, payloadJson, resumeKey, nowIso, nowIso, draftId, signed.codeHash, time),
+        db.prepare(
+          'UPDATE form_otps SET consumed = 1 WHERE draft_id = ? AND code_hash = ? AND consumed = 0 AND expires_at > ?',
+        ).bind(draftId, signed.codeHash, time),
+      ])
+      if (Number(results[0]?.meta?.changes || 0) !== 1 || Number(results[1]?.meta?.changes || 0) !== 1) {
+        return json({ error: 'This verification was already completed or expired. Start again.' }, 409)
       }
+      if (payload.resumeText) {
+        try {
+          await ensureResumeTables(db)
+          await db.prepare('UPDATE form_submissions SET resume_text = ?, resume_parsed = ? WHERE reference_id = ?')
+            .bind(String(payload.resumeText).slice(0, 200000), JSON.stringify(payload.resumeDataMandatory || {}), referenceId).run()
+        } catch (resumeErr) { console.error('optional resume update failed', resumeErr) }
+      }
+    } catch (storageError) {
+      console.error('Verified submission transaction failed', storageError instanceof Error ? storageError.message : 'unknown')
+      return json({ error: 'Unable to save your verified form. Please try again later.', code: 'SUBMISSION_SAVE_FAILED' }, 503)
     }
 
     const megaTask = backupFormSubmissionToMega(env, {

@@ -102,11 +102,11 @@ export default function OperavaIntakeForm({
   defaultCategory,
 }: Props) {
   const kind = rawKind === 'CAREERS' ? 'CAREERS' : 'SERVICES'
+  const formType: IntakeKind = rawKind === 'CONTACT' ? 'CONTACT' : kind
 
   const [step, setStep] = useState<'form' | 'otp' | 'done'>('form')
   const [draftId, setDraftId] = useState('')
   const [maskedEmail, setMaskedEmail] = useState('')
-  const [devCode, setDevCode] = useState<string | undefined>(undefined)
   const [result, setResult] = useState<{ referenceId: string; name: string; formType: string }>({
     referenceId: '',
     name: '',
@@ -285,7 +285,7 @@ export default function OperavaIntakeForm({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          formType: kind,
+          formType,
           name: form.name,
           company: form.company,
           email: form.email,
@@ -315,7 +315,6 @@ export default function OperavaIntakeForm({
       if (!res.ok) throw new Error(data.error || 'Unable to send verification code.')
       setDraftId(data.draftId)
       setMaskedEmail(data.maskedEmail)
-      setDevCode(data.devCode)
       setStep('otp')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to submit.')
@@ -333,7 +332,6 @@ export default function OperavaIntakeForm({
       <OtpVerify
         maskedEmail={maskedEmail}
         draftId={draftId}
-        devCode={devCode}
         onDraftIdChange={setDraftId}
         onVerified={(value) => {
           setResult(value)
