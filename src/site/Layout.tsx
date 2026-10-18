@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import SiteHeader from './SiteHeader'
 import SiteFooter from './SiteFooter'
@@ -65,29 +65,6 @@ function useSpotlight() {
   }, [])
 }
 
-/** Three accent lines sweep across at the logo's 34° angle whenever the page changes. */
-function RouteSweep({ pathname }: { pathname: string }) {
-  const first = useRef(true)
-  const [run, setRun] = useState(0)
-  useEffect(() => {
-    if (first.current) {
-      first.current = false
-      return
-    }
-    setRun((n) => n + 1)
-    const t = window.setTimeout(() => setRun(0), 1100)
-    return () => window.clearTimeout(t)
-  }, [pathname])
-  if (!run) return null
-  return (
-    <div key={run} className="op-sweep" aria-hidden>
-      <span />
-      <span />
-      <span />
-    </div>
-  )
-}
-
 export default function Layout({ children }: { children: ReactNode }) {
   const { pathname, hash } = useLocation()
   useRevealObserver(pathname)
@@ -107,7 +84,6 @@ export default function Layout({ children }: { children: ReactNode }) {
       </a>
       <div className="grain" aria-hidden />
       <SiteHeader />
-      <RouteSweep pathname={pathname} />
       <main id="main" key={pathname} className="flex-1 page-enter">
         {children}
       </main>
