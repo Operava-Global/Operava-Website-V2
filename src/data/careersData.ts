@@ -84,7 +84,7 @@ export const CAREER_OPENINGS: CareerOpening[] = [
       'Database Architecture & SQL/NoSQL Administration',
       'QA Engineering, Testing & Systems Security',
     ],
-    image: 'https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?auto=format&fit=crop&w=600&q=80',
+    image: '/media/operava-software-engineering.webp',
   },
   {
     id: 'career-ops-exec',
@@ -102,7 +102,7 @@ export const CAREER_OPENINGS: CareerOpening[] = [
       'Training, Upskilling & Professional Development',
       'Audited Data Processing, Records & Workflow Administration',
     ],
-    image: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=600&q=80',
+    image: '/media/operava-business-analytics.webp',
   },
   {
     id: 'career-cx-exec',
@@ -120,6 +120,6 @@ export const CAREER_OPENINGS: CareerOpening[] = [
       'Customer Success, Onboarding & Client Retention',
       'Escalation Management, CSAT Monitoring & Quality Assurance',
     ],
-    image: 'https://images.unsplash.com/photo-1573496799652-408c2ac9fe98?auto=format&fit=crop&w=600&q=80',
+    image: '/media/operava-customer-support.webp',
   },
 ]
