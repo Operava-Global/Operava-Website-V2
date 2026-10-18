@@ -22,24 +22,16 @@ export interface Service {
   cta: string
 }
 
-/** New circular service diagrams — cloud b5i5bwwa (2026-09 collections) */
+/** Generated OPERAVA photography — shared with the site's image library. */
 const IMG = {
-  software:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883183/796440003_1568884804445206_1996331406203697223_n.jpg',
-  webMobile:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883186/795253805_2061827294440488_2785117794645606117_n.jpg',
-  saas:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883190/795431383_3322754347931535_715913070398186350_n.jpg',
-  itSystems:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883180/818043901_1917715469222241_2437681162619730555_n.jpg',
-  systemsIntegration:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883197/795704726_4530308263854726_754283952295949774_n.jpg',
-  database:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883191/818297716_1968020160527765_2627554178180218595_n.jpg',
-  itConsulting:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883271/818133236_3158282827694669_5992103232070866397_n.jpg',
-  programming:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883183/796440003_1568884804445206_1996331406203697223_n.jpg',
+  software: '/media/operava-software-engineering.webp',
+  webMobile: '/media/operava-software-engineering.webp',
+  saas: '/media/operava-digital-strategy.webp',
+  itSystems: '/media/operava-technical-operations.webp',
+  systemsIntegration: '/media/operava-technical-operations.webp',
+  database: '/media/operava-business-analytics.webp',
+  itConsulting: '/media/operava-digital-strategy.webp',
+  programming: '/media/operava-software-engineering.webp',
 } as const
 
 export const itServices: Service[] = [

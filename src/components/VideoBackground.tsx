@@ -9,7 +9,7 @@ interface VideoBackgroundProps {
 
 export default function VideoBackground({
   videoUrl = 'https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-screens-with-data-31912-large.mp4',
-  posterUrl = 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1920&q=80',
+  posterUrl = '/media/operava-technical-operations.webp',
   overlayOpacity = 'bg-gray-950/80',
   className = '',
 }: VideoBackgroundProps) {

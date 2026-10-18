@@ -1,21 +1,14 @@
 import type { Service } from './itServices'
 
-/** New circular service diagrams — cloud b5i5bwwa (2026-09 collections) */
+/** Generated OPERAVA photography — shared with the site's image library. */
 const IMG = {
-  customerService:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883179/818075191_1115987964333249_1393699877683613432_n.jpg',
-  techSupport:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883178/817119009_1762774298296778_2130815206440634014_n.jpg',
-  helpDesk:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883178/817903856_2113990625898878_7353958690165926414_n.jpg',
-  backOffice:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883178/796416585_965166426625013_4800177678967912496_n.jpg',
-  dataProcessing:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883178/816394333_4717468435148344_6455644252070295893_n.jpg',
-  documentProcessing:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883178/818133246_2111726673554111_7094790966613170147_n.jpg',
-  virtualAssistance:
-    'https://res.cloudinary.com/b5i5bwwa/image/upload/f_auto,q_auto/v1789883183/818141051_1620650286129991_540465980055236401_n.jpg',
+  customerService: '/media/operava-customer-support.webp',
+  techSupport: '/media/operava-technical-operations.webp',
+  helpDesk: '/media/operava-customer-support.webp',
+  backOffice: '/media/operava-team-collaboration.webp',
+  dataProcessing: '/media/operava-business-analytics.webp',
+  documentProcessing: '/media/operava-business-analytics.webp',
+  virtualAssistance: '/media/operava-remote-work.webp',
 } as const
 
 export const bpoServices: Service[] = [
