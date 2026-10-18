@@ -55,9 +55,12 @@ function payloadRows(payload: Record<string, unknown>): Array<{ label: string; v
     'resumeKey',
     'resumeText',
     'resumeDataMandatory',
+    'cf-turnstile-response',
+    'turnstileToken',
+    'turnstileResponse',
   ])
   return Object.entries(payload)
-    .filter(([key, value]) => !skip.has(key) && value != null && String(value).trim() !== '')
+    .filter(([key, value]) => !skip.has(key) && !/turnstile|captcha|token|secret/i.test(key) && value != null && String(value).trim() !== '')
     .map(([key, value]) => ({
       label: LABEL_MAP[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()),
       value: typeof value === 'object' ? JSON.stringify(value) : String(value),
