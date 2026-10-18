@@ -1,7 +1,6 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './site/Layout'
-import AvaAssistant from './components/AvaAssistant'
 import CookieNotice from './site/CookieNotice'
 
 import Home from './pages/Home'
@@ -39,7 +38,6 @@ const RefundPolicy = lazy(() => import('./pages/RefundPolicy'))
 const CookiePolicy = lazy(() => import('./pages/CookiePolicy'))
 const Academy = lazy(() => import('./pages/Academy'))
 const Learning = lazy(() => import('./pages/Learning'))
-const AiJobScreening = lazy(() => import('./pages/AiJobScreening'))
 
 function Loading() {
   return <div className="min-h-[60vh]" aria-busy="true" />
@@ -75,7 +73,7 @@ export default function App() {
             <Route path="/careers/hiring-process" element={<HiringProcess />} />
             <Route path="/careers/talent-development" element={<TalentDevelopment />} />
             <Route path="/apply" element={<Apply />} />
-            <Route path="/ai-job-screening" element={<AiJobScreening />} />
+            <Route path="/ai-job-screening" element={<Navigate to="/careers/hiring-process" replace />} />
             <Route path="/academy" element={<Academy />} />
             <Route path="/learning" element={<Learning />} />
             <Route path="/learnings" element={<Learning />} />
@@ -110,7 +108,6 @@ export default function App() {
           </Routes>
         </Suspense>
       </Layout>
-      <AvaAssistant />
       <CookieNotice />
     </BrowserRouter>
   )
