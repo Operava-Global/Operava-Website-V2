@@ -89,9 +89,10 @@ Production `/api/chat` uses the Workers AI binding. No Gemini key is required. C
 
 The live `ax-website-c4y.pages.dev` project is Git-connected to `jelvan-operava/Operava-Website` on the `main` branch. Use the **repository build**, not the legacy static snapshot reconstruction:
 
-- **Build command:** `npm install --no-audit --no-fund && npx vite build`
+- **Build command:** `pnpm install --no-frozen-lockfile && pnpm exec vite build`
 - **Build output directory:** `dist`
 - **Root directory:** repository root
-- **Node.js version:** `22`
+- **Node.js version:** `22` (also set in `wrangler.jsonc`)
+- **Build environment:** `SKIP_DEPENDENCY_INSTALL=1` to bypass the failing automatic npm installer; pnpm installs inside the build command.
 
 The seven original branded website photos are committed as `public/media/operava-*.webp` and copied into `dist/media` by Vite. A successful deployment should serve paths such as `/media/operava-customer-support.webp` directly. Do not set `SKIP_DEPENDENCY_INSTALL` in the build environment.
