@@ -15,7 +15,7 @@ export default function SiteFooter() {
           <p className="text-neutral-500 text-xs leading-relaxed max-w-[240px]">
             Technology, workforce and business process outsourcing — connected remotely and globally. {COMPANY.motto}
           </p>
-          <div className="flex gap-3 mt-6">
+          <div className="flex flex-wrap gap-3 mt-6">
             {COMPANY.social.map((s) => (
               <a
                 key={s.label}
@@ -24,9 +24,9 @@ export default function SiteFooter() {
                 rel="noopener noreferrer"
                 aria-label={`OPERAVA on ${s.label} (@operavaglobal)`}
                 title={`${s.label} · @operavaglobal`}
-                className="w-9 h-9 rounded-full border border-neutral-800 bg-[#0e0e0e] flex items-center justify-center hover:border-accent hover:bg-[#1b122b] transition-[border-color,background-color]"
+                className="w-10 h-10 rounded-full border border-white bg-white flex items-center justify-center hover:border-accent hover:bg-[#f2e6ff] hover:-translate-y-0.5 transition-[border-color,background-color,transform] duration-300"
               >
-                <img src={`/social/brand-${s.label.toLowerCase()}.svg`} alt="" width="16" height="16" loading="lazy" className="w-4 h-4" />
+                <img src={`/social/brand-${s.label.toLowerCase()}.svg`} alt="" width="20" height="20" loading="lazy" className="w-5 h-5 object-contain" />
               </a>
             ))}
           </div>
