@@ -61,6 +61,8 @@ export const onRequestPost: PagesFunction<FormEnv> = async ({ request, env }) =>
 
     const secret = resolveSecret(env)
     if (!secret) return otpSecretMissingResponse()
+    const db = env.SUBMISSIONS_DB
+    if (!db) return json({ error: 'Secure form storage is temporarily unavailable.', code: 'STORAGE_UNAVAILABLE' }, 503)
 
     let body: Record<string, unknown>
     try {
@@ -118,31 +120,24 @@ export const onRequestPost: PagesFunction<FormEnv> = async ({ request, env }) =>
       lastSentAt: now,
     })
 
-    if (env.SUBMISSIONS_DB) {
-      try {
-        await ensureTables(env.SUBMISSIONS_DB)
-        const existing = await env.SUBMISSIONS_DB.prepare(
-          'SELECT last_sent_at FROM form_otps WHERE email = ? AND form_type = ? AND consumed = 0 ORDER BY id DESC LIMIT 1',
-        )
-          .bind(email, formType)
-          .first<{ last_sent_at: number }>()
-        if (existing && now - Number(existing.last_sent_at) < 45000) {
-          return json({ error: 'Please wait before requesting another code.', retryAfterSec: 45 }, 429)
-        }
-        const dbDraftId = crypto.randomUUID()
-        await env.SUBMISSIONS_DB.prepare(
-          'UPDATE form_otps SET consumed = 1 WHERE email = ? AND form_type = ? AND consumed = 0',
-        )
-          .bind(email, formType)
-          .run()
-        await env.SUBMISSIONS_DB.prepare(
-          'INSERT INTO form_otps (email, form_type, draft_id, code_hash, payload, expires_at, attempts, resends, last_sent_at, consumed) VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, 0)',
-        )
-          .bind(email, formType, dbDraftId, codeHash, payload, expiresAt, now)
-          .run()
-      } catch (d1Err) {
-        console.error('D1 optional path failed; continuing with signed draft', d1Err)
+    // A durable OTP record is mandatory: signed drafts alone are replayable.
+    try {
+      await ensureTables(db)
+      const existing = await db.prepare(
+        'SELECT last_sent_at FROM form_otps WHERE email = ? AND form_type = ? ORDER BY id DESC LIMIT 1',
+      ).bind(email, formType).first<{ last_sent_at: number }>()
+      if (existing && now - Number(existing.last_sent_at) < 45000) {
+        return json({ error: 'Please wait before requesting another code.', retryAfterSec: 45 }, 429)
       }
+      await db.prepare(
+        'UPDATE form_otps SET consumed = 1 WHERE email = ? AND form_type = ? AND consumed = 0',
+      ).bind(email, formType).run()
+      await db.prepare(
+        'INSERT INTO form_otps (email, form_type, draft_id, code_hash, payload, expires_at, attempts, resends, last_sent_at, consumed) VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, 0)',
+      ).bind(email, formType, draftId, codeHash, payload, expiresAt, now).run()
+    } catch (storageError) {
+      console.error('OTP storage failed', storageError instanceof Error ? storageError.message : 'unknown')
+      return json({ error: 'Unable to save this verification session. Please try again.', code: 'STORAGE_FAILED' }, 503)
     }
 
     try {
@@ -156,6 +151,7 @@ export const onRequestPost: PagesFunction<FormEnv> = async ({ request, env }) =>
     } catch (mailErr) {
       const msg = mailErr instanceof Error ? mailErr.message : 'unknown'
       console.error('OTP email send failed', msg)
+      await db.prepare('UPDATE form_otps SET consumed = 1 WHERE draft_id = ?').bind(draftId).run().catch(() => {})
       return mailErrorResponse(msg)
     }
 
