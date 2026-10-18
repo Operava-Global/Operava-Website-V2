@@ -15,17 +15,18 @@ export default function FormSuccess({ formType, name, referenceId }: Props) {
           : 'Your message has been successfully submitted and your email address has been verified. We will respond if further action or information is required.'
 
   return (
-    <div className="max-w-xl mx-auto text-center space-y-4 py-8">
-      <h2 className="text-3xl font-black text-gray-900">Thank you, {name}.</h2>
-      <p className="text-sm text-gray-600 leading-relaxed">{copy}</p>
-      <p className="text-xs uppercase tracking-widest text-gray-500">Reference ID</p>
-      <p className="font-mono text-lg font-bold text-violet-800">{referenceId}</p>
+    <div className="max-w-xl mx-auto text-center space-y-5 py-10">
+      <p className="text-[11px] tracking-[0.3em] uppercase text-accent font-bold">Verified &amp; submitted</p>
+      <h2 className="text-[36px] font-black uppercase leading-[0.9]">Thank you, {name}.</h2>
+      <p className="text-sm text-neutral-400 leading-relaxed">{copy}</p>
+      <p className="pt-4 text-[10px] uppercase tracking-widest text-neutral-500">Reference ID</p>
+      <p className="font-mono text-xl font-bold text-white border border-neutral-800 inline-block px-5 py-3">{referenceId}</p>
       {formType === 'ACADEMY' && (
         <a
           href="https://academy.operavaglobal.com"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex text-sm font-semibold text-violet-700 hover:text-violet-900 underline-offset-2 hover:underline"
+          className="block mx-auto w-fit text-[11px] tracking-widest uppercase border-b border-white pb-1 hover:text-accent hover:border-accent"
         >
           Open Learning Management System →
         </a>

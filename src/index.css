@@ -1,702 +1,465 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,300&display=swap');
 
 @import 'tailwindcss';
-@plugin "daisyui" {
-  themes: operava --default, light --preferslight, dark --prefersdark;
-}
 
-/* ── Operava brand theme (logo gradient: orange → magenta → violet → blue) ── */
-@plugin "daisyui/theme" {
-  name: "operava";
-  default: true;
-  prefersdark: false;
-  color-scheme: light;
-
-  --color-base-100: #ffffff;
-  --color-base-200: #fafafc;
-  --color-base-300: #f0f0f5;
-  --color-base-content: #111111;
-
-  --color-primary: #6d28d9;
-  --color-primary-content: #ffffff;
-  --color-secondary: #c44dff;
-  --color-secondary-content: #ffffff;
-  --color-accent: #ff8b4a;
-  --color-accent-content: #1a0a00;
-  --color-neutral: #1f1f2e;
-  --color-neutral-content: #f5f5f7;
-
-  --color-info: #3b6bff;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-
-  --radius-selector: 0.75rem;
-  --radius-field: 0.5rem;
-  --radius-box: 1rem;
-  --size-selector: 0.25rem;
-  --size-field: 0.25rem;
-  --border: 1px;
-  --depth: 0;
-  --noise: 0;
-}
-
-@theme inline {
-  --color-violet-50: #F5F3FF;
-  --color-violet-100: #EDE9FE;
-  --color-violet-200: #DDD6FE;
-  --color-violet-300: #C4B5FD;
-  --color-violet-400: #A78BFA;
-  --color-violet-500: #8B5CF6;
-  --color-violet-600: #7C3AED;
-  --color-violet-700: #6D28D9;
-  --color-violet-800: #5B21B6;
-  --color-violet-900: #4C1D95;
-
+/*
+ * OPERAVA design system — follows the index.html design:
+ * black canvas, Inter (black, uppercase display type), neutral-900 hairlines,
+ * 12px cards, grain overlay, reveal-on-scroll and a single violet accent
+ * (taken from the OPERAVA logo gradient).
+ */
+@theme {
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 
-  --text-xs: 0.7rem;
-  --text-sm: 0.8125rem;
-  --text-base: 0.9375rem;
-  --text-lg: 1.0625rem;
-  --text-xl: 1.175rem;
-  --text-2xl: 1.35rem;
-  --text-3xl: 1.6rem;
-  --text-4xl: 1.85rem;
-  --text-5xl: 2.25rem;
-  --text-6xl: 2.75rem;
+  /* Accent for text, borders and hover states on black (5.9:1 on #000) */
+  --color-accent: #9f67ff;
+  /* Solid accent for filled buttons / badges with white text (5.7:1) */
+  --color-accent-solid: #7c3aed;
+  --color-accent-deep: #5b21b6;
+  /* Logo gradient stops — used sparingly for brand moments */
+  --color-brand-blue: #3d4bff;
+  --color-brand-violet: #9860ee;
+  --color-brand-magenta: #c04cf0;
+
+  --color-surface: #0a0a0a;
+  --color-surface-2: #0f0f0f;
 }
 
-*, *::before, *::after {
-  box-sizing: border-box;
+:root {
+  --bg: #000;
+  --surface: #0a0a0a;
+  --surface-2: #0f0f0f;
+  --border: #171717;
+  --text: #fff;
+  --muted: #888;
+  --accent: #9f67ff;
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  color-scheme: dark;
+}
+
+* {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 html {
   scroll-behavior: smooth;
-  font-size: 93.75%;
 }
 
-/* Native scrolling drives the supplied home card sequence. */
-html.home-artifact-mounted {
-  scroll-behavior: auto;
-  scroll-padding-top: 88px;
-}
-
-[dir="rtl"] {
-  text-align: right;
+html,
+body {
+  background: #000;
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #fff;
+  overflow-x: clip;
+  margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #FFFFFF;
-  color: #111111;
-  overflow-x: hidden;
-  font-size: 0.9375rem;
-  line-height: 1.55;
 }
 
-/* Shared proportions from the Insights design keep every route visually related. */
-.operava-site {
-  --operava-content-width: 100rem;
-  --operava-page-gutter: clamp(1.25rem, 4vw, 4rem);
-  --operava-card-radius: 1rem;
-  --operava-control-radius: 0.75rem;
-  --operava-border: #e8e8ec;
-  --operava-muted: #6b7280;
-}
-
-.operava-site :where(button, a, input, select, textarea) {
-  -webkit-tap-highlight-color: transparent;
+::selection {
+  background: rgba(159, 103, 255, 0.35);
+  color: #fff;
 }
 
 ::-webkit-scrollbar {
   width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
+  height: 6px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: #222;
   border-radius: 3px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+::-webkit-scrollbar-track {
+  background: #000;
 }
 
-:focus-visible {
-  outline: 2px solid #6D28D9;
-  outline-offset: 2px;
-}
-
-video::-webkit-media-controls,
-video::-webkit-media-controls-play-button,
-video::-webkit-media-controls-start-playback-button,
-video::-webkit-media-controls-overlay-play-button,
-video::-webkit-media-controls-enclosure,
-video::-webkit-media-controls-panel,
-video::-webkit-media-controls-current-time-display,
-video::-webkit-media-controls-time-remaining-display,
-video::-webkit-media-controls-timeline,
-video::-webkit-media-controls-mute-button,
-video::-webkit-media-controls-fullscreen-button,
-video::-webkit-media-controls-toggle-closed-captions-button,
-video::-webkit-media-controls-volume-slider {
-  display: none !important;
-  -webkit-appearance: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-  width: 0 !important;
-  height: 0 !important;
-  max-width: 0 !important;
-  max-height: 0 !important;
-  position: absolute !important;
-  clip: rect(0, 0, 0, 0) !important;
-}
-
-video::-moz-media-controls {
-  display: none !important;
-}
-
-video {
-  pointer-events: none;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-.no-media-controls::-webkit-media-controls {
-  display: none !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-@keyframes heavySwing {
-  0% { transform: rotate(0deg); }
-  25% { transform: rotate(12deg); }
-  50% { transform: rotate(0deg); }
-  75% { transform: rotate(-12deg); }
-  100% { transform: rotate(0deg); }
-}
-
-.animate-heavy-swing {
-  transform-origin: top center;
-  animation: heavySwing 3s ease-in-out infinite;
-}
-
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
-}
-
-@keyframes pulse-slow {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
-}
-
-@keyframes draw {
-  from { stroke-dashoffset: 1000; }
-  to { stroke-dashoffset: 0; }
-}
-
-@keyframes count-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-@keyframes progress {
-  0% { transform: translateX(-100%); }
-  50% { transform: translateX(20%); }
-  100% { transform: translateX(100%); }
-}
-
-@keyframes scaleUp {
-  0% { opacity: 0; transform: scale(0.92) translateY(12px); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-@keyframes fadeInUp {
-  0% { opacity: 0; transform: translateY(16px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes spinSlow {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-@keyframes beamRun {
-  0% { stroke-dashoffset: 1000; }
-  100% { stroke-dashoffset: 0; }
-}
-
-/* ── OPERAVA nav wordmark — twist-logo gradient, smooth L↔R forever ── */
-.operava-text {
-  font-family: 'Arial Black', 'Arial Bold', 'Helvetica Neue', Helvetica, Impact, system-ui, sans-serif;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: -0.05em;
-  background: linear-gradient(
-    90deg,
-    #FF8B4A 0%,
-    #FF6B7A 18%,
-    #FF4DB8 36%,
-    #C44DFF 52%,
-    #7B5CFF 68%,
-    #3B6BFF 84%,
-    #2B8CFF 100%
-  );
-  background-size: 300% 100%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: #7B5CFF;
-  animation: lightWave 8s ease-in-out infinite;
-}
-
-@keyframes lightWave {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-/* Premium service card shell — minimal, logo-accent */
-.operava-card-frame {
-  position: relative;
-  background-color: transparent;
-  background-image: none;
-  border-radius: 20px;
-  padding: 26px 22px 24px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  box-shadow: none;
-  border: none;
-  overflow: hidden;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.operava-card-frame:hover {
-  transform: translateY(-5px);
-  box-shadow: none;
-  border-color: transparent;
-}
-
-.operava-image-container {
-  width: 100%;
-  height: 210px;
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 20px;
-  position: relative;
-  background-color: transparent;
-  background-image: radial-gradient(circle at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.06) 28%, transparent 50%);
-  background-size: 100% 100%;
-  background-position: center;
-  background-repeat: no-repeat;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.operava-image-container::after {
-  content: '';
-  position: absolute;
-  top: 25%;
-  left: 25%;
-  right: 25%;
-  bottom: 25%;
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.2) 0%, transparent 60%);
-  filter: blur(8px);
-  z-index: 1;
-  pointer-events: none;
-}
-
-.operava-image-container img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
-  position: relative;
-  z-index: 2;
-  transition: transform 0.4s ease-out;
-}
-
-.operava-card-frame:hover .operava-image-container img {
-  transform: scale(1.05);
-}
-
-.operava-card-title {
-  color: #ffffff;
-  font-size: 18px;
-  font-weight: 700;
-  margin: 0 0 10px 0;
-  text-transform: capitalize;
-  letter-spacing: 0.5px;
-  text-align: center;
-  line-height: 1.25;
-}
-
-.operava-card-description {
-  color: #e2dbff;
-  font-size: 12.5px;
-  line-height: 1.55;
-  margin: 0 0 24px 0;
-  text-align: center;
-}
-
-.operava-learn-more-btn {
-  width: 100%;
-  padding: 11px;
-  background-color: #ffffff;
-  border: 1px solid #ffffff;
-  color: #5e42be;
-  font-size: 12px;
-  font-weight: 700;
-  border-radius: 8px;
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  transition: all 0.2s ease-in-out;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-}
-
-.operava-learn-more-btn:hover {
-  background-color: #4a32a3;
-  color: #ffffff;
-  border-color: #4a32a3;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
-}
-
-.operava-landscape-card-frame {
-  position: relative;
-  background-color: transparent;
-  background-image: none;
-  border-radius: 24px;
-  box-sizing: border-box;
-  box-shadow: none;
-  border: none;
-  overflow: hidden;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.operava-landscape-card-frame:hover {
-  transform: translateY(-4px);
-  box-shadow: none;
-  border-color: transparent;
-}
-
-.operava-landscape-image-container {
-  border-radius: 16px;
-  overflow: hidden;
-  position: relative;
-  background-color: transparent;
-  background-image: radial-gradient(circle at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.06) 30%, transparent 60%);
-  background-size: 100% 100%;
-  background-position: center;
-  background-repeat: no-repeat;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.operava-landscape-image-container::after {
-  content: '';
-  position: absolute;
-  top: 20%;
-  left: 20%;
-  right: 20%;
-  bottom: 20%;
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.2) 0%, transparent 60%);
-  filter: blur(8px);
-  z-index: 1;
-  pointer-events: none;
-}
-
-.operava-landscape-image-container img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  position: relative;
-  z-index: 2;
-  transition: transform 0.4s ease-out;
-}
-
-.operava-landscape-card-frame:hover .operava-landscape-image-container img {
-  transform: scale(1.06);
-}
-
-.operava-flip-scene {
-  position: relative;
-  width: 100%;
-  min-height: 540px;
-  height: 100%;
-  perspective: 1400px;
-  -webkit-perspective: 1400px;
-}
-
-.operava-flip-inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  min-height: 540px;
-  transform-style: preserve-3d;
-  -webkit-transform-style: preserve-3d;
-  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
-  transform-origin: center center;
-  cursor: pointer;
-}
-
-.operava-flip-inner.is-flipped {
-  transform: rotateY(180deg);
-}
-
-.operava-flip-face {
-  position: absolute;
+/* Film grain overlay */
+.grain {
+  position: fixed;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  transform-origin: center center;
-  box-sizing: border-box;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cfilter id='a'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='4' stitchTiles='stitch' type='fractalNoise'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E");
 }
 
-.operava-flip-face-front {
-  transform: rotateY(0deg);
-}
-
-.operava-flip-face-back {
-  transform: rotateY(180deg);
-}
-
-.operava-flip-face.operava-card-frame:hover {
-  transform: none;
-}
-.operava-flip-face-front.operava-card-frame:hover {
-  transform: rotateY(0deg);
-}
-.operava-flip-face-back.operava-card-frame:hover {
-  transform: rotateY(180deg);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .operava-flip-inner {
-    transition: none;
-  }
-}
-
-.animate-scale-up {
-  animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-fade-in-up {
-  animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-spin-slow {
-  animation: spinSlow 8s linear infinite;
-}
-
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
-}
-.scrollbar-none {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.animate-fade-up {
-  animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.5s ease forwards;
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-.animate-pulse-slow {
-  animation: pulse-slow 3s ease-in-out infinite;
-}
-
+/* Reveal on scroll */
 .reveal {
   opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(28px);
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s ease;
 }
-
 .reveal.visible {
   opacity: 1;
   transform: translateY(0);
 }
 
-.reveal-delay-1 { transition-delay: 0.1s; }
-.reveal-delay-2 { transition-delay: 0.2s; }
-.reveal-delay-3 { transition-delay: 0.3s; }
-.reveal-delay-4 { transition-delay: 0.4s; }
-.reveal-delay-5 { transition-delay: 0.5s; }
-
-@keyframes waveMotion {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  25% { transform: translateY(-5px) rotate(0.35deg); }
-  50% { transform: translateY(-1px) rotate(-0.25deg); }
-  75% { transform: translateY(-6px) rotate(0.2deg); }
+.carousel-track {
+  transition: transform 0.6s cubic-bezier(0.77, 0, 0.175, 1);
 }
 
-@keyframes gentleBlink {
-  0%, 100% {
-    opacity: 0.95;
-    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.04));
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.glow:hover {
+  box-shadow: 0 0 40px rgba(124, 58, 237, 0.3);
+}
+
+/* Keyboard focus that reads on black */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* Long-form copy (legal, articles) */
+.prose-dark p + p {
+  margin-top: 1rem;
+}
+
+/* Native form controls on black */
+select option {
+  background: #0a0a0a;
+  color: #fff;
+}
+input[type='checkbox'] {
+  accent-color: #7c3aed;
+}
+input[type='file']::file-selector-button {
+  margin-right: 1rem;
+  height: 2.25rem;
+  padding: 0 1.25rem;
+  border: 1px solid #fff;
+  background: transparent;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+/* ============================================================
+   SIGNATURE MOTION — built on the OPERAVA mark's 34° stripes.
+   Every effect below is disabled under prefers-reduced-motion.
+   ============================================================ */
+
+/* Logo: gaps cut across the circle on load; quarter-turn on hover */
+.op-mark {
+  transition: transform 0.7s cubic-bezier(0.77, 0, 0.175, 1);
+}
+.op-mark--intro .op-mark__gap {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: opGapCut 0.9s cubic-bezier(0.77, 0, 0.175, 1) both;
+}
+.op-mark--intro .op-mark__disc {
+  animation: opDiscIn 0.6s cubic-bezier(0.2, 0.7, 0.1, 1) both;
+}
+.group:hover .op-mark,
+.group:focus-visible .op-mark {
+  transform: rotate(-90deg);
+}
+@keyframes opGapCut {
+  from {
+    transform: scaleX(0);
   }
-  50% {
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes opDiscIn {
+  from {
+    opacity: 0;
+    transform: scale(0.6) rotate(-120deg);
+  }
+  to {
     opacity: 1;
-    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.08));
+    transform: none;
   }
 }
 
-@keyframes radarPing {
-  0% { transform: scale(1); opacity: 0.9; }
-  50% { transform: scale(1.25); opacity: 0.4; }
-  100% { transform: scale(1); opacity: 0.9; }
+/* Route change: three accent lines sweep across at the mark's 34° angle */
+.op-sweep {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 95;
+  overflow: hidden;
 }
-
-.animate-wave-motion {
-  animation: waveMotion 5.5s ease-in-out infinite;
+.op-sweep span {
+  position: absolute;
+  left: -50%;
+  width: 200%;
+  height: 2px;
+  top: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 18px rgba(159, 103, 255, 0.8);
+  transform: rotate(-34deg) translateY(var(--from));
+  animation: opSweep 0.85s cubic-bezier(0.77, 0, 0.175, 1) forwards;
 }
-
-.animate-gentle-blink {
-  animation: gentleBlink 3.8s ease-in-out infinite;
+.op-sweep span:nth-child(1) {
+  --from: 70vmax;
+  animation-delay: 0s;
 }
-
-.animate-radar-ping {
-  animation: radarPing 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+.op-sweep span:nth-child(2) {
+  --from: calc(70vmax + 16px);
+  animation-delay: 0.05s;
+  background: #fff;
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.6);
 }
-
-@keyframes glossySweep {
-  0% { transform: translateX(-150%) skewX(-20deg); opacity: 0; }
-  15% { opacity: 0.8; }
-  35% { transform: translateX(250%) skewX(-20deg); opacity: 0.8; }
-  36%, 100% { transform: translateX(250%) skewX(-20deg); opacity: 0; }
+.op-sweep span:nth-child(3) {
+  --from: calc(70vmax + 32px);
+  animation-delay: 0.1s;
 }
-
-@keyframes glossyBlinkGlow {
-  0%, 100% { filter: brightness(1); opacity: 0.96; }
-  18% { filter: brightness(1.06) contrast(1.02) drop-shadow(0 8px 20px rgba(0, 0, 0, 0.07)); opacity: 1; }
-  36% { filter: brightness(1); opacity: 0.96; }
-}
-
-.animate-glossy-sheen {
-  animation: glossySweep 5.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-}
-
-.animate-glossy-card {
-  animation: glossyBlinkGlow 5.5s ease-in-out infinite, waveMotion 6s ease-in-out infinite;
-}
-
-@keyframes marqueeLeft {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-@keyframes marqueeRight {
-  0% { transform: translateX(-50%); }
-  100% { transform: translateX(0); }
-}
-
-.animate-marquee-left {
-  animation: marqueeLeft 75s linear infinite;
-  will-change: transform;
-}
-
-.animate-marquee-right {
-  animation: marqueeRight 75s linear infinite;
-  will-change: transform;
-}
-
-@keyframes floatingGentle {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-8px) rotate(0.4deg); }
-}
-
-@keyframes floatingGentleReverse {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-8px) rotate(-0.4deg); }
-}
-
-@keyframes orbLevitate {
-  0%, 100% {
-    transform: translateY(0px) scale(1);
-    filter: drop-shadow(0 15px 30px rgba(94, 66, 190, 0.25));
-  }
-  50% {
-    transform: translateY(-12px) scale(1.02);
-    filter: drop-shadow(0 25px 45px rgba(94, 66, 190, 0.4));
+@keyframes opSweep {
+  to {
+    transform: rotate(-34deg) translateY(calc(var(--from) - 140vmax));
   }
 }
 
-@keyframes ambientAuraPulse {
-  0%, 100% { opacity: 0.35; transform: scale(0.95); }
-  50% { opacity: 0.65; transform: scale(1.05); }
+/* Page content entering after navigation */
+.page-enter {
+  animation: pageIn 0.6s cubic-bezier(0.2, 0.7, 0.1, 1) both;
+}
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-@keyframes stepSheen {
-  0% { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
-  20% { opacity: 0.6; }
-  40% { transform: translateX(220%) skewX(-18deg); opacity: 0.6; }
-  41%, 100% { transform: translateX(220%) skewX(-18deg); opacity: 0; }
+/* Display headlines: each line rises out of its own mask */
+.line-mask {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.04em;
+  margin-bottom: -0.04em;
+}
+.line-rise {
+  display: block;
+  animation: lineRise 1s cubic-bezier(0.2, 0.75, 0.1, 1) both;
+  animation-delay: var(--d, 0s);
+}
+@keyframes lineRise {
+  from {
+    transform: translateY(105%);
+  }
+  to {
+    transform: none;
+  }
 }
 
-.animate-float-gentle {
-  animation: floatingGentle 5s ease-in-out infinite;
-  will-change: transform;
+/* Inner-page hero copy */
+.hero-in {
+  animation: heroIn 0.9s cubic-bezier(0.2, 0.75, 0.1, 1) both;
+  animation-delay: var(--d, 0s);
+}
+@keyframes heroIn {
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+.hero-zoom {
+  animation: heroZoom 1.8s cubic-bezier(0.2, 0.7, 0.1, 1) both;
+}
+@keyframes heroZoom {
+  from {
+    transform: scale(1.12);
+  }
+  to {
+    transform: scale(1);
+  }
 }
 
-.animate-float-gentle-rev {
-  animation: floatingGentleReverse 5.5s ease-in-out infinite;
-  will-change: transform;
+/* Staggered children inside a revealed block */
+.reveal .reveal-child {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s cubic-bezier(0.2, 0.7, 0.1, 1),
+    background-color 0.2s ease;
+  transition-delay: calc(var(--i, 0) * 70ms);
+}
+.reveal.visible .reveal-child {
+  opacity: 1;
+  transform: none;
+}
+.reveal.visible .reveal-child:hover {
+  transition-delay: 0s;
 }
 
-.animate-orb-levitate {
-  animation: orbLevitate 6s ease-in-out infinite;
-  will-change: transform, filter;
+/* Pointer spotlight on cards and panels */
+.spotlight {
+  position: relative;
+}
+.spotlight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), rgba(159, 103, 255, 0.16), transparent 62%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.spotlight:hover::after {
+  opacity: 1;
 }
 
-.animate-aura-pulse {
-  animation: ambientAuraPulse 4s ease-in-out infinite;
-  will-change: opacity, transform;
+/* Outline buttons: white fill sweeps in from the left */
+.btn-sweep {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.btn-sweep::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: #fff;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.45s cubic-bezier(0.77, 0, 0.175, 1);
+}
+.btn-sweep:hover::before,
+.btn-sweep:focus-visible::before {
+  transform: scaleX(1);
+  transform-origin: left;
 }
 
-.animate-step-sheen {
-  animation: stepSheen 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  will-change: transform, opacity;
+/* Arrows nudge forward on hover */
+.arrow-nudge {
+  display: inline-block;
+  transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.1, 1);
+}
+a:hover .arrow-nudge,
+button:hover .arrow-nudge,
+.group:hover .arrow-nudge {
+  transform: translateX(5px);
+}
+
+/* Mega menu columns cascade in */
+.mega-col {
+  animation: megaIn 0.45s cubic-bezier(0.2, 0.7, 0.1, 1) both;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+@keyframes megaIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Carousel: the active indicator fills over the slide duration and drives autoplay */
+.slide-progress {
+  animation: slideProgress 5.5s linear forwards;
+}
+@keyframes slideProgress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Scroll-progress hairline under the header */
+.scroll-progress {
+  transform-origin: left;
+  transform: scaleX(var(--p, 0));
+}
+
+/* Slow drifting glow behind the hero carousel */
+.hero-aura {
+  background: radial-gradient(closest-side, rgba(124, 58, 237, 0.35), transparent);
+  filter: blur(40px);
+  animation: aura 14s ease-in-out infinite alternate;
+}
+@keyframes aura {
+  from {
+    transform: translate(-6%, -4%) scale(1);
+  }
+  to {
+    transform: translate(8%, 6%) scale(1.15);
+  }
+}
+
+/* Used by the AVA assistant */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+.ava-horizontal-scroll {
+  scrollbar-width: none;
+}
+.ava-horizontal-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .op-mark,
+  .op-mark__gap,
+  .op-mark__disc,
+  .line-rise,
+  .hero-in,
+  .hero-zoom,
+  .page-enter,
+  .mega-col,
+  .hero-aura,
+  .slide-progress {
+    animation: none !important;
+    transition: none !important;
+  }
+  .op-sweep {
+    display: none;
+  }
+  .reveal .reveal-child {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .carousel-track {
+    transition: none;
+  }
 }

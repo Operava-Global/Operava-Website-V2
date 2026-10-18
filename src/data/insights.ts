@@ -96,7 +96,7 @@ export const insightArticles: InsightArticle[] = [
     published: 'September 2026',
     lastReviewed: 'September 2026',
     relatedServiceLabel: 'Automation Services',
-    relatedServiceHref: '/services/it',
+    relatedServiceHref: '/services/automation',
     sections: [
       {
         heading: 'The business question',
@@ -150,7 +150,7 @@ export const insightArticles: InsightArticle[] = [
     published: 'September 2026',
     lastReviewed: 'September 2026',
     relatedServiceLabel: 'Automation Services',
-    relatedServiceHref: '/services/it',
+    relatedServiceHref: '/services/automation',
     sections: [
       {
         heading: 'The business question',
@@ -195,7 +195,7 @@ export const insightArticles: InsightArticle[] = [
     published: 'September 2026',
     lastReviewed: 'September 2026',
     relatedServiceLabel: 'Automation Services',
-    relatedServiceHref: '/services/it',
+    relatedServiceHref: '/services/automation',
     sections: [
       {
         heading: 'Definition and context',
@@ -474,7 +474,7 @@ export const insightArticles: InsightArticle[] = [
     published: 'September 2026',
     lastReviewed: 'September 2026',
     relatedServiceLabel: 'Automation Services',
-    relatedServiceHref: '/services/it',
+    relatedServiceHref: '/services/automation',
     sections: [
       {
         heading: 'Why documentation matters',
@@ -531,8 +531,8 @@ export const insightArticles: InsightArticle[] = [
     readingMinutes: 6,
     published: 'September 2026',
     lastReviewed: 'September 2026',
-    relatedServiceLabel: 'Talent Solutions',
-    relatedServiceHref: '/careers',
+    relatedServiceLabel: 'Engagement Models',
+    relatedServiceHref: '/services/engagement-models',
     sections: [
       {
         heading: 'Comparing models',
@@ -564,7 +564,7 @@ export const insightArticles: InsightArticle[] = [
     published: 'September 2026',
     lastReviewed: 'September 2026',
     relatedServiceLabel: 'Automation Services',
-    relatedServiceHref: '/services/it',
+    relatedServiceHref: '/services/automation',
     sections: [
       {
         heading: 'A practical division of labor',
@@ -590,7 +590,7 @@ export const insightArticles: InsightArticle[] = [
     published: 'September 2026',
     lastReviewed: 'September 2026',
     relatedServiceLabel: 'Automation Services',
-    relatedServiceHref: '/services/it',
+    relatedServiceHref: '/services/automation',
     sections: [
       {
         heading: 'Framing the decision',

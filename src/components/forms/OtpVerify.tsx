@@ -109,9 +109,9 @@ export default function OtpVerify({
   }
 
   return (
-    <div className="max-w-md mx-auto text-center space-y-5">
-      <h2 className="text-2xl font-black text-gray-900">Verify your email</h2>
-      <p className="text-sm text-gray-600">We sent a 6-digit verification code to:<br /><strong>{maskedEmail}</strong></p>
+    <div className="max-w-md mx-auto text-center space-y-6 py-6">
+      <h2 className="text-[32px] font-black uppercase leading-[0.9]">Verify your email</h2>
+      <p className="text-sm text-neutral-400 leading-relaxed">We sent a 6-digit verification code to:<br /><strong className="text-white">{maskedEmail}</strong></p>
       <div className="flex justify-center gap-2" role="group" aria-label="Verification code">
         {digits.map((digit, index) => (
           <input
@@ -123,21 +123,21 @@ export default function OtpVerify({
             maxLength={1}
             value={digit}
             onChange={(e) => onChange(index, e.target.value)}
-            className="w-11 h-12 text-center text-lg font-bold border border-gray-200 rounded-xl"
+            className="w-11 h-14 text-center text-xl font-black bg-black text-white border border-neutral-800 focus:border-accent outline-none"
           />
         ))}
       </div>
-      {error && <p className="text-xs text-red-600">{error}</p>}
-      <button type="button" disabled={busy || code.length !== 6} onClick={() => verify()} className="w-full py-3 rounded-xl bg-violet-700 text-white text-sm font-bold disabled:opacity-50">
+      {error && <p role="alert" className="text-xs text-red-400">{error}</p>}
+      <button type="button" disabled={busy || code.length !== 6} onClick={() => verify()} className="w-full h-12 bg-white text-black text-xs tracking-widest uppercase font-bold hover:bg-accent-solid hover:text-white transition-colors disabled:opacity-50">
         {busy ? 'Verifying…' : 'VERIFY EMAIL'}
       </button>
-      <p className="text-xs text-gray-500">Didn't receive the code?</p>
-      <button type="button" onClick={resend} disabled={seconds > 0} className="text-xs font-semibold text-violet-700 disabled:text-gray-400">
+      <p className="text-xs text-neutral-500">Didn't receive the code?</p>
+      <button type="button" onClick={resend} disabled={seconds > 0} className="text-[11px] tracking-widest uppercase font-semibold text-accent disabled:text-neutral-600">
         Resend code{seconds > 0 ? ` in 00:${String(seconds).padStart(2, '0')}` : ''}
       </button>
       <div className="flex justify-center gap-4 text-xs">
-        <button type="button" onClick={onChangeEmail} className="underline text-gray-600">Change Email Address</button>
-        <button type="button" onClick={onBack} className="underline text-gray-600">Return to Form</button>
+        <button type="button" onClick={onChangeEmail} className="underline underline-offset-4 text-neutral-400 hover:text-white">Change Email Address</button>
+        <button type="button" onClick={onBack} className="underline underline-offset-4 text-neutral-400 hover:text-white">Return to Form</button>
       </div>
     </div>
   )

@@ -56,7 +56,7 @@ function renderInline(str: string, isUser = false) {
   return parts.map((part, idx) => {
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
-        <strong key={idx} className={isUser ? 'font-semibold text-white' : 'font-semibold text-gray-900'}>
+        <strong key={idx} className={isUser ? 'font-semibold text-white' : 'font-semibold text-white'}>
           {part.slice(2, -2)}
         </strong>
       )
@@ -88,7 +88,7 @@ function renderMessageText(text: string, isUser = false) {
                 if (numMatch) {
                   return (
                     <div key={lIdx} className="flex items-start gap-2">
-                      <span className={isUser ? 'font-semibold text-violet-200 shrink-0' : 'font-semibold text-violet-600 shrink-0'}>
+                      <span className={isUser ? 'font-semibold text-violet-200 shrink-0' : 'font-semibold text-accent shrink-0'}>
                         {numMatch[1]}.
                       </span>
                       <span>{renderInline(numMatch[2], isUser)}</span>
@@ -98,7 +98,7 @@ function renderMessageText(text: string, isUser = false) {
                 if (trimmed.startsWith('• ') || trimmed.startsWith('- ')) {
                   return (
                     <div key={lIdx} className="flex items-start gap-2">
-                      <span className={isUser ? 'w-1.5 h-1.5 rounded-full bg-violet-200 shrink-0 mt-1.5' : 'w-1.5 h-1.5 rounded-full bg-violet-600 shrink-0 mt-1.5'} />
+                      <span className={isUser ? 'w-1.5 h-1.5 bg-violet-200 shrink-0 mt-1.5' : 'w-1.5 h-1.5 bg-accent shrink-0 mt-1.5'} />
                       <span>{renderInline(trimmed.replace(/^[•\-]\s*/, ''), isUser)}</span>
                     </div>
                   )
@@ -127,11 +127,11 @@ function AvaThinkingWaves() {
   return (
     <div className="flex gap-2.5 justify-start animate-fade-in" aria-live="polite" aria-label="AVA is thinking">
       <AvaVideoAvatar size="sm" className="mt-0.5 shrink-0" />
-      <div className="min-w-[148px] rounded-2xl rounded-tl-xs px-3.5 py-3 bg-white border border-gray-200/80 shadow-sm">
+      <div className="min-w-[148px] px-3.5 py-3 bg-[#111] border border-neutral-800">
         <div className="flex flex-col justify-center gap-[5px] h-7 w-28">
-          <span className="block h-0.5 w-full rounded-full bg-violet-600 animate-pulse" />
-          <span className="block h-0.5 w-3/4 rounded-full bg-violet-600 animate-pulse" />
-          <span className="block h-0.5 w-1/2 rounded-full bg-violet-600 animate-pulse" />
+          <span className="block h-0.5 w-full bg-accent animate-pulse" />
+          <span className="block h-0.5 w-3/4 bg-accent animate-pulse" />
+          <span className="block h-0.5 w-1/2 bg-accent animate-pulse" />
         </div>
       </div>
     </div>
@@ -337,7 +337,7 @@ export default function AvaAssistant() {
           <button
             type="button"
             onClick={handleOpen}
-            className="max-w-[240px] rounded-2xl bg-white border border-gray-200 shadow-lg px-4 py-3 text-left text-xs text-gray-700 hover:border-violet-200 transition-colors"
+            className="max-w-[240px] bg-[#0a0a0a] border border-neutral-800 shadow-[0_20px_60px_rgba(0,0,0,0.6)] px-4 py-3 text-left text-xs text-neutral-300 hover:border-accent transition-colors"
           >
             Hi — I'm AVA. Ask about services, or paste a document ID to verify.
           </button>
@@ -345,11 +345,11 @@ export default function AvaAssistant() {
         <button
           type="button"
           onClick={handleOpen}
-          className="relative h-14 w-14 rounded-full bg-transparent border-0 shadow-none hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 flex items-center justify-center transition-transform"
+          className="relative h-14 w-14 rounded-full bg-transparent border-0 shadow-none hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent flex items-center justify-center transition-transform"
           aria-label="Open AVA assistant"
         >
           <AvaVideoAvatar size={52} />
-          {hasUnread && <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-fuchsia-400 ring-2 ring-white" />}
+          {hasUnread && <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-fuchsia-400 ring-2 ring-black" />}
         </button>
       </div>
     )
@@ -358,47 +358,47 @@ export default function AvaAssistant() {
   return (
     <aside
       ref={chatWindowRef}
-      className="fixed bottom-5 right-5 z-[60] w-[min(100vw-1.5rem,400px)] h-[min(85vh,640px)] flex flex-col rounded-2xl bg-white border border-gray-200 shadow-2xl overflow-hidden"
+      className="fixed bottom-5 right-5 z-[60] w-[min(100vw-1.5rem,400px)] h-[min(85vh,640px)] flex flex-col bg-[#0a0a0a] border border-neutral-800 shadow-[0_30px_80px_rgba(0,0,0,0.7)] overflow-hidden"
       role="dialog"
       aria-label="AVA assistant"
     >
-      <header className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-violet-700 to-fuchsia-700 text-white">
+      <header className="flex items-center justify-between gap-2 px-4 py-3 border-b border-accent bg-black text-white">
         <div className="flex items-center gap-2 min-w-0">
           <AvaVideoAvatar size="sm" />
           <div className="min-w-0">
-            <p className="text-sm font-bold truncate">AVA</p>
-            <p className="text-[10px] text-white/80 truncate">OPERAVA assistant</p>
+            <p className="text-sm font-black uppercase tracking-widest truncate">AVA</p>
+            <p className="text-[10px] tracking-widest uppercase text-neutral-500 truncate">OPERAVA assistant</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <button type="button" onClick={() => setSoundEnabled((s) => !s)} className="p-2 rounded-lg hover:bg-white/10" aria-label="Toggle sound">
+          <button type="button" onClick={() => setSoundEnabled((s) => !s)} className="p-2 hover:bg-white/10" aria-label="Toggle sound">
             {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
-          <button type="button" onClick={handleReset} className="p-2 rounded-lg hover:bg-white/10" aria-label="Reset chat">
+          <button type="button" onClick={handleReset} className="p-2 hover:bg-white/10" aria-label="Reset chat">
             <RotateCcw className="w-4 h-4" />
           </button>
-          <button type="button" onClick={() => setIsOpen(false)} className="p-2 rounded-lg hover:bg-white/10" aria-label="Close">
+          <button type="button" onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/10" aria-label="Close">
             <X className="w-4 h-4" />
           </button>
         </div>
       </header>
 
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3 bg-[#FBFBFA]">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3 bg-black">
         {messages.map((m) => (
           <div key={m.id} className={`flex gap-2 ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
             {m.sender === 'ava' && <AvaVideoAvatar size="sm" className="mt-0.5 shrink-0" />}
             <div
-              className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 shadow-sm ${
+              className={`max-w-[85%] px-3.5 py-2.5 ${
                 m.sender === 'user'
-                  ? 'bg-violet-700 text-white rounded-tr-xs'
-                  : 'bg-white border border-gray-200/80 text-gray-800 rounded-tl-xs'
+                  ? 'bg-accent-solid text-white'
+                  : 'bg-[#111] border border-neutral-800 text-neutral-200'
               }`}
             >
               {renderMessageText(m.text, m.sender === 'user')}
               <div className="mt-1.5 flex items-center justify-between gap-2">
-                <span className={`text-[10px] ${m.sender === 'user' ? 'text-violet-200' : 'text-gray-400'}`}>{m.timestamp}</span>
+                <span className={`text-[10px] ${m.sender === 'user' ? 'text-violet-200' : 'text-neutral-500'}`}>{m.timestamp}</span>
                 {m.sender === 'ava' && (
-                  <button type="button" onClick={() => copyMessage(m.id, m.text)} className="text-gray-400 hover:text-violet-600 p-0.5" aria-label="Copy">
+                  <button type="button" onClick={() => copyMessage(m.id, m.text)} className="text-neutral-500 hover:text-accent p-0.5" aria-label="Copy">
                     {copiedId === m.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                   </button>
                 )}
@@ -408,7 +408,7 @@ export default function AvaAssistant() {
                   <button
                     type="button"
                     onClick={() => handleRoute(m.routeAction!.to)}
-                    className="text-xs font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 rounded-lg px-3 py-2 text-left"
+                    className="text-[11px] tracking-widest uppercase font-bold bg-white text-black hover:bg-accent-solid hover:text-white px-3 py-2 text-left transition-colors"
                   >
                     Open form on website
                   </button>
@@ -421,7 +421,7 @@ export default function AvaAssistant() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="px-3 pt-2 pb-1 border-t border-gray-100 bg-white">
+      <div className="px-3 pt-2 pb-1 border-t border-neutral-900 bg-[#0a0a0a]">
         <div className="flex gap-1.5 overflow-x-auto pb-2 ava-horizontal-scroll">
           {QUICK_TOPICS.map((t) => {
             const Icon = t.icon
@@ -430,7 +430,7 @@ export default function AvaAssistant() {
                 key={t.label}
                 type="button"
                 onClick={() => handleSendMessage(t.query)}
-                className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-medium text-violet-800 bg-violet-50 hover:bg-violet-100 border border-violet-100"
+                className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-medium text-neutral-300 border border-neutral-800 hover:border-accent hover:text-white"
               >
                 <Icon className="w-3 h-3" />
                 {t.label}
@@ -451,13 +451,13 @@ export default function AvaAssistant() {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder="Ask AVA or paste a document ID…"
-            className="flex-1 px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+            className="flex-1 min-w-0 px-3 h-10 bg-black border border-neutral-800 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-accent"
             disabled={isThinking}
           />
           <button
             type="submit"
             disabled={isThinking || !inputText.trim()}
-            className="h-10 w-10 rounded-xl bg-violet-700 text-white flex items-center justify-center hover:bg-violet-800 disabled:opacity-50"
+            className="h-10 w-10 bg-white text-black flex items-center justify-center hover:bg-accent-solid hover:text-white disabled:opacity-50 transition-colors"
             aria-label="Send"
           >
             <Send className="w-4 h-4" />

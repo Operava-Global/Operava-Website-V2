@@ -107,44 +107,52 @@ operava-website/
 
 ## 🎨 AI Developer & Contributor Design System Guide
 
-> **MANDATORY INSTRUCTION FOR ALL AI AGENTS AND FUTURE DEVELOPERS:**  
-> When modifying or extending this application, you MUST strictly adhere to the brand guidelines, mathematical spacing rules, color tokens, and anti-slop principles documented below. Never introduce unapproved color schemes, inconsistent fonts, or unsolicited visual paradigms.
+> **MANDATORY INSTRUCTION FOR ALL AI AGENTS AND FUTURE DEVELOPERS:**
+> The site follows the dark editorial design introduced in `index.html` (October 2026): black canvas, Inter black uppercase display type, hairline neutral borders, 12px cards and a single violet accent. Reuse the building blocks in `src/site/ui.tsx` instead of inventing new styles.
 
-### 1. Brand Color Palette & Hex Tokens
+### 1. Where things live
 
-| Role | Color Name | Hex Code | Tailwind Utility Class | Usage Context |
-| :--- | :--- | :--- | :--- | :--- |
-| **Primary Brand** | Royal Violet | `#6D28D9` | `bg-violet-700`, `text-violet-700` | Primary buttons, active tabs, brand accents |
-| **Primary Hover** | Deep Violet | `#5B21B6` | `bg-violet-800`, `text-violet-800` | Hover states, active links, emphasized titles |
-| **Accent Glow** | Bright Violet | `#7C3AED` | `bg-violet-600`, `text-violet-600` | Badges, glowing border beams, highlight text |
-| **Light Tint** | Violet Mist | `#F5F3FF` | `bg-violet-50`, `border-violet-100` | Card background highlights, soft badges |
-| **Conic Aura (AVA)** | Electric Violet | `#8A2BE2` | Gradient stop | AVA video avatar conic border & animated glows |
-| **Conic Aura (AVA)** | Neon Magenta | `#FF00FF` | Gradient stop | AVA pulse indicator & outer ring reflection |
-| **Primary Canvas** | Pure Light White | `#FFFFFF` | `bg-white` | Default page body canvas & light container cards |
-| **Neutral Dark** | Obsidian Slate | `#0B0F19` | `bg-gray-950`, `text-gray-950` | Section headers, contrast cards, deep footer |
-| **Body Text** | Charcoal | `#1F2937` | `text-gray-800` | Primary readable paragraph copy (min 15–16px) |
-| **Muted Text** | Slate Gray | `#4B5563` | `text-gray-600` | Subtitles, helper text, breadcrumbs |
-| **Success/SLA** | Emerald Green | `#10B981` | `text-emerald-600`, `bg-emerald-50` | 99.99% uptime badges, active status indicators |
+| Path | Purpose |
+| :--- | :--- |
+| `src/site/Layout.tsx`, `SiteHeader.tsx`, `SiteFooter.tsx` | Shell: sticky header with 5 mega-menu tabs, mobile drawer, search, footer quick links |
+| `src/site/nav.ts` | **Single source** for every mega-menu subtab and footer quick link |
+| `src/site/ui.tsx` | Primitives: `PageHero`, `SectionHead`, `NumberPanel`, `ListPanel`, `ImageCard`, `StoryCard`, `CtaBanner`, `Card`, `Faq`, `SplitText` |
+| `src/site/content/` | Page copy from `create/Business References` (`serviceReferences.ts` and `legal/*.ts` are generated — regenerate, don’t hand-edit) |
+| `src/site/media.ts` | Every image/video URL |
+| `public/brand/operava-mark.svg` | OPERAVA mark (white striped circle). Favicons: `public/favicon.svg`, `favicon-*.png`, `apple-touch-icon.png` |
 
-### 2. Typography Rules
+### 2. Color tokens (`src/index.css` `@theme`)
 
-- **Font Family**: Primary font is **Inter** (`'Inter', system-ui, -apple-system, sans-serif`).
-- **Hierarchy Scale**:
-  - `Display / H1`: 36px to 54px, bold (`font-bold` / `font-extrabold`), tracking tight (`tracking-tight`), line height 1.15–1.25.
-  - `Section / H2`: 28px to 36px, bold (`font-bold`), tracking tight, line height 1.25–1.3.
-  - `Card / H3`: 18px to 22px, semibold (`font-semibold`), line height 1.35–1.4.
-  - `Body Copy`: 15px to 16px, regular (`font-normal`), line height 1.6–1.7, constrained width (65–75ch).
-  - `Eyebrow / Badge`: 11px to 13px, semibold (`font-semibold`), uppercase, tracking widest (`tracking-wider` or `tracking-widest`).
+| Role | Token / class | Hex |
+| :--- | :--- | :--- |
+| Canvas | `bg-black` | `#000000` |
+| Surfaces | `bg-[#0a0a0a]`, `bg-[#0f0f0f]` | `#0A0A0A` / `#0F0F0F` |
+| Hairlines | `border-neutral-900` | `#171717` |
+| Body / muted text | `text-neutral-300` / `-400` / `-500` | — |
+| Accent (text, borders, hover) | `text-accent`, `border-accent` | `#9F67FF` (5.9:1 on black) |
+| Accent fill (with white text) | `bg-accent-solid` | `#7C3AED` (5.7:1) |
 
-### 3. Visual Craft & Anti-Slop Principles
+### 3. Typography
 
-- **No Purple-to-Blue Gradients**: Do NOT mix random cyan or blue gradients. Use pure Royal Violet (`#7C3AED`) to Deep Fuchsia (`#C026D3`) or maintain clean solid neutrals.
-- **Mathematical Corner Nesting**: Always ensure `Inner Radius = Outer Radius - Distance/Padding`.
-- **Button Sizing Rule**: Horizontal padding on buttons must be **2x vertical padding** (e.g. `px-6 py-3` or `px-4 py-2`).
-- **Zero Unsolicited Modals or Promotional Banners**: Render functional interfaces immediately without intrusive popups.
-- **All Icons From `lucide-react`**: Never embed raw inline SVGs or third-party icon fonts.
+- **Inter** only (400–900, Google Fonts).
+- Display: `font-black uppercase leading-[0.85]` with tight tracking (hero 84–108px, sections 34–64px).
+- Kickers: `text-[11px] tracking-[0.3em] uppercase text-accent font-bold`.
+- Nav / buttons: `text-[11px] tracking-widest uppercase font-semibold`.
 
-### 4. Authoritative Cloudinary Media URLs
+### 4. Motion (all disabled under `prefers-reduced-motion`)
+
+- Logo gaps cut in on load and the mark quarter-turns on hover (`OperavaMark.tsx`).
+- Route change: three accent lines sweep across at the mark’s 34° angle; content fades up.
+- Headlines rise line-by-line; hero copy blurs in; hero images settle from a slow zoom.
+- `.reveal` / `.reveal-child` stagger on scroll; `.spotlight` pointer glow on cards; `.btn-sweep` outline buttons.
+- Home carousel autoplay is driven by its progress bar (pauses on hover/focus).
+
+### 5. Content rules
+
+- Copy comes from `create/Business References`, `BUSINESSINFO.md` and `AVA-INSTRUCTIONS/`.
+- Do **not** publish unverified certifications (ISO, SOC 2, HIPAA, PCI), prices, client names, awards or performance guarantees.
+
+### 6. Authoritative Cloudinary Media URLs
 
 | Asset Description | Direct Cloudinary HTTPS URL |
 | :--- | :--- |
