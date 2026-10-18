@@ -53,7 +53,7 @@ export function getOrganizationSchemaNode(): Record<string, unknown> {
     url: `${BASE_URL}/`,
     logo: {
       '@type': 'ImageObject',
-      url: 'https://res.cloudinary.com/sdaxzncs/image/upload/Favicon_512x512.svg',
+      url: 'https://www.operavaglobal.com/favicon-512.png',
       width: 512,
       height: 512,
     },

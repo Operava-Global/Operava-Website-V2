@@ -1,33 +1,42 @@
-import { Link } from 'react-router-dom'
-import { useLanguage } from '../i18n/LanguageContext'
+import { useLocation } from 'react-router-dom'
+import { usePageMeta } from '../site/seo'
+import { Page, ListPanel, SolidButton, OutlineButton } from '../site/ui'
 
 export default function NotFound() {
-  const { t } = useLanguage()
+  const { pathname } = useLocation()
+  usePageMeta({ title: 'Page not found', description: 'The page you were looking for could not be found on operavaglobal.com.' })
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-white pt-16">
-      <div className="max-w-md mx-auto px-6 text-center">
-        <h1 className="text-5xl font-black text-gray-900 mb-4">
-          {t('notFound.title', 'Page not found.')}
-        </h1>
-        <p className="text-base text-gray-500 mb-8">
-          {t('notFound.desc', 'The page you are looking for does not exist or has been moved.')}
-        </p>
-        <div className="flex flex-wrap justify-center gap-4">
-          <Link
-            to="/"
-            className="inline-flex items-center px-6 py-3 text-sm font-semibold text-white bg-violet-700 rounded-xl hover:bg-violet-800 transition-colors"
-          >
-            {t('notFound.returnHome', 'Return Home')}
-          </Link>
-          <Link
-            to="/contact"
-            className="inline-flex items-center px-6 py-3 text-sm font-semibold text-gray-700 border border-gray-200 rounded-xl hover:border-violet-200 hover:bg-violet-50 transition-colors"
-          >
-            {t('footer.contact', 'Contact Us')}
-          </Link>
-        </div>
+    <Page className="py-16 lg:py-24">
+      <p className="text-[11px] tracking-[0.3em] uppercase text-accent font-bold">Error 404</p>
+      <h1 className="mt-6 text-[56px] sm:text-[80px] lg:text-[128px] font-black uppercase leading-[0.85] tracking-[-0.04em]">
+        Page not
+        <br />
+        <span className="text-neutral-600">found</span>
+      </h1>
+      <p className="mt-8 max-w-[560px] text-neutral-400 leading-relaxed">
+        <span className="font-mono text-neutral-300 break-all">{pathname}</span> doesn’t exist or has moved. Try one of these instead, or use search in
+        the header.
+      </p>
+      <div className="mt-10 flex flex-wrap gap-4">
+        <SolidButton to="/">Back to home →</SolidButton>
+        <OutlineButton to="/contact" className="h-12 px-8">
+          Contact us
+        </OutlineButton>
       </div>
-    </main>
+      <div className="mt-16">
+        <ListPanel
+          cols="lg:grid-cols-3"
+          items={[
+            { label: 'Services', to: '/services' },
+            { label: 'Industries', to: '/industries' },
+            { label: 'Insights', to: '/insights' },
+            { label: 'Careers', to: '/careers' },
+            { label: 'About', to: '/about' },
+            { label: 'FAQ', to: '/faq' },
+          ]}
+        />
+      </div>
+    </Page>
   )
 }

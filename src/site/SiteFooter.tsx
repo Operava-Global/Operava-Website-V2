@@ -1,0 +1,65 @@
+import { Link } from 'react-router-dom'
+import { FOOTER_COLUMNS } from './nav'
+import { COMPANY } from './content/company'
+import { Wordmark } from './SiteHeader'
+
+export default function SiteFooter() {
+  const year = new Date().getFullYear()
+  return (
+    <footer className="border-t border-neutral-900 px-6 lg:px-12 py-16 text-sm">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-10">
+        <div className="col-span-2 lg:col-span-1">
+          <Link to="/" aria-label="OPERAVA Global Solutions — Home" className="inline-block mb-6 group">
+            <Wordmark intro={false} />
+          </Link>
+          <p className="text-neutral-500 text-xs leading-relaxed max-w-[240px]">
+            Technology, workforce and business process outsourcing — connected remotely and globally. {COMPANY.motto}
+          </p>
+          <div className="flex gap-3 mt-6">
+            {COMPANY.social.map((s) => (
+              <a
+                key={s.label}
+                href={s.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`OPERAVA on ${s.label} (@operavaglobal)`}
+                title={`${s.label} · @operavaglobal`}
+                className="w-8 h-8 rounded-full border border-neutral-800 flex items-center justify-center text-xs hover:border-white transition-colors"
+              >
+                {s.short}
+              </a>
+            ))}
+          </div>
+          <a href={`mailto:${COMPANY.email.hello}`} className="mt-6 inline-block text-xs text-neutral-400 hover:text-white transition-colors">
+            {COMPANY.email.hello}
+          </a>
+        </div>
+        {FOOTER_COLUMNS.map((col) => (
+          <div key={col.heading}>
+            <h4 className="text-[11px] tracking-widest uppercase font-bold mb-6">{col.heading}</h4>
+            <ul className="space-y-3 text-neutral-500 text-[13px]">
+              {col.links.map((l) => (
+                <li key={l.to}>
+                  <Link to={l.to} className="hover:text-white transition-colors">
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+              {col.heading === 'Legal' && (
+                <li className="text-neutral-600">© {year} OPERAVA Global Solutions. All Rights Reserved.</li>
+              )}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <div className="mt-16 pt-8 border-t border-neutral-900 flex flex-col lg:flex-row justify-between gap-4 text-[11px] tracking-widest uppercase text-neutral-600">
+        <span>{COMPANY.motto}</span>
+        <span className="flex flex-wrap gap-x-6 gap-y-2">
+          <span>SEC Reg. No. {COMPANY.sec}</span>
+          <span>Philippines • Global Operations</span>
+          <span className="text-white">operavaglobal.com</span>
+        </span>
+      </div>
+    </footer>
+  )
+}

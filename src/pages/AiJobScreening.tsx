@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Briefcase, Loader2 } from 'lucide-react'
 import { CAREER_OPENINGS, type CareerOpening } from '../data/careersData'
+import { Crumbs } from '../site/ui'
+import { usePageMeta } from '../site/seo'
 
 type Stage = 'position' | 'email' | 'otp' | 'session'
 
@@ -9,6 +10,14 @@ const POSITIONS = CAREER_OPENINGS
 const SESSION_KEY = 'operava_recruitment_session_v1'
 
 export default function AiJobScreening() {
+  usePageMeta({
+    title: 'Recruitment AVA',
+    description: 'Recruitment AVA — start your OPERAVA application with an AI-assisted first evaluation and email verification.',
+    crumbs: [
+      { name: 'Careers', path: '/careers' },
+      { name: 'Recruitment AVA', path: '/ai-job-screening' },
+    ],
+  })
   const [stage, setStage] = useState<Stage>('position')
   const [position, setPosition] = useState<CareerOpening | null>(null)
   const [emailName, setEmailName] = useState('')
@@ -182,40 +191,40 @@ export default function AiJobScreening() {
   }
 
   const header = (
-    <header className="border-b border-slate-200 bg-white sticky top-0 z-20">
-      <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-violet-600 flex items-center justify-center text-white">
-            <Briefcase className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-sm font-bold text-slate-900">Recruitment AVA</p>
-            <p className="text-[11px] text-slate-500">Email verification · OPERAVA</p>
-          </div>
+    <div className="px-6 lg:px-12">
+      <Crumbs items={[{ label: 'Careers', to: '/careers' }, { label: 'Recruitment AVA' }]} />
+      <div className="pt-10 pb-10 border-b border-neutral-900 flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+        <div>
+          <p className="text-[11px] tracking-[0.3em] uppercase text-accent font-bold mb-4">Recruitment AVA · AI-assisted first evaluation</p>
+          <h1 className="text-[44px] sm:text-[64px] lg:text-[88px] font-black uppercase leading-[0.85] tracking-[-0.04em]">
+            Recruitment
+            <br />
+            <span className="text-neutral-600">AVA</span>
+          </h1>
         </div>
-        <div className="flex items-center gap-2 text-xs">
-          <Link to="/careers" className="px-3 py-1.5 rounded-lg bg-slate-900 text-white font-medium">
-            Formal apply
+        <div className="flex flex-wrap gap-4">
+          <Link to="/apply" className="inline-flex items-center h-10 px-6 border border-white text-xs tracking-widest font-semibold uppercase hover:bg-white hover:text-black transition-colors">
+            Formal application
           </Link>
-          <Link to="/" className="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100">
-            Main site
+          <Link to="/careers/hiring-process" className="inline-flex items-center h-10 text-[11px] tracking-widest uppercase border-b border-white hover:text-accent hover:border-accent">
+            Hiring process →
           </Link>
         </div>
       </div>
-    </header>
+    </div>
   )
 
   if (stage === 'position') {
     return (
-      <main className="min-h-screen bg-slate-50">
+      <div className="pb-20">
         {header}
-        <div className="max-w-3xl mx-auto px-4 py-10">
-          <p className="text-[11px] font-bold tracking-wider text-violet-600 uppercase mb-2">Application entry</p>
-          <h1 className="text-2xl font-black text-slate-900 mb-2">Select the position you are applying for</h1>
-          <p className="text-sm text-slate-600 mb-8">
+        <div className="px-6 lg:px-12 py-12">
+          <p className="text-[11px] tracking-[0.3em] uppercase text-accent font-bold mb-4">Step 1 · Application entry</p>
+          <h2 className="text-[28px] lg:text-[40px] font-black uppercase leading-[0.9] mb-4">Select the position you are applying for</h2>
+          <p className="text-sm text-neutral-400 mb-10 max-w-[620px]">
             Choose one track to begin. You will verify your application email before information is saved.
           </p>
-          <div className="grid sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-[1px] bg-neutral-900 border border-neutral-900 rounded-[12px] overflow-hidden">
             {POSITIONS.map((p) => (
               <button
                 key={p.code}
@@ -226,44 +235,45 @@ export default function AiJobScreening() {
                   setError('')
                   clearDraft()
                 }}
-                className="text-left p-4 rounded-2xl border border-slate-200 bg-white hover:border-violet-300 hover:shadow-sm transition"
+                className="text-left bg-black p-8 lg:p-10 hover:bg-[#0a0a0a] transition-colors group"
               >
-                <p className="font-bold text-slate-900 text-sm">{p.title}</p>
-                <p className="text-xs text-slate-500 mt-1">{p.location || 'Remote / Global'}</p>
-                <p className="text-xs font-semibold text-violet-700 mt-3">Continue →</p>
+                <p className="text-[10px] tracking-widest uppercase text-neutral-600 group-hover:text-accent">{p.type}</p>
+                <p className="mt-5 font-black uppercase text-[20px] leading-[0.95]">{p.shortTitle}</p>
+                <p className="text-xs text-neutral-500 mt-3 uppercase tracking-widest">{p.location || 'Remote / Global'}</p>
+                <span className="mt-8 inline-flex w-10 h-10 rounded-full border border-neutral-800 items-center justify-center group-hover:bg-white group-hover:text-black transition-colors">→</span>
               </button>
             ))}
           </div>
         </div>
-      </main>
+      </div>
     )
   }
 
   if (stage === 'email' || stage === 'otp') {
     return (
-      <main className="min-h-screen bg-slate-50">
+      <div className="pb-20">
         {header}
-        <div className="max-w-md mx-auto px-4 py-10">
-          <p className="text-[11px] font-bold tracking-wider text-violet-600 uppercase mb-2">
+        <div className="max-w-xl mx-auto px-6 py-12">
+          <p className="text-[11px] tracking-[0.3em] uppercase text-accent font-bold mb-4">
             {position?.title}
           </p>
           {stage === 'email' ? (
-            <div className="space-y-4 bg-white border border-slate-200 rounded-2xl p-6">
-              <h1 className="text-xl font-black text-slate-900">Verify your email</h1>
-              <p className="text-sm text-slate-600">We will send a 6-digit code to confirm this is your application email.</p>
-              <label className="block text-xs font-semibold text-slate-700">
+            <div className="space-y-5 bg-[#0a0a0a] border border-neutral-900 rounded-[12px] p-6 sm:p-8">
+              <h2 className="text-[28px] font-black uppercase leading-[0.9]">Verify your email</h2>
+              <p className="text-sm text-neutral-400 leading-relaxed">We will send a 6-digit code to confirm this is your application email.</p>
+              <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400">
                 Full name
                 <input
-                  className="mt-1 w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm"
+                  className="mt-2 w-full px-4 h-12 bg-black border border-neutral-800 text-sm text-white normal-case tracking-normal outline-none focus:border-accent"
                   value={emailName}
                   onChange={(e) => setEmailName(e.target.value)}
                   autoComplete="name"
                 />
               </label>
-              <label className="block text-xs font-semibold text-slate-700">
+              <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400">
                 Email
                 <input
-                  className="mt-1 w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm"
+                  className="mt-2 w-full px-4 h-12 bg-black border border-neutral-800 text-sm text-white normal-case tracking-normal outline-none focus:border-accent"
                   value={emailValue}
                   onChange={(e) => setEmailValue(e.target.value)}
                   autoComplete="email"
@@ -274,13 +284,13 @@ export default function AiJobScreening() {
                 type="button"
                 disabled={busy}
                 onClick={() => void sendOtp()}
-                className="w-full py-3 rounded-xl bg-violet-700 text-white text-sm font-semibold disabled:opacity-50"
+                className="w-full h-12 bg-white text-black text-xs tracking-widest uppercase font-bold hover:bg-accent-solid hover:text-white transition-colors disabled:opacity-50"
               >
                 {busy ? 'Sending…' : 'Send verification code'}
               </button>
               <button
                 type="button"
-                className="w-full text-xs text-slate-500 hover:underline"
+                className="w-full text-xs text-neutral-500 hover:text-white underline-offset-4 hover:underline"
                 onClick={() => {
                   setStage('position')
                   setError('')
@@ -291,10 +301,10 @@ export default function AiJobScreening() {
               </button>
             </div>
           ) : (
-            <div className="space-y-4 bg-white border border-slate-200 rounded-2xl p-6">
-              <h1 className="text-xl font-black text-slate-900">Enter verification code</h1>
-              <p className="text-sm text-slate-600">
-                Code sent to <strong>{maskedEmail}</strong>. Use the <em>latest</em> email only.
+            <div className="space-y-5 bg-[#0a0a0a] border border-neutral-900 rounded-[12px] p-6 sm:p-8">
+              <h2 className="text-[28px] font-black uppercase leading-[0.9]">Enter verification code</h2>
+              <p className="text-sm text-neutral-400 leading-relaxed">
+                Code sent to <strong className="text-white">{maskedEmail}</strong>. Use the <em>latest</em> email only.
               </p>
               <div className="flex justify-center gap-2" role="group" aria-label="Verification code">
                 {otpDigits.map((digit, index) => (
@@ -330,7 +340,7 @@ export default function AiJobScreening() {
                       }
                       if (e.key === 'Enter') void verifyOtp()
                     }}
-                    className="w-11 h-12 text-center text-lg font-bold border border-slate-200 rounded-xl"
+                    className="w-11 h-14 text-center text-xl font-black bg-black text-white border border-neutral-800 focus:border-accent outline-none"
                   />
                 ))}
               </div>
@@ -338,12 +348,10 @@ export default function AiJobScreening() {
                 type="button"
                 disabled={busy || otpDigits.join('').replace(/\D/g, '').length !== 6}
                 onClick={() => void verifyOtp()}
-                className="w-full py-3 rounded-xl bg-violet-700 text-white text-sm font-semibold disabled:opacity-50"
+                className="w-full h-12 bg-white text-black text-xs tracking-widest uppercase font-bold hover:bg-accent-solid hover:text-white transition-colors disabled:opacity-50"
               >
                 {busy ? (
-                  <span className="inline-flex items-center gap-2 justify-center">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Verifying…
-                  </span>
+                  'Verifying…'
                 ) : (
                   'Verify & continue'
                 )}
@@ -352,7 +360,7 @@ export default function AiJobScreening() {
                 type="button"
                 disabled={busy}
                 onClick={() => void resendOtp()}
-                className="w-full py-2 text-sm font-medium text-violet-700 hover:underline disabled:opacity-50"
+                className="w-full py-2 text-[11px] tracking-widest uppercase font-semibold text-accent hover:underline disabled:opacity-50"
               >
                 Resend code
               </button>
@@ -365,42 +373,42 @@ export default function AiJobScreening() {
                   setError('')
                   clearDraft()
                 }}
-                className="w-full py-1 text-xs text-slate-500 hover:underline"
+                className="w-full py-1 text-xs text-neutral-500 hover:text-white hover:underline"
               >
                 Use a different email
               </button>
             </div>
           )}
-          {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+          {error && <p role="alert" className="mt-4 text-sm text-red-400">{error}</p>}
         </div>
-      </main>
+      </div>
     )
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <div className="pb-20">
       {header}
-      <div className="max-w-lg mx-auto px-4 py-12 text-center space-y-4">
-        <h1 className="text-2xl font-black text-slate-900">Email verified</h1>
-        <p className="text-sm text-slate-600">
-          Welcome{profileName ? ` ${profileName}` : ''}. Your session is active for{' '}
-          <strong>{position?.title}</strong>.
+      <div className="max-w-xl mx-auto px-6 py-16 text-center space-y-5">
+        <p className="text-[11px] tracking-[0.3em] uppercase text-emerald-400 font-bold">✓ Email verified</p>
+        <h2 className="text-[36px] font-black uppercase leading-[0.9]">Welcome{profileName ? `, ${profileName}` : ''}</h2>
+        <p className="text-sm text-neutral-400 leading-relaxed">
+          Your session is active for <strong className="text-white">{position?.title}</strong>.
         </p>
-        <p className="text-xs text-slate-500 break-all">Session: {sessionToken ? 'active' : 'missing'}</p>
-        <p className="text-sm text-slate-600">
-          Chat screening UI is being restored. You can continue the formal application on Careers, or stay
-          signed in here for the next step.
+        <p className="text-[10px] tracking-widest uppercase text-neutral-500">Session: {sessionToken ? 'active' : 'missing'}</p>
+        <p className="text-sm text-neutral-400 leading-relaxed">
+          The interactive screening step is being prepared. Continue with the formal application now — your verified session stays active in this
+          browser tab.
         </p>
-        <div className="flex flex-col sm:flex-row gap-2 justify-center">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
           <Link
-            to="/careers"
-            className="px-4 py-2.5 rounded-xl bg-violet-700 text-white text-sm font-semibold"
+            to={`/apply?position=${encodeURIComponent(position?.title || '')}`}
+            className="inline-flex items-center justify-center h-12 px-8 bg-white text-black text-xs tracking-widest uppercase font-bold hover:bg-accent-solid hover:text-white transition-colors"
           >
-            Open Careers
+            Continue formal application
           </Link>
           <button
             type="button"
-            className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm"
+            className="h-12 px-8 border border-white text-xs tracking-widest uppercase font-semibold hover:bg-white hover:text-black transition-colors"
             onClick={() => {
               sessionStorage.removeItem(SESSION_KEY)
               setSessionToken('')
@@ -413,6 +421,6 @@ export default function AiJobScreening() {
           </button>
         </div>
       </div>
-    </main>
+    </div>
   )
 }

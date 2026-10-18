@@ -47,6 +47,24 @@ const BPO_SERVICES = [
   'Virtual Assistance',
 ]
 
+const AUTOMATION_SERVICES = [
+  'Workflow Automation',
+  'Business Process Automation',
+  'AI Automation',
+  'Customer Service Automation',
+  'Email Automation',
+  'Lead & Sales Automation',
+  'Data & Reporting Automation',
+  'Document Automation',
+  'HR & Workforce Automation',
+  'Finance & Invoicing Automation',
+]
+
+/** Map public service names to the option labels used by this form */
+const SERVICE_ALIASES: Record<string, string> = {
+  'Help Desk': 'Help Desk Operations',
+}
+
 const GENERAL_SERVICES = [
   'General Business Consultation',
   'Strategic IT & BPO Partnership',
@@ -108,7 +126,7 @@ export default function OperavaIntakeForm({
     phone: '',
     country: '',
     category: defaultCategory || (rawKind === 'CONTACT' ? 'General Business Inquiry & Consultation' : 'Information Technology'),
-    service: defaultService || (rawKind === 'CONTACT' ? 'General Business Consultation' : ''),
+    service: (defaultService && (SERVICE_ALIASES[defaultService] || defaultService)) || (rawKind === 'CONTACT' ? 'General Business Consultation' : ''),
     description: '',
     budget: '',
     websiteUrl: '',
@@ -142,7 +160,7 @@ export default function OperavaIntakeForm({
 
   useEffect(() => {
     if (defaultService) {
-      setForm((prev) => ({ ...prev, service: defaultService }))
+      setForm((prev) => ({ ...prev, service: SERVICE_ALIASES[defaultService] || defaultService }))
       setErrors((prev) => {
         const next = { ...prev }
         delete next.service
@@ -329,28 +347,28 @@ export default function OperavaIntakeForm({
 
   const getFieldClass = (hasError?: boolean, isTouched?: boolean) => {
     if (isTouched && hasError) {
-      return 'w-full px-4 py-3 text-sm border border-red-300 rounded-xl bg-red-50/25 text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400 transition-all shadow-xs'
+      return 'w-full px-4 py-3 min-h-12 text-sm border border-red-500/70 bg-red-500/5 text-white placeholder:text-neutral-600 focus:outline-none focus:border-red-400 transition-colors'
     }
-    return 'w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-600 focus:border-transparent transition-all shadow-xs'
+    return 'w-full px-4 py-3 min-h-12 text-sm border border-neutral-800 bg-black text-white placeholder:text-neutral-600 focus:outline-none focus:border-accent transition-colors'
   }
 
   const currentSpecializations = SKILLS_SPECIALIZATIONS[form.position as CareerPosition] || []
 
   return (
-    <form noValidate onSubmit={submit} className="space-y-5 max-w-2xl">
+    <form noValidate onSubmit={submit} className="space-y-6 max-w-2xl">
       <input className="hidden" tabIndex={-1} autoComplete="off" value={form.website} onChange={set('website')} />
 
       <div className="space-y-4">
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label htmlFor="field-name" className="block text-xs font-semibold text-gray-700">
-              Full Name <span className="text-red-500">*</span>
+            <label htmlFor="field-name" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400">
+              Full Name <span className="text-accent">*</span>
             </label>
           </div>
           <input id="field-name" name="name" required value={form.name} onChange={set('name')} onBlur={() => handleBlur('name')} placeholder="Jane Doe" className={getFieldClass(Boolean(errors.name), Boolean(touched.name))} />
           {touched.name && errors.name && (
-            <p role="alert" className="mt-1.5 flex items-center gap-1.5 text-xs text-red-600 font-medium">
-              <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-500" />
+            <p role="alert" className="mt-1.5 flex items-center gap-1.5 text-xs text-red-400 font-medium">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-400" />
               <span>{errors.name}</span>
             </p>
           )}
@@ -358,41 +376,41 @@ export default function OperavaIntakeForm({
 
         {kind === 'SERVICES' && (
           <div>
-            <label htmlFor="field-company" className="block text-xs font-semibold text-gray-700 mb-1">Company / Organization Name (Optional)</label>
+            <label htmlFor="field-company" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Company / Organization Name (Optional)</label>
             <input id="field-company" name="company" value={form.company} onChange={set('company')} placeholder="Acme Corp" className={getFieldClass(false, false)} />
           </div>
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="field-email" className="block text-xs font-semibold text-gray-700 mb-1">{kind === 'SERVICES' ? 'Business Email Address' : 'Email Address'} <span className="text-red-500">*</span></label>
+            <label htmlFor="field-email" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">{kind === 'SERVICES' ? 'Business Email Address' : 'Email Address'} <span className="text-accent">*</span></label>
             <input id="field-email" name="email" required type="email" value={form.email} onChange={set('email')} onBlur={() => handleBlur('email')} placeholder="name@company.com" className={getFieldClass(Boolean(errors.email), Boolean(touched.email))} />
             {touched.email && errors.email && (
-              <p role="alert" className="mt-1.5 text-xs text-red-600 font-medium">{errors.email}</p>
+              <p role="alert" className="mt-1.5 text-xs text-red-400 font-medium">{errors.email}</p>
             )}
           </div>
           <div>
-            <label htmlFor="field-phone" className="block text-xs font-semibold text-gray-700 mb-1">Contact / Phone Number <span className="text-red-500">*</span></label>
+            <label htmlFor="field-phone" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Contact / Phone Number <span className="text-accent">*</span></label>
             <input id="field-phone" name="phone" required type="tel" value={form.phone} onChange={set('phone')} onBlur={() => handleBlur('phone')} placeholder="+1 (555) 000-0000" className={getFieldClass(Boolean(errors.phone), Boolean(touched.phone))} />
             {touched.phone && errors.phone && (
-              <p role="alert" className="mt-1.5 text-xs text-red-600 font-medium">{errors.phone}</p>
+              <p role="alert" className="mt-1.5 text-xs text-red-400 font-medium">{errors.phone}</p>
             )}
           </div>
         </div>
 
         <div>
-          <label htmlFor="field-country" className="block text-xs font-semibold text-gray-700 mb-1">{kind === 'CAREERS' ? 'Country / Current Location' : 'Country / Location'} <span className="text-red-500">*</span></label>
+          <label htmlFor="field-country" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">{kind === 'CAREERS' ? 'Country / Current Location' : 'Country / Location'} <span className="text-accent">*</span></label>
           <input id="field-country" name="country" required value={form.country} onChange={set('country')} onBlur={() => handleBlur('country')} placeholder="United States, Philippines, Canada, etc." className={getFieldClass(Boolean(errors.country), Boolean(touched.country))} />
           {touched.country && errors.country && (
-            <p role="alert" className="mt-1.5 text-xs text-red-600 font-medium">{errors.country}</p>
+            <p role="alert" className="mt-1.5 text-xs text-red-400 font-medium">{errors.country}</p>
           )}
         </div>
       </div>
 
       {kind === 'SERVICES' && (
-        <div className="space-y-4 pt-2 border-t border-gray-100">
+        <div className="space-y-4 pt-6 border-t border-neutral-900">
           <div>
-            <label htmlFor="field-category" className="block text-xs font-semibold text-gray-700 mb-1">Inquiry / Project Category <span className="text-red-500">*</span></label>
+            <label htmlFor="field-category" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Inquiry / Project Category <span className="text-accent">*</span></label>
             <select id="field-category" value={form.category} onChange={set('category')} onBlur={() => handleBlur('category')} className={getFieldClass(Boolean(errors.category), Boolean(touched.category))}>
               {SERVICE_CATEGORIES.map((c) => (
                 <option key={c} value={c}>{c}</option>
@@ -400,30 +418,47 @@ export default function OperavaIntakeForm({
             </select>
           </div>
           <div>
-            <label htmlFor="field-service" className="block text-xs font-semibold text-gray-700 mb-1">Service / Focus <span className="text-red-500">*</span></label>
+            <label htmlFor="field-service" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Service / Focus <span className="text-accent">*</span></label>
             <select id="field-service" value={form.service} onChange={set('service')} onBlur={() => handleBlur('service')} className={getFieldClass(Boolean(errors.service), Boolean(touched.service))}>
               <option value="">Select a service</option>
-              {[...IT_SERVICES, ...BPO_SERVICES, ...GENERAL_SERVICES].map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
+              <optgroup label="Information Technology">
+                {IT_SERVICES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </optgroup>
+              <optgroup label="Business Process Outsourcing">
+                {BPO_SERVICES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </optgroup>
+              <optgroup label="Automation">
+                {AUTOMATION_SERVICES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </optgroup>
+              <optgroup label="General">
+                {GENERAL_SERVICES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </optgroup>
             </select>
           </div>
           <div>
-            <label htmlFor="field-description" className="block text-xs font-semibold text-gray-700 mb-1">Project description <span className="text-red-500">*</span></label>
+            <label htmlFor="field-description" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Project description <span className="text-accent">*</span></label>
             <textarea id="field-description" rows={4} value={form.description} onChange={set('description')} onBlur={() => handleBlur('description')} className={getFieldClass(Boolean(errors.description), Boolean(touched.description))} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Budget (optional)</label>
+              <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Budget (optional)</label>
               <input value={form.budget} onChange={set('budget')} className={getFieldClass(false, false)} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Website / System URL (optional)</label>
+              <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Website / System URL (optional)</label>
               <input value={form.websiteUrl} onChange={set('websiteUrl')} className={getFieldClass(false, false)} />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Preferred contact method</label>
+            <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Preferred contact method</label>
             <select value={form.contactMethod} onChange={set('contactMethod')} className={getFieldClass(false, false)}>
               <option>Email</option>
               <option>Phone</option>
@@ -434,9 +469,9 @@ export default function OperavaIntakeForm({
       )}
 
       {kind === 'CAREERS' && (
-        <div className="space-y-4 pt-2 border-t border-gray-100">
+        <div className="space-y-4 pt-6 border-t border-neutral-900">
           <div>
-            <label htmlFor="field-position" className="block text-xs font-semibold text-gray-700 mb-1">Position <span className="text-red-500">*</span></label>
+            <label htmlFor="field-position" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Position <span className="text-accent">*</span></label>
             <select id="field-position" value={form.position} onChange={set('position')} onBlur={() => handleBlur('position')} className={getFieldClass(Boolean(errors.position), Boolean(touched.position))}>
               {CAREER_POSITIONS.map((p) => (
                 <option key={p} value={p}>{p}</option>
@@ -444,7 +479,7 @@ export default function OperavaIntakeForm({
             </select>
           </div>
           <div>
-            <label htmlFor="field-specialization" className="block text-xs font-semibold text-gray-700 mb-1">Specialization / Skills track</label>
+            <label htmlFor="field-specialization" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Specialization / Skills track</label>
             <select id="field-specialization" value={form.specialization} onChange={set('specialization')} className={getFieldClass(false, false)}>
               <option value="">Select specialization</option>
               {currentSpecializations.map((s) => (
@@ -454,28 +489,28 @@ export default function OperavaIntakeForm({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Availability</label>
+              <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Availability</label>
               <input value={form.availability} onChange={set('availability')} className={getFieldClass(false, false)} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Experience</label>
+              <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Experience</label>
               <input value={form.experience} onChange={set('experience')} className={getFieldClass(false, false)} />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Education</label>
+            <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Education</label>
             <input value={form.education} onChange={set('education')} className={getFieldClass(false, false)} />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Additional skills</label>
+            <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Additional skills</label>
             <input value={form.skills} onChange={set('skills')} className={getFieldClass(false, false)} />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Portfolio / LinkedIn (optional)</label>
+            <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Portfolio / LinkedIn (optional)</label>
             <input value={form.portfolio} onChange={set('portfolio')} className={getFieldClass(false, false)} />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Resume (PDF / Word / TXT)</label>
+            <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Resume (PDF / Word / TXT)</label>
             <input
               type="file"
               accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
@@ -489,43 +524,43 @@ export default function OperavaIntakeForm({
                   setError(err instanceof Error ? err.message : 'Resume upload failed.')
                 }
               }}
-              className="block w-full text-sm text-gray-600"
+              className="block w-full text-sm text-neutral-400"
             />
             {resumeName && (
-              <p className="mt-1 text-xs text-emerald-700 font-medium">Attached: {resumeName}{resumeKey ? ' · converted to text for review' : ''}</p>
+              <p className="mt-2 text-xs text-emerald-400 font-medium">Attached: {resumeName}{resumeKey ? ' · converted to text for review' : ''}</p>
             )}
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Additional notes</label>
+            <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Additional notes</label>
             <textarea rows={3} value={form.additional} onChange={set('additional')} className={getFieldClass(false, false)} />
           </div>
         </div>
       )}
 
-      <div className="space-y-2 pt-2 border-t border-gray-100">
-        <label className="flex items-start gap-2 text-xs text-gray-700">
-          <input type="checkbox" checked={form.accurate} onChange={set('accurate')} className="mt-0.5" />
-          <span>I confirm the information provided is accurate. <span className="text-red-500">*</span></span>
+      <div className="space-y-3 pt-6 border-t border-neutral-900">
+        <label className="flex items-start gap-3 text-xs text-neutral-300 leading-relaxed">
+          <input type="checkbox" checked={form.accurate} onChange={set('accurate')} className="mt-0.5 w-4 h-4 shrink-0" />
+          <span>I confirm the information provided is accurate. <span className="text-accent">*</span></span>
         </label>
-        <label className="flex items-start gap-2 text-xs text-gray-700">
-          <input type="checkbox" checked={form.privacy} onChange={set('privacy')} className="mt-0.5" />
-          <span>I agree to the processing of my data as described in the privacy notice. <span className="text-red-500">*</span></span>
+        <label className="flex items-start gap-3 text-xs text-neutral-300 leading-relaxed">
+          <input type="checkbox" checked={form.privacy} onChange={set('privacy')} className="mt-0.5 w-4 h-4 shrink-0" />
+          <span>I agree to the processing of my data as described in the <Link to="/privacy" className="underline underline-offset-4 hover:text-accent">Privacy Policy</Link>. <span className="text-accent">*</span></span>
         </label>
       </div>
 
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-start gap-2">
+        <div className="border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300 flex items-start gap-2">
           <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      <button type="submit" disabled={sending} className="w-full sm:w-auto px-6 py-3 rounded-xl bg-violet-700 hover:bg-violet-800 text-white text-sm font-semibold disabled:opacity-60">
+      <button type="submit" disabled={sending} className="w-full sm:w-auto h-12 px-8 bg-white text-black text-xs tracking-widest uppercase font-bold hover:bg-accent-solid hover:text-white transition-colors disabled:opacity-60">
         {sending ? 'Sending verification…' : 'Continue to email verification'}
       </button>
 
-      <p className="text-[11px] text-gray-500">
-        Prefer AI screening? <Link to="/ai-job-screening" className="text-violet-700 font-medium underline">Open Recruitment AVA</Link>
+      <p className="text-[11px] text-neutral-500">
+        Prefer AI screening? <Link to="/ai-job-screening" className="text-white font-medium underline underline-offset-4 hover:text-accent">Open Recruitment AVA</Link>
       </p>
     </form>
   )

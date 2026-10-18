@@ -141,16 +141,16 @@ export default function AcademyEnrollmentForm() {
 
   const fieldClass = (key: string) =>
     touched[key] && fieldErrors[key]
-      ? 'w-full px-4 py-3 text-sm border border-red-300 rounded-xl bg-red-50/25 text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400'
-      : 'w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-600'
+      ? 'w-full px-4 py-3 min-h-12 text-sm border border-red-500/70 bg-red-500/5 text-white placeholder:text-neutral-600 focus:outline-none focus:border-red-400'
+      : 'w-full px-4 py-3 min-h-12 text-sm border border-neutral-800 bg-black text-white placeholder:text-neutral-600 focus:outline-none focus:border-accent'
 
   return (
-    <form noValidate onSubmit={submit} className="space-y-5 max-w-2xl">
+    <form noValidate onSubmit={submit} className="space-y-6 max-w-2xl">
       <input className="hidden" tabIndex={-1} autoComplete="off" value={form.website} onChange={set('website')} />
 
       <div>
-        <label htmlFor="academy-name" className="block text-xs font-semibold text-gray-700 mb-1">
-          Full Name <span className="text-red-500">*</span>
+        <label htmlFor="academy-name" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">
+          Full Name <span className="text-accent">*</span>
         </label>
         <input
           id="academy-name"
@@ -162,14 +162,14 @@ export default function AcademyEnrollmentForm() {
           className={fieldClass('name')}
         />
         {touched.name && fieldErrors.name && (
-          <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-600">
+          <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-400">
             <AlertCircle className="w-3.5 h-3.5" /> {fieldErrors.name}
           </p>
         )}
       </div>
 
       <div>
-        <label htmlFor="academy-company" className="block text-xs font-semibold text-gray-700 mb-1">
+        <label htmlFor="academy-company" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">
           Company / Organization (optional)
         </label>
         <input
@@ -183,8 +183,8 @@ export default function AcademyEnrollmentForm() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="academy-email" className="block text-xs font-semibold text-gray-700 mb-1">
-            Email <span className="text-red-500">*</span>
+          <label htmlFor="academy-email" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">
+            Email <span className="text-accent">*</span>
           </label>
           <input
             id="academy-email"
@@ -197,14 +197,14 @@ export default function AcademyEnrollmentForm() {
             className={fieldClass('email')}
           />
           {touched.email && fieldErrors.email && (
-            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-600">
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-400">
               <AlertCircle className="w-3.5 h-3.5" /> {fieldErrors.email}
             </p>
           )}
         </div>
         <div>
-          <label htmlFor="academy-phone" className="block text-xs font-semibold text-gray-700 mb-1">
-            Phone <span className="text-red-500">*</span>
+          <label htmlFor="academy-phone" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">
+            Phone <span className="text-accent">*</span>
           </label>
           <input
             id="academy-phone"
@@ -217,7 +217,7 @@ export default function AcademyEnrollmentForm() {
             className={fieldClass('phone')}
           />
           {touched.phone && fieldErrors.phone && (
-            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-600">
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-400">
               <AlertCircle className="w-3.5 h-3.5" /> {fieldErrors.phone}
             </p>
           )}
@@ -225,8 +225,8 @@ export default function AcademyEnrollmentForm() {
       </div>
 
       <div>
-        <label htmlFor="academy-country" className="block text-xs font-semibold text-gray-700 mb-1">
-          Country / Location <span className="text-red-500">*</span>
+        <label htmlFor="academy-country" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">
+          Country / Location <span className="text-accent">*</span>
         </label>
         <input
           id="academy-country"
@@ -238,7 +238,7 @@ export default function AcademyEnrollmentForm() {
           className={fieldClass('country')}
         />
         {touched.country && fieldErrors.country && (
-          <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-600">
+          <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-400">
             <AlertCircle className="w-3.5 h-3.5" /> {fieldErrors.country}
           </p>
         )}
@@ -246,8 +246,8 @@ export default function AcademyEnrollmentForm() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="academy-type" className="block text-xs font-semibold text-gray-700 mb-1">
-            Inquiry type <span className="text-red-500">*</span>
+          <label htmlFor="academy-type" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">
+            Inquiry type <span className="text-accent">*</span>
           </label>
           <select id="academy-type" value={form.category} onChange={set('category')} className={fieldClass('category')}>
             {INQUIRY_TYPES.map((t) => (
@@ -258,7 +258,7 @@ export default function AcademyEnrollmentForm() {
           </select>
         </div>
         <div>
-          <label htmlFor="academy-track" className="block text-xs font-semibold text-gray-700 mb-1">
+          <label htmlFor="academy-track" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">
             Program / track
           </label>
           <select id="academy-track" value={form.service} onChange={set('service')} className={fieldClass('service')}>
@@ -272,8 +272,8 @@ export default function AcademyEnrollmentForm() {
       </div>
 
       <div>
-        <label htmlFor="academy-desc" className="block text-xs font-semibold text-gray-700 mb-1">
-          Details <span className="text-red-500">*</span>
+        <label htmlFor="academy-desc" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">
+          Details <span className="text-accent">*</span>
         </label>
         <textarea
           id="academy-desc"
@@ -286,25 +286,25 @@ export default function AcademyEnrollmentForm() {
           className={fieldClass('description')}
         />
         {touched.description && fieldErrors.description && (
-          <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-600">
+          <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-400">
             <AlertCircle className="w-3.5 h-3.5" /> {fieldErrors.description}
           </p>
         )}
       </div>
 
-      <div className="space-y-3 pt-2">
-        <label className="flex items-start gap-2.5 text-sm text-gray-700 cursor-pointer">
-          <input type="checkbox" checked={form.accurate} onChange={set('accurate')} className="mt-1 rounded border-gray-300 text-violet-700" />
+      <div className="space-y-3 pt-6 border-t border-neutral-900">
+        <label className="flex items-start gap-3 text-xs text-neutral-300 leading-relaxed cursor-pointer">
+          <input type="checkbox" checked={form.accurate} onChange={set('accurate')} className="mt-0.5 w-4 h-4 shrink-0" />
           <span>I confirm the information provided is accurate.</span>
         </label>
-        <label className="flex items-start gap-2.5 text-sm text-gray-700 cursor-pointer">
-          <input type="checkbox" checked={form.privacy} onChange={set('privacy')} className="mt-1 rounded border-gray-300 text-violet-700" />
+        <label className="flex items-start gap-3 text-xs text-neutral-300 leading-relaxed cursor-pointer">
+          <input type="checkbox" checked={form.privacy} onChange={set('privacy')} className="mt-0.5 w-4 h-4 shrink-0" />
           <span>I agree that OPERAVA may contact me about this Academy inquiry.</span>
         </label>
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="flex items-start gap-2 border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
@@ -313,12 +313,12 @@ export default function AcademyEnrollmentForm() {
       <button
         type="submit"
         disabled={sending}
-        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-violet-700 text-white text-sm font-semibold hover:bg-violet-800 disabled:opacity-60 transition-colors"
+        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 h-12 px-8 bg-white text-black text-xs tracking-widest uppercase font-bold hover:bg-accent-solid hover:text-white disabled:opacity-60 transition-colors"
       >
         {sending ? 'Sending verification…' : 'Continue with email verification'}
         {!sending && <CheckCircle2 className="w-4 h-4" />}
       </button>
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-neutral-500">
         Same secure process as other OPERAVA forms: we email a one-time code from our notification address, then confirm your submission. Academy
         confirmations are copied to academy@operavaglobal.com.
       </p>

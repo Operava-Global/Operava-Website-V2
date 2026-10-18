@@ -1,0 +1,117 @@
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useLocation } from 'react-router-dom'
+import SiteHeader from './SiteHeader'
+import SiteFooter from './SiteFooter'
+
+/** Adds `.visible` to every `.reveal` element as it scrolls into view — including ones rendered later. */
+function useRevealObserver(pathname: string) {
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') {
+      document.querySelectorAll('.reveal').forEach((el) => el.classList.add('visible'))
+      return
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add('visible')
+            io.unobserve(e.target)
+          }
+        })
+      },
+      { threshold: 0.15 },
+    )
+    const scan = () => document.querySelectorAll('.reveal:not(.visible)').forEach((el) => io.observe(el))
+    scan()
+    const mo = new MutationObserver(scan)
+    mo.observe(document.getElementById('root') || document.body, { childList: true, subtree: true })
+    return () => {
+      io.disconnect()
+      mo.disconnect()
+    }
+  }, [pathname])
+}
+
+/** Scroll to top on page change, or to the #hash target when present. */
+function useScrollManager(pathname: string, hash: string) {
+  useEffect(() => {
+    if (hash) {
+      const id = decodeURIComponent(hash.slice(1))
+      let tries = 0
+      const tick = () => {
+        const el = document.getElementById(id)
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        else if (tries++ < 10) window.setTimeout(tick, 60)
+      }
+      tick()
+      return
+    }
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
+  }, [pathname, hash])
+}
+
+/** Pointer-follow highlight for `.spotlight` elements (one delegated listener). */
+function useSpotlight() {
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      const el = (e.target as Element | null)?.closest?.('.spotlight') as HTMLElement | null
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      el.style.setProperty('--mx', `${e.clientX - r.left}px`)
+      el.style.setProperty('--my', `${e.clientY - r.top}px`)
+    }
+    window.addEventListener('pointermove', onMove, { passive: true })
+    return () => window.removeEventListener('pointermove', onMove)
+  }, [])
+}
+
+/** Three accent lines sweep across at the logo's 34° angle whenever the page changes. */
+function RouteSweep({ pathname }: { pathname: string }) {
+  const first = useRef(true)
+  const [run, setRun] = useState(0)
+  useEffect(() => {
+    if (first.current) {
+      first.current = false
+      return
+    }
+    setRun((n) => n + 1)
+    const t = window.setTimeout(() => setRun(0), 1100)
+    return () => window.clearTimeout(t)
+  }, [pathname])
+  if (!run) return null
+  return (
+    <div key={run} className="op-sweep" aria-hidden>
+      <span />
+      <span />
+      <span />
+    </div>
+  )
+}
+
+export default function Layout({ children }: { children: ReactNode }) {
+  const { pathname, hash } = useLocation()
+  useRevealObserver(pathname)
+  useScrollManager(pathname, hash)
+  useSpotlight()
+
+  return (
+    <div
+      className="min-h-screen bg-black text-white overflow-x-clip flex flex-col"
+      style={{ paddingTop: 'var(--safe-area-inset-top)', boxSizing: 'border-box', background: '#000' }}
+    >
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:bg-white focus:text-black focus:px-4 focus:py-2 focus:text-xs focus:font-bold focus:uppercase focus:tracking-widest"
+      >
+        Skip to content
+      </a>
+      <div className="grain" aria-hidden />
+      <SiteHeader />
+      <RouteSweep pathname={pathname} />
+      <main id="main" key={pathname} className="flex-1 page-enter">
+        {children}
+      </main>
+      <SiteFooter />
+    </div>
+  )
+}
