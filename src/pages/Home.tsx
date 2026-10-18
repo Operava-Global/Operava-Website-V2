@@ -216,6 +216,26 @@ export default function Home() {
       <EcosystemLogos />
 
       {/* STATEMENT */}
+
+      <section aria-label="Payment, commerce and business platforms" className="px-6 lg:px-12 py-10 border-y border-neutral-900">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-8">
+          <div className="lg:w-[270px] shrink-0">
+            <p className="text-accent uppercase tracking-[.22em] text-[10px] font-bold">Tools and platforms</p>
+            <h2 className="text-xl font-black uppercase mt-2">Built to work with your stack</h2>
+            <p className="text-xs text-neutral-500 mt-3 leading-relaxed">Examples of payment, commerce and digital platforms; no affiliation or endorsement is implied.</p>
+          </div>
+          <div className="grid grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3 flex-1">
+            <div className="rounded-lg border border-neutral-800 bg-white min-h-16 p-3 flex items-center justify-center" title="Visa"><img src="https://www.operavaglobal.com/assets/logos/visa.svg" alt="Visa" loading="lazy" className="block max-w-full max-h-9 w-auto h-auto" /></div>
+            <div className="rounded-lg border border-neutral-800 bg-white min-h-16 p-3 flex items-center justify-center" title="Mastercard"><img src="https://www.operavaglobal.com/assets/logos/mastercard.svg" alt="Mastercard" loading="lazy" className="block max-w-full max-h-9 w-auto h-auto" /></div>
+            <div className="rounded-lg border border-neutral-800 bg-white min-h-16 p-3 flex items-center justify-center" title="Apple Pay"><img src="https://www.operavaglobal.com/assets/logos/apple-pay.svg" alt="Apple Pay" loading="lazy" className="block max-w-full max-h-9 w-auto h-auto" /></div>
+            <div className="rounded-lg border border-neutral-800 bg-white min-h-16 p-3 flex items-center justify-center" title="Meta"><img src="https://www.operavaglobal.com/assets/logos/meta.svg" alt="Meta" loading="lazy" className="block max-w-full max-h-9 w-auto h-auto" /></div>
+            <div className="rounded-lg border border-neutral-800 bg-white min-h-16 p-3 flex items-center justify-center" title="TikTok"><img src="https://www.operavaglobal.com/assets/logos/tiktok.svg" alt="TikTok" loading="lazy" className="block max-w-full max-h-9 w-auto h-auto" /></div>
+            <div className="rounded-lg border border-neutral-800 bg-white min-h-16 p-3 flex items-center justify-center" title="Apple"><img src="https://www.operavaglobal.com/assets/logos/apple.svg" alt="Apple" loading="lazy" className="block max-w-full max-h-9 w-auto h-auto" /></div>
+            <div className="rounded-lg border border-neutral-800 bg-white min-h-16 p-3 flex items-center justify-center" title="Zoho"><img src="https://www.operavaglobal.com/assets/logos/zoho.svg" alt="Zoho" loading="lazy" className="block max-w-full max-h-9 w-auto h-auto" /></div>
+            <div className="rounded-lg border border-neutral-800 bg-white min-h-16 p-3 flex items-center justify-center" title="Google"><img src="https://www.operavaglobal.com/assets/logos/google.svg" alt="Google" loading="lazy" className="block max-w-full max-h-9 w-auto h-auto" /></div>
+          </div>
+        </div>
+      </section>
       <section className="border-y border-neutral-900 py-16 lg:py-20 px-6 lg:px-12 reveal">
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-[22px] lg:text-[34px] font-light italic leading-[1.15] tracking-tight">“{STATEMENT}”</p>
