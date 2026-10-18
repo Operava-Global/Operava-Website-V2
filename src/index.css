@@ -157,14 +157,6 @@ input[type='file']::file-selector-button {
 .op-mark {
   transition: transform 0.7s cubic-bezier(0.77, 0, 0.175, 1);
 }
-.op-mark--intro .op-mark__gap {
-  transform-box: fill-box;
-  transform-origin: left center;
-  animation: opGapCut 0.9s cubic-bezier(0.77, 0, 0.175, 1) both;
-}
-.op-mark--intro .op-mark__disc {
-  animation: opDiscIn 0.6s cubic-bezier(0.2, 0.7, 0.1, 1) both;
-}
 .group:hover .op-mark,
 .group:focus-visible .op-mark {
   transform: rotate(-90deg);
@@ -188,45 +180,6 @@ input[type='file']::file-selector-button {
   }
 }
 
-/* Route change: three accent lines sweep across at the mark's 34° angle */
-.op-sweep {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 95;
-  overflow: hidden;
-}
-.op-sweep span {
-  position: absolute;
-  left: -50%;
-  width: 200%;
-  height: 2px;
-  top: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 18px rgba(159, 103, 255, 0.8);
-  transform: rotate(-34deg) translateY(var(--from));
-  animation: opSweep 0.85s cubic-bezier(0.77, 0, 0.175, 1) forwards;
-}
-.op-sweep span:nth-child(1) {
-  --from: 70vmax;
-  animation-delay: 0s;
-}
-.op-sweep span:nth-child(2) {
-  --from: calc(70vmax + 16px);
-  animation-delay: 0.05s;
-  background: #fff;
-  box-shadow: 0 0 14px rgba(255, 255, 255, 0.6);
-}
-.op-sweep span:nth-child(3) {
-  --from: calc(70vmax + 32px);
-  animation-delay: 0.1s;
-}
-@keyframes opSweep {
-  to {
-    transform: rotate(-34deg) translateY(calc(var(--from) - 140vmax));
-  }
-}
-
 /* Page content entering after navigation */
 .page-enter {
   animation: pageIn 0.6s cubic-bezier(0.2, 0.7, 0.1, 1) both;
@@ -242,26 +195,9 @@ input[type='file']::file-selector-button {
   }
 }
 
-/* Display headlines: each line rises out of its own mask */
-.line-mask {
-  display: block;
-  overflow: hidden;
-  padding-bottom: 0.04em;
-  margin-bottom: -0.04em;
-}
-.line-rise {
-  display: block;
-  animation: lineRise 1s cubic-bezier(0.2, 0.75, 0.1, 1) both;
-  animation-delay: var(--d, 0s);
-}
-@keyframes lineRise {
-  from {
-    transform: translateY(105%);
-  }
-  to {
-    transform: none;
-  }
-}
+/* Display text immediately without a line-rise loading animation */
+.line-mask { display: block; }
+.line-rise { display: block; }
 
 /* Inner-page hero copy */
 .hero-in {
