@@ -1,16 +1,5 @@
 import type { Service } from './itServices'
 
-/** Generated OPERAVA photography — shared with the site's image library. */
-const IMG = {
-  customerService: '/media/operava-customer-support.webp',
-  techSupport: '/media/operava-technical-operations.webp',
-  helpDesk: '/media/operava-customer-support.webp',
-  backOffice: '/media/operava-team-collaboration.webp',
-  dataProcessing: '/media/operava-business-analytics.webp',
-  documentProcessing: '/media/operava-business-analytics.webp',
-  virtualAssistance: '/media/operava-remote-work.webp',
-} as const
-
 export const bpoServices: Service[] = [
   {
     id: 'customer-service',
@@ -18,7 +7,7 @@ export const bpoServices: Service[] = [
     category: 'bpo',
     number: '01',
     name: 'Customer Service',
-    image: IMG.customerService,
+    image: '/media/operava-scene-friendly-operava-support-team.webp',
     shortDescription:
       'Professional customer support teams handling inquiries, orders, and service requests across channels.',
     description:
@@ -48,7 +37,7 @@ export const bpoServices: Service[] = [
     category: 'bpo',
     number: '02',
     name: 'Technical Support',
-    image: IMG.techSupport,
+    image: '/media/operava-scene-operava-engineer-in-a-purple-lit-data-center.webp',
     shortDescription: 'Tiered technical support for products, platforms, and end users.',
     description:
       'Tiered technical support for products, platforms, and end users—from first-line troubleshooting to escalated technical resolution.',
@@ -77,7 +66,7 @@ export const bpoServices: Service[] = [
     category: 'bpo',
     number: '03',
     name: 'Help Desk',
-    image: IMG.helpDesk,
+    image: '/media/operava-scene-friendly-operava-support-team-workspace.webp',
     shortDescription: 'Internal or external help desk operations for IT and business support requests.',
     description:
       'Internal or external help desk operations for IT and business support requests with structured intake, prioritization, and resolution tracking.',
@@ -106,7 +95,7 @@ export const bpoServices: Service[] = [
     category: 'bpo',
     number: '04',
     name: 'Back-Office Operations',
-    image: IMG.backOffice,
+    image: '/media/operava-scene-collaborative-analysis-at-operava.webp',
     shortDescription:
       'Remote operational teams for administrative, processing, and business support functions.',
     description:
@@ -136,7 +125,7 @@ export const bpoServices: Service[] = [
     category: 'bpo',
     number: '05',
     name: 'Data Processing',
-    image: IMG.dataProcessing,
+    image: '/media/operava-scene-operava-team-analyzing-performance-dashboards.webp',
     shortDescription:
       'Structured data processing, validation, and transformation for operational and analytical use.',
     description:
@@ -165,7 +154,7 @@ export const bpoServices: Service[] = [
     category: 'bpo',
     number: '06',
     name: 'Data Entry',
-    image: IMG.dataProcessing,
+    image: '/media/operava-scene-operava-support-team-in-purple-lights.webp',
     shortDescription: 'Accurate data entry from forms, documents, and systems into target platforms.',
     description:
       'Accurate data entry from forms, documents, and systems into target platforms with defined quality controls.',
@@ -193,7 +182,7 @@ export const bpoServices: Service[] = [
     category: 'bpo',
     number: '07',
     name: 'Document Processing',
-    image: IMG.documentProcessing,
+    image: '/media/operava-scene-collaborative-operava-office-team-meeting.webp',
     shortDescription: 'Intake, classification, extraction, and filing of business documents.',
     description:
       'Intake, classification, extraction, and filing of business documents so information is searchable and process-ready.',
@@ -222,7 +211,7 @@ export const bpoServices: Service[] = [
     category: 'bpo',
     number: '08',
     name: 'Virtual Assistance',
-    image: IMG.virtualAssistance,
+    image: '/media/operava-scene-warm-purple-home-office-video-call.webp',
     shortDescription:
       'Remote administrative and executive support professionals for day-to-day business tasks.',
     description:
