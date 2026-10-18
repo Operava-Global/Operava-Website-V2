@@ -208,7 +208,7 @@ export function PageHero({
   titleClass?: string
 }) {
   return (
-    <section className={`relative ${height} max-lg:h-auto min-h-[460px] rounded-[12px] overflow-hidden border border-neutral-900 mt-6`}>
+    <section className={`photo-overlay relative ${height} max-lg:h-auto min-h-[460px] rounded-[12px] overflow-hidden border border-neutral-900 mt-6`}>
       <Img src={image} alt={alt || ''} eager className={`absolute inset-0 w-full h-full object-cover hero-zoom ${brightness}`} />
       <div
         className={`absolute inset-0 ${
@@ -432,7 +432,7 @@ export function StoryCard({
 }) {
   return (
     <div
-      className={`${className} relative overflow-hidden rounded-[12px] border border-neutral-900 group snap-start reveal`}
+      className={`${className} photo-overlay relative overflow-hidden rounded-[12px] border border-neutral-900 group snap-start reveal`}
       style={{ transitionDelay: `${delay}ms` }}
     >
       <Img
@@ -475,7 +475,7 @@ export function CtaBanner({
   secondary?: { label: string; to: string }
 }) {
   return (
-    <section className="relative h-[520px] lg:h-[600px] overflow-hidden rounded-[12px] border border-neutral-900 my-12 reveal">
+    <section className="photo-overlay relative h-[520px] lg:h-[600px] overflow-hidden rounded-[12px] border border-neutral-900 my-12 reveal">
       <Img src={image} alt="" className="absolute inset-0 w-full h-full object-cover brightness-[0.4]" />
       <div className="absolute inset-0 bg-gradient-to-r from-black via-black/50 to-transparent" />
       <div className="relative z-10 h-full flex items-center px-8 lg:px-16">
