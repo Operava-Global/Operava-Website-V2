@@ -89,7 +89,7 @@ export default function Home() {
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-0 items-stretch">
           <div className="lg:w-[40%] flex flex-col justify-between lg:pr-8">
             <h1 className="text-[48px] sm:text-[64px] lg:text-[length:min(6.6vw,108px)] font-black uppercase leading-[0.85] tracking-[-0.04em]">
-              {['Operate.', 'Automate.', 'Accelerate.'].map((w, n) => (
+              {['Operate,', 'Automate,', 'Accelerate.'].map((w, n) => (
                 <span key={w} className="line-mask">
                   <span className={`line-rise ${n === 2 ? 'text-neutral-600' : ''}`} style={{ ['--d' as string]: `${0.15 + n * 0.12}s` }}>
                     {w}
