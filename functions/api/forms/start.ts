@@ -61,6 +61,7 @@ export const onRequestPost: PagesFunction<FormEnv> = async ({ request, env }) =>
 
     const secret = resolveSecret(env)
     if (!secret) return otpSecretMissingResponse()
+    if (!env.SUBMISSIONS_DB) return json({ error: 'Submission storage is not configured.', code: 'STORAGE_NOT_CONFIGURED' }, 503)
     const db = env.SUBMISSIONS_DB
     if (!db) return json({ error: 'Secure form storage is temporarily unavailable.', code: 'STORAGE_UNAVAILABLE' }, 503)
 
