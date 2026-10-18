@@ -38,6 +38,7 @@ const RefundPolicy = lazy(() => import('./pages/RefundPolicy'))
 const CookiePolicy = lazy(() => import('./pages/CookiePolicy'))
 const Academy = lazy(() => import('./pages/Academy'))
 const Learning = lazy(() => import('./pages/Learning'))
+const OutsourcingRisks = lazy(() => import('./pages/OutsourcingRisks'))
 
 function Loading() {
   return <div className="min-h-[60vh]" aria-busy="true" />
@@ -63,6 +64,7 @@ export default function App() {
 
             {/* Insights */}
             <Route path="/insights" element={<Insights />} />
+            <Route path="/insights/outsourcing-risks" element={<OutsourcingRisks />} />
             <Route path="/insights/:categorySlug" element={<InsightCategory />} />
             <Route path="/insights/:categorySlug/:articleSlug" element={<InsightArticle />} />
 
