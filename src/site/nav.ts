@@ -210,7 +210,6 @@ export const MEGA_TABS: MegaTab[] = [
         heading: 'Hiring',
         links: [
           { label: 'Hiring Process', to: '/careers/hiring-process' },
-          { label: 'Recruitment AVA', to: '/ai-job-screening' },
           { label: 'Apply Now', to: '/apply' },
         ],
         text: 'Build a career on your skills — not your location.',
