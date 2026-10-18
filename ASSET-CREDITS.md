@@ -8,10 +8,12 @@ Catalogue cards are assigned unique image asset files. For images displayed in s
 
 ## Social icons
 
-The five SVGs in `public/social/brand-*.svg` match the actual footer icon artwork from the existing OPERAVA website at [www.operavaglobal.com](https://www.operavaglobal.com/) (LinkedIn, Facebook, Instagram, X, TikTok). They are copied as local SVG assets from that existing OPERAVA-owned site so the new site's footer maintains visual consistency and needs no remote icon requests.
+The social-network SVGs in `public/social/brand-*.svg` are adapted from [Tabler Icons](https://github.com/tabler/tabler-icons) under its [MIT license](https://github.com/tabler/tabler-icons/blob/main/LICENSE).
 
-The social links use the same destination URLs and ordering as the existing website.
+- [Facebook SVG](https://github.com/tabler/tabler-icons/blob/main/icons/outline/brand-facebook.svg)
+- [X SVG](https://github.com/tabler/tabler-icons/blob/main/icons/outline/brand-x.svg)
+- [LinkedIn SVG](https://github.com/tabler/tabler-icons/blob/main/icons/outline/brand-linkedin.svg)
+- [Instagram SVG](https://github.com/tabler/tabler-icons/blob/main/icons/outline/brand-instagram.svg)
+- [TikTok SVG](https://github.com/tabler/tabler-icons/blob/main/icons/outline/brand-tiktok.svg)
 
-[Tabler Icons](https://github.com/tabler/tabler-icons) remains a recommended MIT-licensed open-source source for other UI icons, but these five footer icons specifically reproduce the existing OPERAVA site artwork rather than the earlier Tabler versions.
-
-The social network names and trademarks remain their respective owners' property.
+Brand names and trademarks remain property of their respective owners. Icons are provided for linking to OPERAVA's public profiles.
