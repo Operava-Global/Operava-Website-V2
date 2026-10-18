@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { MEGA_TABS, type MegaTab } from './nav'
-import OperavaMark from './OperavaMark'
 import { Img } from './ui'
 import { searchSite } from './searchIndex'
 
@@ -19,9 +18,7 @@ function tabForPath(path: string): TabId | null {
 
 export function Wordmark({ size = 'md', intro = true }: { size?: 'md' | 'lg'; intro?: boolean }) {
   return (
-    <span className="flex items-center gap-1.5">
-      <OperavaMark size={size === 'lg' ? 20 : 17} intro={intro} className="text-[#ae00ff] shrink-0" />
-      <span className={`${size === 'lg' ? 'text-[22px]' : 'text-[20px]'} font-black tracking-tight uppercase leading-none`}>OPERAVA</span>
+    <span className="flex items-center">      <span className={`${size === 'lg' ? 'text-[22px]' : 'text-[20px]'} font-black tracking-tight uppercase leading-none`}>OPERAVA</span>
     </span>
   )
 }
