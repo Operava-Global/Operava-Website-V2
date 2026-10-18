@@ -82,6 +82,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       >
         Skip to content
       </a>
+      <div className="operava-ambient" aria-hidden="true" />
       <div className="grain" aria-hidden />
       <SiteHeader />
       <main id="main" key={pathname} className="flex-1 page-enter">
