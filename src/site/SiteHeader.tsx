@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { MEGA_TABS, type MegaTab } from './nav'
 import { Img } from './ui'
 import { searchSite } from './searchIndex'
+import ThemeToggle from './ThemeToggle'
 
 type TabId = MegaTab['id']
 
@@ -18,7 +19,7 @@ function tabForPath(path: string): TabId | null {
 
 export function Wordmark({ size = 'md', intro = true }: { size?: 'md' | 'lg'; intro?: boolean }) {
   return (
-    <span className="flex items-center">      <span className={`${size === 'lg' ? 'text-[22px]' : 'text-[20px]'} font-black tracking-tight uppercase leading-none`}>OPERAVA</span>
+    <span className="flex items-center"><span className={`${size === 'lg' ? 'text-[22px]' : 'text-[20px]'} font-black tracking-tight uppercase leading-none`}>OPERAVA</span>
     </span>
   )
 }
@@ -207,6 +208,7 @@ export default function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-3 relative z-10 shrink-0">
+          <ThemeToggle />
           <button
             type="button"
             onClick={() => setSearchOpen((s) => !s)}
