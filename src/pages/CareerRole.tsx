@@ -39,8 +39,8 @@ export default function CareerRole() {
       >
         <div className="mt-8 flex flex-wrap gap-4">
           <SolidButton to={apply}>Apply now →</SolidButton>
-          <OutlineButton to="/ai-job-screening" className="h-12 px-8">
-            Recruitment AVA
+          <OutlineButton to="/careers/hiring-process" className="h-12 px-8">
+            Hiring process
           </OutlineButton>
         </div>
       </PageHero>

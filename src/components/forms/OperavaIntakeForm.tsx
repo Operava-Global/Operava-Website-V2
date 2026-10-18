@@ -559,9 +559,7 @@ export default function OperavaIntakeForm({
         {sending ? 'Sending verification…' : 'Continue to email verification'}
       </button>
 
-      <p className="text-[11px] text-neutral-500">
-        Prefer AI screening? <Link to="/ai-job-screening" className="text-white font-medium underline underline-offset-4 hover:text-accent">Open Recruitment AVA</Link>
-      </p>
+
     </form>
   )
 }

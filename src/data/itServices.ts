@@ -22,18 +22,6 @@ export interface Service {
   cta: string
 }
 
-/** Generated OPERAVA photography — shared with the site's image library. */
-const IMG = {
-  software: '/media/operava-software-engineering.webp',
-  webMobile: '/media/operava-software-engineering.webp',
-  saas: '/media/operava-digital-strategy.webp',
-  itSystems: '/media/operava-technical-operations.webp',
-  systemsIntegration: '/media/operava-technical-operations.webp',
-  database: '/media/operava-business-analytics.webp',
-  itConsulting: '/media/operava-digital-strategy.webp',
-  programming: '/media/operava-software-engineering.webp',
-} as const
-
 export const itServices: Service[] = [
   {
     id: 'software-development',
@@ -41,7 +29,7 @@ export const itServices: Service[] = [
     category: 'it',
     number: '01',
     name: 'Software Development',
-    image: IMG.software,
+    image: '/media/operava-scene-operava-developers-collaborating-in-tech-workspace.webp',
     shortDescription:
       'Custom software solutions designed around your business requirements, workflows, integrations, and long-term growth.',
     description:
@@ -77,7 +65,7 @@ export const itServices: Service[] = [
     category: 'it',
     number: '02',
     name: 'Web & Mobile Application Development',
-    image: IMG.webMobile,
+    image: '/media/operava-scene-collaborative-coding-at-operava.webp',
     shortDescription:
       'Modern websites, web applications, and mobile experiences designed for performance, usability, security, and scale.',
     description:
@@ -106,7 +94,7 @@ export const itServices: Service[] = [
     category: 'it',
     number: '03',
     name: 'SaaS & Platform Development',
-    image: IMG.saas,
+    image: '/media/operava-scene-operava-digital-transformation-collaboration.webp',
     shortDescription:
       'Scalable software-as-a-service products and digital platforms built for recurring operations and growth.',
     description:
@@ -135,7 +123,7 @@ export const itServices: Service[] = [
     category: 'it',
     number: '04',
     name: 'IT Systems Development',
-    image: IMG.itSystems,
+    image: '/media/operava-scene-operava-infrastructure-operations-team.webp',
     shortDescription:
       'Business systems designed to automate workflows, connect operational functions, and increase efficiency.',
     description:
@@ -164,7 +152,7 @@ export const itServices: Service[] = [
     category: 'it',
     number: '05',
     name: 'Computer Programming',
-    image: IMG.programming,
+    image: '/media/operava-scene-purple-lit-operava-coding-collaboration.webp',
     shortDescription:
       'Professional programming services across modern technologies, APIs, scripts, automation, and applications.',
     description:
@@ -194,7 +182,7 @@ export const itServices: Service[] = [
     category: 'it',
     number: '06',
     name: 'IT Consulting',
-    image: IMG.itConsulting,
+    image: '/media/operava-scene-collaborative-digital-strategy-roadmap.webp',
     shortDescription:
       'Technology advisory to help organizations plan systems, architecture, and digital initiatives.',
     description:
@@ -224,7 +212,7 @@ export const itServices: Service[] = [
     category: 'it',
     number: '07',
     name: 'Systems Integration',
-    image: IMG.systemsIntegration,
+    image: '/media/operava-scene-operava-cloud-operations-command-center.webp',
     shortDescription:
       'Connect applications, databases, and platforms so information and workflows move across systems.',
     description:
@@ -253,7 +241,7 @@ export const itServices: Service[] = [
     category: 'it',
     number: '08',
     name: 'Database Services',
-    image: IMG.database,
+    image: '/media/operava-scene-operava-analytics-in-blue-light.webp',
     shortDescription: 'Database design, administration, optimization, and data management support.',
     description:
       'Database design, administration, optimization, and data management support for operational and analytical workloads.',
