@@ -19,14 +19,14 @@ import {
 import { SERVICE_CATEGORIES, findService, type ServiceCat } from '../site/content/serviceCategories'
 import { SERVICE_REFERENCES } from '../site/content/serviceReferences'
 import { serviceHref } from '../site/nav'
-import { servicePhoto, LOCAL, PHOTO } from '../site/media'
+import { servicePhoto, PHOTO } from '../site/media'
+import { SERVICE_PLAYBOOKS } from '../site/content/servicePlaybooks'
+import { Link } from 'react-router-dom'
 import NotFound from './NotFound'
 
-const AUTOMATION_ROTATION = [LOCAL.aiDashboard, LOCAL.network, PHOTO.analyst, LOCAL.dataCenter, PHOTO.cloudEngineer]
-
-function photoFor(cat: ServiceCat, slug: string, index: number) {
-  if (cat === 'automation') return AUTOMATION_ROTATION[index % AUTOMATION_ROTATION.length]
-  return servicePhoto(slug)
+function photoFor(cat: ServiceCat, slug: string, _index: number) {
+  const service = SERVICE_CATEGORIES[cat]?.services.find(s => s.slug === slug)
+  return service?.image || servicePhoto(slug)
 }
 
 export default function ServiceDetail({ cat: forced }: { cat?: ServiceCat }) {
@@ -53,6 +53,7 @@ export default function ServiceDetail({ cat: forced }: { cat?: ServiceCat }) {
   const { service, cat } = found
   const index = category.services.findIndex((s) => s.slug === service.slug)
   const benefits = ref?.benefits || service.benefits
+  const playbook = SERVICE_PLAYBOOKS[`${cat}/${service.slug}`]
   const industries = ref?.industries || service.industries
   const positions = ref?.positions || service.relatedPositions || []
   const message = ref?.message || service.serviceMessage
@@ -136,6 +137,38 @@ export default function ServiceDetail({ cat: forced }: { cat?: ServiceCat }) {
           )}
         </div>
       </section>
+
+
+      {playbook && (
+        <Section>
+          <SectionHead
+            kicker="From challenge to delivery"
+            title={<>What OPERAVA could build or operate</>}
+            note="Illustrative scope options tailored to this service. Final deliverables, controls and feasibility are agreed with each client; these are not claims about completed customer projects."
+          />
+          <p className="max-w-[900px] text-neutral-300 text-base leading-relaxed mb-8">{playbook.summary}</p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            {[
+              {title:'Business scenarios',desc:'Examples of situations this service can address',items:playbook.examples},
+              {title:'Possible deliverables',desc:'Work products that can be scoped',items:playbook.deliverables},
+              {title:'How to measure progress',desc:'Controls, outcomes and quality checks to agree',items:playbook.measure},
+            ].map(({title,desc,items},i)=>(
+              <div key={title} className="rounded-xl border border-neutral-800 bg-[#0d0d11] px-6 py-8 lg:px-8">
+                <span className="text-accent text-xs font-bold tracking-[.24em]">0{i+1}</span>
+                <h3 className="mt-4 font-black uppercase text-xl">{title}</h3>
+                <p className="mt-2 text-sm text-neutral-400">{desc}</p>
+                <ul className="mt-6 space-y-4">
+                  {items.map(item=><li key={item} className="text-sm text-neutral-300 leading-relaxed border-l-2 border-accent/60 pl-4">{item}</li>)}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 rounded-xl border border-neutral-800 px-6 py-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div><h3 className="font-bold text-lg">Planning for the risks, not just the outputs</h3><p className="text-neutral-400 mt-1 text-sm">Review access, continuity, quality, contracts and process ownership before choosing a delivery model.</p></div>
+            <Link className="inline-flex items-center text-accent font-semibold text-sm hover:underline underline-offset-4 shrink-0" to="/insights/outsourcing-risks">Explore risk scenarios →</Link>
+          </div>
+        </Section>
+      )}
 
       {ref && ref.faqs.length > 0 && (
         <Section>
