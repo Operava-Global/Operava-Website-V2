@@ -53,6 +53,7 @@ html[data-theme="light"] .operava-ambient {
     radial-gradient(closest-side at 88% 28%,rgba(226,206,251,.5),transparent 74%);
   background-size:155% 140%,145% 155%;
 }
-#site-shell > header,#site-shell > main,#site-shell > footer { position:relative; z-index:1; }
+#site-shell > main,#site-shell > footer { position:relative; z-index:1; }
+#site-shell > header { z-index:50; }
 @keyframes operava-ambient-drift { from { background-position:0% 20%,100% 80%; } to { background-position:100% 80%,0% 15%; } }
 @media (prefers-reduced-motion:reduce) { .operava-ambient { animation:none!important; } }
