@@ -57,3 +57,27 @@ html[data-theme="light"] .operava-ambient {
 #site-shell > header { z-index:50; }
 @keyframes operava-ambient-drift { from { background-position:0% 20%,100% 80%; } to { background-position:100% 80%,0% 15%; } }
 @media (prefers-reduced-motion:reduce) { .operava-ambient { animation:none!important; } }
+
+/* Light appearance: foregrounds on paper turn dark; photographed overlays stay light. */
+html[data-theme="light"] #site-shell { --page-text:#20172e; }
+html[data-theme="light"] #site-shell :is(.text-white,.text-neutral-50,.text-neutral-100,.text-neutral-200,.text-neutral-300,.text-black\/90) { color:#24182f!important; }
+html[data-theme="light"] #site-shell :is(.text-neutral-400,.text-neutral-500,.text-neutral-600,.text-neutral-700) { color:#61546f!important; }
+html[data-theme="light"] #site-shell :is(.bg-black,.bg-neutral-900,.bg-neutral-950) { background-color:#ffffff!important; }
+html[data-theme="light"] #site-shell [class*="bg-[#0"],
+html[data-theme="light"] #site-shell [class*="bg-[#1"] { background-color:#ffffff!important; }
+html[data-theme="light"] #site-shell :is(.border-white,.border-neutral-700,.border-neutral-800,.border-neutral-900) { border-color:#cfc6da!important; }
+html[data-theme="light"] #site-shell :is(.text-accent,.hover\:text-accent:hover) { color:#6822b1!important; }
+html[data-theme="light"] #site-shell .photo-overlay { color:#ffffff!important; background:#100b17!important; }
+html[data-theme="light"] #site-shell .photo-overlay :is(h1,h2,h3,h4,p,small,span,li,a,.text-white,.text-neutral-100,.text-neutral-200,.text-neutral-300,.text-neutral-400,.text-neutral-500) { color:#ffffff!important; }
+html[data-theme="light"] #site-shell .photo-overlay .text-accent { color:#d1b1ff!important; }
+html[data-theme="light"] #site-shell .photo-overlay :is(.bg-white,.text-black) { color:#17112a!important; }
+html[data-theme="light"] #site-shell .photo-overlay .bg-white { background:#ffffff!important; }
+html[data-theme="light"] #site-shell :is(.bg-accent-solid,.bg-accent-solid *,.text-white\/80,.text-white\/90) { color:#ffffff!important; }
+html[data-theme="light"] #site-shell .photo-overlay .bg-accent-solid { color:#ffffff!important; }
+html[data-theme="light"] #site-shell .site-mega-menu .photo-overlay { background:#100b17!important; }
+html[data-theme="light"] #site-shell .copyright-chip { background:#fff; border-color:#d0c4df; color:#29173b; }
+html[data-theme="light"] #site-shell .ecosystem-float { background:rgba(255,255,255,.94); border-color:#dfd3ee; box-shadow:0 14px 35px rgba(60,28,106,.1); }
+html[data-theme="light"] #site-shell .ecosystem-logo { background:#faf8fd; border-color:#e9e0f0; }
+@media (prefers-contrast:more) {
+ html[data-theme="light"] #site-shell :is(.text-neutral-400,.text-neutral-500,.text-neutral-600) { color:#42334d!important; }
+}
