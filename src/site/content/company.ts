@@ -5,13 +5,16 @@
  * Wording follows the references' guidance: no unverified certifications, prices or guarantees.
  */
 
+export const REGISTRATION_STATEMENT = 'Duly incorporated and registered under the laws of the Republic of the Philippines with the Securities and Exchange Commission, under Registration No. 2026080262213-03.'
+
 export const COMPANY = {
   name: 'OPERAVA Global Solutions',
   brand: 'OPERAVA',
   motto: 'Operating in Advance.',
   mission: 'Make work and services accessible — anytime, anywhere.',
   sec: '2026080262213-03',
-  entity: 'One Person Corporation (OPC)',
+  registrationStatement: REGISTRATION_STATEMENT,
+  entity: 'Corporation',
   address: 'Pagudpud, Ilocos Norte 2919, Philippines',
   site: 'https://www.operavaglobal.com',
   pay: 'https://pay.operavaglobal.com',
@@ -131,7 +134,7 @@ export const ENGAGEMENT_STEPS = [
 /** Corporate registration (profile §2, §7, §21) */
 export const REGISTRATION = {
   sec: [
-    'OPERAVA Global Solutions is organized in the Philippines as a One Person Corporation (OPC) and is registered with the Philippine Securities and Exchange Commission (SEC).',
+    REGISTRATION_STATEMENT,
     'The SEC is the Philippine government agency responsible for the registration and regulation of corporations and other entities within its jurisdiction. OPERAVA’s corporate registration establishes the company as a Philippine corporation and provides the legal corporate framework under which it conducts its authorized business activities.',
   ],
   positioning: [
@@ -241,7 +244,7 @@ export const FAQ_GROUPS: { group: string; items: { q: string; a: string }[] }[] 
     items: [
       { q: 'What does OPERAVA do?', a: 'OPERAVA provides Information Technology, digital technology, cloud-related, systems, software and Business Process Outsourcing services through a remote-first and globally oriented operating model.' },
       { q: 'Where is OPERAVA located?', a: 'OPERAVA’s initial office is in Pagudpud, Ilocos Norte 2919, Philippines. The current service and employment model is primarily remote, supporting clients across markets.' },
-      { q: 'Is OPERAVA SEC registered?', a: 'Yes. OPERAVA Global Solutions is organized as a Philippine One Person Corporation and is registered with the SEC (Registration No. 2026080262213-03). SEC registration establishes corporate registration; it does not mean the government endorses the company’s commercial services.' },
+      { q: 'Is OPERAVA SEC registered?', a: REGISTRATION_STATEMENT + ' Corporate registration does not mean the government endorses the company’s commercial services.' },
       { q: 'Is OPERAVA licensed for every service it offers?', a: 'Corporate registration is different from service-specific authorization. Where a specific regulated service requires an additional permit, license or accreditation, OPERAVA obtains the applicable authorization before providing it.' },
       { q: 'Does remote work mean lower quality?', a: 'Not inherently. Quality depends on the people, processes, technology, management, communication and standards used to operate remotely — which is where OPERAVA focuses.' },
     ],

@@ -10,7 +10,7 @@ export default function About() {
   usePageMeta({
     title: 'About Us',
     description:
-      'OPERAVA Global Solutions is a Philippine-based technology, workforce and BPO company, SEC-registered as a One Person Corporation, operating remotely and globally.',
+      'Duly incorporated and registered under the laws of the Republic of the Philippines with the Securities and Exchange Commission, under Registration No. 2026080262213-03. OPERAVA Global Solutions provides technology, workforce and BPO services remotely and globally.',
     crumbs: [{ name: 'About', path: '/about' }],
   })
 
@@ -55,7 +55,7 @@ export default function About() {
         </Card>
         <Card accent>
           <h3 className="font-black uppercase text-xl">Corporate Registration</h3>
-          <p className="mt-3 text-sm font-medium text-white/90">SEC Registration No. {COMPANY.sec} · One Person Corporation</p>
+          <p className="mt-3 text-sm font-medium text-white/90">{COMPANY.registrationStatement}</p>
           <Link to="/about/corporate-registration" className="mt-8 inline-flex items-center h-9 px-5 bg-black text-white text-[11px] tracking-widest uppercase font-bold">
             Registration details →
           </Link>

@@ -213,7 +213,7 @@ export default function Footer() {
             </div>
             <div className="flex items-center gap-3">
               <span className="text-xs font-medium text-white select-text">
-                SEC Registration Number: 2026080262213-03
+                Duly incorporated and registered under the laws of the Republic of the Philippines with the Securities and Exchange Commission, under Registration No. 2026080262213-03.
               </span>
             </div>
           </div>

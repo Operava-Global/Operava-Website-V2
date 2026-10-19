@@ -32,7 +32,7 @@ const pages: SearchEntry[] = [
   { title: 'About OPERAVA', path: '/about', section: 'About', text: 'company profile mission philippines' },
   { title: 'Operating Philosophy', path: '/about/operating-philosophy', section: 'About', text: 'culture principles quality technology people process' },
   { title: 'Remote-First Model', path: '/about/remote-first-model', section: 'About', text: 'remote global talent expansion vision pagudpud' },
-  { title: 'Corporate Registration', path: '/about/corporate-registration', section: 'About', text: 'sec bir registration compliance opc data privacy' },
+  { title: 'Corporate Registration', path: '/about/corporate-registration', section: 'About', text: 'sec bir incorporation registration compliance data privacy' },
   { title: 'Contact Us', path: '/contact', section: 'Contact', text: 'inquiry talk to us email' },
   { title: 'Request a Quote', path: '/quote', section: 'Contact', text: 'quotation proposal pricing' },
   { title: 'Contact Directory', path: '/contacts', section: 'Contact', text: 'email hr billing compliance whatsapp departments' },

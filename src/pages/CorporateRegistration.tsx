@@ -6,7 +6,7 @@ import { LOCAL, PHOTO } from '../site/media'
 export default function CorporateRegistration() {
   usePageMeta({
     title: 'Corporate Registration',
-    description: `OPERAVA Global Solutions is a Philippine One Person Corporation registered with the SEC (Registration No. ${COMPANY.sec}). Regulatory positioning, BIR and data privacy.`,
+    description: `${COMPANY.registrationStatement} Regulatory positioning, BIR and data privacy.`,
     crumbs: [
       { name: 'About', path: '/about' },
       { name: 'Corporate Registration', path: '/about/corporate-registration' },
@@ -22,20 +22,19 @@ export default function CorporateRegistration() {
         kicker="Corporate registration"
         title={
           <>
-            SEC-registered
+            Corporate
             <br />
-            Philippine
+            registration
             <br />
-            corporation
+            Philippines
           </>
         }
-        lead="How OPERAVA is organized and registered — and how we communicate our regulatory status accurately."
+        lead="The company's incorporation and registration details under Philippine law."
         height="h-[560px]"
       />
 
-      <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-8 border-y border-neutral-900 py-10 reveal">
+      <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-8 border-y border-neutral-900 py-10 reveal">
         <Stat value={COMPANY.sec} label="SEC Registration No." />
-        <Stat value="OPC" label="One Person Corporation" />
         <Stat value="PH" label={COMPANY.address} />
       </div>
 

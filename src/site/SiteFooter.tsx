@@ -51,7 +51,7 @@ export default function SiteFooter() {
       <div className="mt-16 pt-8 border-t border-neutral-900 flex flex-col lg:flex-row justify-between gap-4 text-[11px] tracking-widest uppercase text-neutral-600">
         <span className="copyright-chip inline-flex items-center px-4 py-2 rounded-full border border-neutral-700 normal-case tracking-normal font-semibold">© 2026 OPERAVA Global Solutions. All Rights Reserved.</span>
         <span className="flex flex-wrap gap-x-6 gap-y-2">
-          <span>SEC Reg. No. {COMPANY.sec}</span>
+          <span className="normal-case tracking-normal max-w-[560px] leading-relaxed">{COMPANY.registrationStatement}</span>
           <span>Philippines • Global Operations</span>
           <a className="hover:text-accent transition-colors" href="https://www.operavaglobal.com/" target="_blank" rel="noopener noreferrer">www.operavaglobal.com</a>
         </span>

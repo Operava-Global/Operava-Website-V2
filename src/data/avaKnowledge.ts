@@ -30,7 +30,7 @@ export const AVA_COMPANY_PROFILE = {
     regulatoryBody: 'Philippine Securities and Exchange Commission (SEC)',
     secWebsites: ['https://www.sec.gov.ph/', 'https://esparc.sec.gov.ph/', 'https://apps002.sec.gov.ph/application/select-one-sec'],
     registrationPosition:
-      'OPERAVA Global Solutions is organized in the Philippines as a Corporation and is registered with the Philippine Securities and Exchange Commission (SEC). SEC registration establishes the legal corporate framework; it is not a blanket license for every regulated activity. Where a specific service requires an additional permit or license, OPERAVA complies with applicable requirements before providing that regulated activity.',
+      'Duly incorporated and registered under the laws of the Republic of the Philippines with the Securities and Exchange Commission, under Registration No. 2026080262213-03. SEC registration establishes the legal corporate framework; it is not a blanket license for every regulated activity. Where a specific service requires an additional permit or license, OPERAVA complies with applicable requirements before providing that regulated activity.',
   },
   taxRegistration: {
     authority: 'Bureau of Internal Revenue (BIR)',

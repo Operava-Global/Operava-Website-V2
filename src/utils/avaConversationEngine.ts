@@ -189,7 +189,7 @@ export function generateAvaHumanResponse(rawQuery: string): AvaDirectResponse {
     q.includes('legal entity')
   ) {
     return {
-      text: 'OPERAVA Global Solutions is organized in the Philippines as a Corporation and is registered with the Philippine Securities and Exchange Commission (SEC). SEC registration establishes the legal corporate framework. It is not a blanket license for every regulated activity — where extra permits are required, OPERAVA complies before offering that activity.',
+      text: 'Duly incorporated and registered under the laws of the Republic of the Philippines with the Securities and Exchange Commission, under Registration No. 2026080262213-03. SEC registration establishes the legal corporate framework. It is not a blanket license for every regulated activity — where extra permits are required, OPERAVA complies before offering that activity.',
     }
   }
 
@@ -220,7 +220,7 @@ export function generateAvaHumanResponse(rawQuery: string): AvaDirectResponse {
     q.includes('motto')
   ) {
     return {
-      text: 'OPERAVA Global Solutions is a Philippine-based technology, workforce, and BPO company — SEC and BIR registered, remote-first, serving clients globally.\n\nMotto: We Operate in Advance.\nPrinciple: Make work and services accessible — anytime, anywhere.\n\nWe connect four pieces: Businesses, Technology, Talent, and Process. Ask about any IT or BPO service for meaning, process, and examples.',
+      text: 'OPERAVA Global Solutions is a Philippine-based technology, workforce, and BPO company, remote-first and serving clients globally. Duly incorporated and registered under the laws of the Republic of the Philippines with the Securities and Exchange Commission, under Registration No. 2026080262213-03.\n\nMotto: We Operate in Advance.\nPrinciple: Make work and services accessible — anytime, anywhere.\n\nWe connect four pieces: Businesses, Technology, Talent, and Process. Ask about any IT or BPO service for meaning, process, and examples.',
     }
   }
 

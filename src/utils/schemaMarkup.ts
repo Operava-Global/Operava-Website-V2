@@ -304,7 +304,7 @@ export function getFaqsForPath(pathname: string): FAQSchemaItem[] {
     return [
       {
         q: 'Is OPERAVA an SEC-registered Philippine Corporation?',
-        a: 'Yes. OPERAVA Global Solutions is organized in the Philippines as a Corporation and registered with the Philippine Securities and Exchange Commission (SEC) and the Bureau of Internal Revenue (BIR).',
+        a: 'Duly incorporated and registered under the laws of the Republic of the Philippines with the Securities and Exchange Commission, under Registration No. 2026080262213-03.',
       },
       {
         q: 'Where is OPERAVA located and how does it operate?',
@@ -483,7 +483,7 @@ export function buildGraphForPath(options: InjectSchemaOptions): Record<string, 
       '@id': `${BASE_URL}/#website`,
       url: `${BASE_URL}/`,
       name: SITE_NAME,
-      alternateName: ['OPERAVA', 'Operava', 'OPERAVA Global Solutions', 'OPERAVA GLOBAL SOLUTIONS OPC'],
+      alternateName: ['OPERAVA', 'Operava', 'OPERAVA Global Solutions'],
       description:
         'Philippine-based Corporation providing Workforce, Information Technology, and Business Process Outsourcing (BPO) services, operating remotely and globally.',
       publisher: {

@@ -105,7 +105,7 @@ export const COMPANY_CORE_FAQS: FAQItem[] = [
   },
   {
     q: 'Where is OPERAVA located and registered?',
-    a: 'OPERAVA Global Solutions is a Philippine Corporation registered with the SEC and BIR. Initial office: Pagudpud, Ilocos Norte 2919, Philippines.',
+    a: 'Duly incorporated and registered under the laws of the Republic of the Philippines with the Securities and Exchange Commission, under Registration No. 2026080262213-03. Initial office: Pagudpud, Ilocos Norte 2919, Philippines.',
   },
   {
     q: 'How does OPERAVA deliver solutions?',
@@ -177,7 +177,7 @@ export function getMetadataForPath(pathname: string): PageMetadata {
     return {
       title: 'About Us | OPERAVA GLOBAL SOLUTIONS',
       description:
-        'About OPERAVA Global Solutions - Philippine SEC and BIR registered Corporation delivering Automation, Technology, and Outsourcing services remotely and globally.',
+        'Duly incorporated and registered under the laws of the Republic of the Philippines with the Securities and Exchange Commission, under Registration No. 2026080262213-03.',
       keywords: 'About OPERAVA, SEC Registered, Philippine Corporation',
       canonicalUrl: `${BASE_URL}/about`,
       ogType: 'website',

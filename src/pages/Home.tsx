@@ -285,19 +285,19 @@ export default function Home() {
         <div className="border border-neutral-900 p-10 lg:p-14 bg-[#0a0a0a]">
           <p className="text-[11px] tracking-widest uppercase text-neutral-500 mb-10">Corporate registration</p>
           <h3 className="text-[34px] sm:text-[42px] font-black uppercase leading-[0.9]">
-            SEC-registered
+            Corporate
             <br />
-            Philippine
+            registration
             <br />
-            Corporation
+            Philippines
           </h3>
           <p className="mt-6 text-sm text-neutral-400 max-w-[360px] leading-relaxed">
-            Organized as a One Person Corporation and registered with the Philippine Securities and Exchange Commission. Registration No. {COMPANY.sec}.
+            {COMPANY.registrationStatement}
           </p>
           <div className="mt-10 flex flex-col items-start gap-6">
             <img
               src="/brand/sec-registration-badge.svg"
-              alt="Registered with the Securities and Exchange Commission, Philippines"
+              alt={COMPANY.registrationStatement}
               className="block w-full max-w-[420px] h-auto"
               width="940"
               height="515"
