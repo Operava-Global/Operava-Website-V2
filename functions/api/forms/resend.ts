@@ -11,36 +11,27 @@ import {
   resolveSecret,
   otpSecretMissingResponse,
   issueSignedDraft,
-  sendResend,
+  sendEmail,
   senderFor,
   type FormEnv,
 } from '../../lib/formCore'
 
 function mailErrorResponse(msg: string) {
-  let error =
-    'Unable to resend verification email right now. Please try again in a moment.'
-  let code = 'EMAIL_SEND_FAILED'
-  if (msg === 'EMAIL_DOMAIN_NOT_VERIFIED') {
-    error =
-      'Email sender domain is not verified with Resend. Verify operavaglobal.com in the Resend dashboard.'
-    code = msg
-  } else if (msg === 'EMAIL_API_KEY_INVALID' || msg === 'EMAIL_UNAUTHORIZED') {
-    error = 'Email service authentication failed. Update RESEND_API_KEY in Cloudflare Pages secrets.'
-    code = msg
-  } else if (msg === 'RESEND_API_KEY is not configured') {
-    error = 'Email delivery is not configured.'
-    code = 'RESEND_NOT_CONFIGURED'
-  }
-  return json({ error, code }, 502)
+  const code = msg === 'SES_SMTP_NOT_CONFIGURED'
+    ? 'SES_SMTP_NOT_CONFIGURED'
+    : msg.includes('SES_SMTP_REJECTED_535')
+      ? 'SES_SMTP_AUTH_FAILED'
+      : 'EMAIL_SEND_FAILED'
+  const error = code === 'SES_SMTP_NOT_CONFIGURED'
+    ? 'Email delivery is not configured. Please contact hello@operavaglobal.com.'
+    : 'Unable to send the verification email at this time. Please try again, or contact hello@operavaglobal.com.'
+  return json({ error, code }, code === 'SES_SMTP_NOT_CONFIGURED' ? 503 : 502)
 }
 
 export const onRequestPost: PagesFunction<FormEnv> = async ({ request, env }) => {
   try {
-    if (!env.RESEND_API_KEY || String(env.RESEND_API_KEY).trim().length < 8) {
-      return json(
-        { error: 'Email delivery is not configured.', code: 'RESEND_NOT_CONFIGURED' },
-        503,
-      )
+    if (!env.SES_SMTP_USERNAME || !env.SES_SMTP_PASSWORD) {
+      return json({ error: 'Email verification is temporarily unavailable. Please contact hello@operavaglobal.com.', code: 'SES_SMTP_NOT_CONFIGURED' }, 503)
     }
 
     const secret = resolveSecret(env)
@@ -114,7 +105,7 @@ export const onRequestPost: PagesFunction<FormEnv> = async ({ request, env }) =>
     }
 
     try {
-      await sendResend(env, {
+      await sendEmail(env, {
         from: senderFor(draft.formType, env),
         to: [draft.email],
         subject: 'Verification Code',
