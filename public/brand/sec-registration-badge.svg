@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 515" role="img" aria-labelledby="title desc">
+  <title id="title">Registered with the Securities and Exchange Commission, Philippines</title>
+  <desc id="desc">Rectangular white registration badge with black triple-line border, shield and check mark, and SEC Philippines registration wording.</desc>
+  <rect x="2" y="2" width="936" height="511" fill="#fff" stroke="#000" stroke-width="4"/>
+  <rect x="19" y="19" width="902" height="477" fill="none" stroke="#000" stroke-width="4"/>
+  <rect x="36" y="36" width="868" height="443" fill="none" stroke="#000" stroke-width="4"/>
+  <g fill="none" stroke="#000" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M470 84 C455 100 435 106 415 106 V133 C415 179 434 202 470 222 C506 202 525 179 525 133 V106 C505 106 485 100 470 84Z"/>
+    <path d="M445 145 L462 162 L497 127"/>
+  </g>
+  <g fill="#000" text-anchor="middle">
+    <text x="470" y="301" font-family="Arial, Helvetica, sans-serif" font-weight="400" font-size="46" textLength="535" lengthAdjust="spacingAndGlyphs">REGISTERED WITH THE</text>
+    <text x="470" y="373" font-family="Impact, 'Arial Narrow', 'Liberation Sans Narrow', Arial, sans-serif" font-weight="900" font-size="62" textLength="814" lengthAdjust="spacingAndGlyphs">SECURITIES AND EXCHANGE COMMISSION,</text>
+    <text x="470" y="446" font-family="Impact, 'Arial Narrow', 'Liberation Sans Narrow', Arial, sans-serif" font-weight="900" font-size="68" textLength="277" lengthAdjust="spacingAndGlyphs">PHILIPPINES</text>
+  </g>
+</svg>
