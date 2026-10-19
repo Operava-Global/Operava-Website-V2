@@ -4,13 +4,17 @@ import {
   applicationConfirmationTemplate,
   staffNotificationTemplate,
 } from './emailTemplates'
+import { sendSesSmtp } from './sesSmtp'
 
 export type FormType = 'SERVICES' | 'CAREERS' | 'CONTACT' | 'ACADEMY'
 
 export interface FormEnv {
   SUBMISSIONS_DB?: D1Database
   RESUMES_BUCKET?: R2Bucket
-  RESEND_API_KEY?: string
+  SES_SMTP_USERNAME?: string
+  SES_SMTP_PASSWORD?: string
+  SES_SMTP_HOST?: string
+  SES_EMAIL_FROM?: string
   RESEND_EMAIL_FROM?: string
   RESEND_FROM?: string
   OTP_SECRET?: string
@@ -186,6 +190,7 @@ export function normalizeFromAddress(value: string | undefined | null): string {
 
 export function resolveFromEnv(env: FormEnv): string {
   const preferred =
+    (env.SES_EMAIL_FROM && String(env.SES_EMAIL_FROM).trim()) ||
     (env.RESEND_EMAIL_FROM && String(env.RESEND_EMAIL_FROM).trim()) ||
     (env.RESEND_FROM && String(env.RESEND_FROM).trim()) ||
     ''
@@ -326,148 +331,40 @@ export function otpEmailText(name: string, purpose: string, code: string) {
   )
 }
 
-export type SendResendResult = { id: string; status: number }
 
-export class EmailSendError extends Error {
-  code: string
-  providerStatus?: number
-  providerMessage?: string
-  fromUsed?: string
-  constructor(
-    code: string,
-    message: string,
-    extra?: { providerStatus?: number; providerMessage?: string; fromUsed?: string },
-  ) {
-    super(message)
-    this.name = 'EmailSendError'
-    this.code = code
-    this.providerStatus = extra?.providerStatus
-    this.providerMessage = extra?.providerMessage
-    this.fromUsed = extra?.fromUsed
-  }
-}
+export type SendEmailResult = { id: string; status: number }
 
-function sanitizeProviderMessage(raw: string): string {
-  return String(raw || '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 240)
-}
-
-export async function sendResend(env: FormEnv, payload: Record<string, unknown>): Promise<SendResendResult> {
-  const apiKey = env.RESEND_API_KEY && String(env.RESEND_API_KEY).trim()
-  if (!apiKey) throw new EmailSendError('RESEND_NOT_CONFIGURED', 'RESEND_API_KEY is not configured')
-  if (apiKey.length < 20) {
-    console.error('Resend API key looks truncated')
-    throw new EmailSendError('EMAIL_API_KEY_INVALID', 'EMAIL_API_KEY_INVALID')
-  }
-
+/** All transactional mail (verification, confirmations, staff notifications) uses AWS SES SMTP. */
+export async function sendEmail(env: FormEnv, payload: Record<string, unknown>): Promise<SendEmailResult> {
+  if (!env.SES_SMTP_USERNAME || !env.SES_SMTP_PASSWORD) throw new Error('SES_SMTP_NOT_CONFIGURED')
   const from = normalizeFromAddress(
     (typeof payload.from === 'string' && payload.from) || resolveFromEnv(env),
   )
-
   let to: string[] = []
   if (Array.isArray(payload.to)) {
     to = payload.to.map((v) => extractPlainEmail(String(v))).filter((e) => PLAIN_EMAIL_RE.test(e))
   } else if (typeof payload.to === 'string') {
-    const e = extractPlainEmail(payload.to)
-    if (PLAIN_EMAIL_RE.test(e)) to = [e]
+    const address = extractPlainEmail(payload.to)
+    if (PLAIN_EMAIL_RE.test(address)) to = [address]
   }
-  if (to.length === 0) throw new EmailSendError('EMAIL_INVALID_TO', 'EMAIL_INVALID_TO', { fromUsed: from })
-
-  let replyTo: string | undefined
-  if (typeof payload.reply_to === 'string' && payload.reply_to.trim()) {
-    const e = extractPlainEmail(payload.reply_to)
-    if (PLAIN_EMAIL_RE.test(e)) replyTo = e
-  }
-
-  let bcc: string[] | undefined
-  if (Array.isArray(payload.bcc)) {
-    bcc = payload.bcc.map((v) => extractPlainEmail(String(v))).filter((e) => PLAIN_EMAIL_RE.test(e))
-    if (bcc.length === 0) bcc = undefined
-  } else if (typeof payload.bcc === 'string' && payload.bcc.trim()) {
-    const e = extractPlainEmail(payload.bcc)
-    if (PLAIN_EMAIL_RE.test(e)) bcc = [e]
-  }
-
-  const body: Record<string, unknown> = {
+  if (!to.length) throw new Error('EMAIL_INVALID_TO')
+  const replyTo = typeof payload.reply_to === 'string'
+    ? extractPlainEmail(payload.reply_to)
+    : undefined
+  const bcc = Array.isArray(payload.bcc)
+    ? payload.bcc.map((v) => extractPlainEmail(String(v))).filter((e) => PLAIN_EMAIL_RE.test(e))
+    : typeof payload.bcc === 'string'
+      ? [extractPlainEmail(payload.bcc)].filter((e) => PLAIN_EMAIL_RE.test(e))
+      : undefined
+  return sendSesSmtp(env, {
     from,
     to,
-    subject: String(payload.subject || 'OPERAVA'),
+    ...(replyTo && PLAIN_EMAIL_RE.test(replyTo) ? { replyTo } : {}),
+    ...(bcc?.length ? { bcc } : {}),
+    subject: String(payload.subject || 'OPERAVA').slice(0, 200),
     html: typeof payload.html === 'string' ? payload.html : undefined,
     text: typeof payload.text === 'string' ? payload.text : undefined,
-  }
-  if (replyTo) body.reply_to = replyTo
-  if (bcc) body.bcc = bcc
-
-  let res: Response
-  try {
-    res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: 'Bearer ' + apiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    })
-  } catch (netErr) {
-    console.error('Resend network error', netErr instanceof Error ? netErr.message : 'unknown')
-    throw new EmailSendError('EMAIL_SEND_FAILED', 'EMAIL_SEND_FAILED', { fromUsed: from })
-  }
-
-  const raw = await res.text().catch(() => '')
-  if (!res.ok) {
-    const providerMessage = sanitizeProviderMessage(raw)
-    console.error('Resend API error', res.status, providerMessage, 'from=', from)
-    if (res.status === 401 || res.status === 403) {
-      throw new EmailSendError('EMAIL_API_KEY_INVALID', 'EMAIL_API_KEY_INVALID', {
-        providerStatus: res.status,
-        providerMessage,
-        fromUsed: from,
-      })
-    }
-    if (
-      /domain is not verified/i.test(raw) ||
-      /not verified/i.test(raw) ||
-      /verify.*(domain|email)/i.test(raw) ||
-      /sender.*not.*allowed/i.test(raw)
-    ) {
-      throw new EmailSendError('EMAIL_DOMAIN_NOT_VERIFIED', 'EMAIL_DOMAIN_NOT_VERIFIED', {
-        providerStatus: res.status,
-        providerMessage,
-        fromUsed: from,
-      })
-    }
-    if (/pattern/i.test(raw) || /invalid.*(from|to|email)/i.test(raw)) {
-      throw new EmailSendError('EMAIL_ADDRESS_PATTERN', 'EMAIL_ADDRESS_PATTERN', {
-        providerStatus: res.status,
-        providerMessage,
-        fromUsed: from,
-      })
-    }
-    if (/invalid.*api.?key|unauthorized/i.test(raw)) {
-      throw new EmailSendError('EMAIL_API_KEY_INVALID', 'EMAIL_API_KEY_INVALID', {
-        providerStatus: res.status,
-        providerMessage,
-        fromUsed: from,
-      })
-    }
-    throw new EmailSendError('EMAIL_SEND_FAILED', 'EMAIL_SEND_FAILED', {
-      providerStatus: res.status,
-      providerMessage,
-      fromUsed: from,
-    })
-  }
-
-  let id = ''
-  try {
-    const parsed = JSON.parse(raw) as { id?: string }
-    id = typeof parsed.id === 'string' ? parsed.id : ''
-  } catch {
-    id = ''
-  }
-  if (id) console.info('Resend accepted', id)
-  return { id, status: res.status }
+  })
 }
 
 export function inboxFor(type: FormType, env: FormEnv) {
