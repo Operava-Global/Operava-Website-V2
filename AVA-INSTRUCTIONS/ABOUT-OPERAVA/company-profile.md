@@ -1,7 +1,9 @@
 # Company Profile — OPERAVA Global Solutions
 
 ## Company Overview
-OPERAVA Global Solutions is an enterprise technology engineering and business process operations firm organized as a Corporation in the Philippines, operating remotely and globally. We help high-growth companies and global enterprises scale their digital infrastructure and operational capacity.
+OPERAVA Global Solutions is an enterprise technology engineering and business process operations firm operating remotely and globally. We help high-growth companies and global enterprises scale their digital infrastructure and operational capacity.
+
+Duly incorporated and registered under the laws of the Republic of the Philippines with the Securities and Exchange Commission, under Registration No. 2026080262213-03.
 
 ## Purpose & Tagline
 - **Motto**: "We Operate in Advance"
