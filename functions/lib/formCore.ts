@@ -333,6 +333,24 @@ export function otpEmailText(name: string, purpose: string, code: string) {
 
 
 export type SendEmailResult = { id: string; status: number }
+export type SendResendResult = SendEmailResult
+
+/** Kept for older recruitment and inquiry routes; the actual provider is SES. */
+export class EmailSendError extends Error {
+  code: string
+  providerStatus?: number
+  providerMessage?: string
+  fromUsed?: string
+  constructor(code: string, message: string, extra?: { providerStatus?: number; providerMessage?: string; fromUsed?: string }) {
+    super(message)
+    this.name = 'EmailSendError'
+    this.code = code
+    this.providerStatus = extra?.providerStatus
+    this.providerMessage = extra?.providerMessage
+    this.fromUsed = extra?.fromUsed
+  }
+}
+
 
 /** All transactional mail (verification, confirmations, staff notifications) uses AWS SES SMTP. */
 export async function sendEmail(env: FormEnv, payload: Record<string, unknown>): Promise<SendEmailResult> {
@@ -366,6 +384,9 @@ export async function sendEmail(env: FormEnv, payload: Record<string, unknown>):
     text: typeof payload.text === 'string' ? payload.text : undefined,
   })
 }
+
+/** Backwards-compatible function name; always uses SES SMTP, never Resend API. */
+export const sendResend = sendEmail
 
 export function inboxFor(type: FormType, env: FormEnv) {
   if (type === 'CAREERS') return [env.TALENT_INBOX || 'talents@operavaglobal.com']
