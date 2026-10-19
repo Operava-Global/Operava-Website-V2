@@ -466,6 +466,7 @@ export function CtaBanner({
   cta,
   to,
   secondary,
+  className = '',
 }: {
   image?: string
   kicker: string
@@ -473,9 +474,10 @@ export function CtaBanner({
   cta: string
   to: string
   secondary?: { label: string; to: string }
+  className?: string
 }) {
   return (
-    <section className="photo-overlay relative h-[520px] lg:h-[600px] overflow-hidden rounded-[12px] border border-neutral-900 my-12 reveal">
+    <section className={`photo-overlay relative h-[520px] lg:h-[600px] overflow-hidden rounded-[12px] border border-neutral-900 my-12 reveal ${className}`}>
       <Img src={image} alt="" className="absolute inset-0 w-full h-full object-cover brightness-[0.4]" />
       <div className="absolute inset-0 bg-gradient-to-r from-black via-black/50 to-transparent" />
       <div className="relative z-10 h-full flex items-center px-8 lg:px-16">

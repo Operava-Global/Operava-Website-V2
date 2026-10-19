@@ -238,7 +238,7 @@ export default function Home() {
           }
           note="Technology, outsourcing and automation — structured from one professional to multiple teams."
         />
-        <div className="reveal">
+        <div className="reveal home-card-glow rounded-[12px]">
           <NumberPanel
             cols="lg:grid-cols-4"
             items={[
@@ -265,11 +265,11 @@ export default function Home() {
         />
         <div className="flex gap-6 overflow-x-auto no-scrollbar pb-6 snap-x snap-mandatory">
           {industries.slice(0, 6).map((ind, n) => (
-            <StoryCard key={ind.slug} image={ind.image} tag={ind.tag} title={ind.name} sub={ind.short} to={`/industries/${ind.slug}`} delay={n * 80} />
+            <StoryCard key={ind.slug} image={ind.image} tag={ind.tag} title={ind.name} sub={ind.short} to={`/industries/${ind.slug}`} delay={n * 80} className="min-w-[300px] sm:min-w-[340px] lg:min-w-[400px] h-[500px] home-card-glow" />
           ))}
           <Link
             to="/industries"
-            className="min-w-[260px] h-[500px] rounded-[12px] border border-neutral-900 bg-[#0a0a0a] flex flex-col justify-end p-8 snap-start hover:border-accent/50 transition-colors group reveal"
+            className="min-w-[260px] h-[500px] rounded-[12px] border border-neutral-900 bg-[#0a0a0a] flex flex-col justify-end p-8 snap-start hover:border-accent/50 transition-colors group reveal home-card-glow"
           >
             <p className="text-[10px] tracking-[0.25em] uppercase text-accent font-bold">19 industries</p>
             <p className="mt-4 text-[28px] font-black uppercase leading-[0.9]">All industries</p>
@@ -282,7 +282,7 @@ export default function Home() {
 
       {/* TRUST BAND */}
       <section className="px-6 lg:px-12 py-16 border-t border-neutral-900 grid grid-cols-1 lg:grid-cols-2 gap-0 reveal">
-        <div className="border border-neutral-900 p-10 lg:p-14 bg-[#0a0a0a]">
+        <div className="border border-neutral-900 p-10 lg:p-14 bg-[#0a0a0a] home-card-glow">
           <p className="text-[11px] tracking-widest uppercase text-neutral-500 mb-10">Corporate registration</p>
           <h3 className="text-[34px] sm:text-[42px] font-black uppercase leading-[0.9]">
             Corporate
@@ -309,7 +309,7 @@ export default function Home() {
             </Link>
           </div>
         </div>
-        <div className="border border-neutral-900 lg:border-l-0 border-t-0 lg:border-t p-10 lg:p-14 bg-[#0a0a0a]">
+        <div className="border border-neutral-900 lg:border-l-0 border-t-0 lg:border-t p-10 lg:p-14 bg-[#0a0a0a] home-card-glow">
           <p className="text-[11px] tracking-widest uppercase text-accent mb-10">Capabilities</p>
           <h3 className="text-[96px] font-black leading-[0.8]">{itServices.length + bpoServices.length}</h3>
           <p className="mt-2 text-[18px] font-bold uppercase">Core IT &amp; BPO services</p>
@@ -332,6 +332,7 @@ export default function Home() {
           cta="Join us →"
           to="/careers"
           secondary={{ label: 'Talk to us', to: '/contact' }}
+          className="home-card-glow"
         />
       </div>
     </>

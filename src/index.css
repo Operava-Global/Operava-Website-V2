@@ -115,6 +115,31 @@ body {
   box-shadow: 0 0 40px rgba(124, 58, 237, 0.3);
 }
 
+/* Violet underside glow, shared by the homepage content cards.
+   Reuses the featured hero's accent without covering text or images. */
+.home-card-glow {
+  box-shadow: 0 17px 36px -17px rgba(124, 58, 237, 0.40),
+              0 24px 56px -32px rgba(159, 103, 255, 0.42);
+  transition: box-shadow 350ms ease, border-color 350ms ease;
+}
+.home-card-glow:hover,
+.home-card-glow:focus-within {
+  box-shadow: 0 21px 44px -16px rgba(124, 58, 237, 0.54),
+              0 29px 62px -28px rgba(159, 103, 255, 0.52);
+}
+html[data-theme="light"] .home-card-glow {
+  box-shadow: 0 16px 34px -18px rgba(100, 38, 172, 0.28),
+              0 24px 52px -34px rgba(124, 58, 237, 0.26);
+}
+html[data-theme="light"] .home-card-glow:hover,
+html[data-theme="light"] .home-card-glow:focus-within {
+  box-shadow: 0 18px 42px -17px rgba(100, 38, 172, 0.42),
+              0 25px 56px -30px rgba(124, 58, 237, 0.36);
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-card-glow { transition: none; }
+}
+
 /* Keyboard focus that reads on black */
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
   outline: 2px solid var(--accent);
