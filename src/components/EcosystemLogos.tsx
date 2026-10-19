@@ -2,6 +2,8 @@
  * Complete brand artwork (wordmarks where provided) from the owners' press kits
  * and openly available logo assets, not icon-only substitutes.
  *
+ * Locally hosted originals avoid third-party hotlinking; pale brand art is shown
+ * on dark cards to maintain its intended contrast in light and dark themes.
  * Logo inclusion is informational and does not imply OPERAVA accepts all these
  * payment methods or has a partnership / merchant integration with any brand.
  */
@@ -9,6 +11,7 @@ type Brand = {
   name: string
   asset: string
   subtitle?: string
+  darkBackground?: boolean
 }
 
 const brands: Brand[] = [
@@ -23,16 +26,18 @@ const brands: Brand[] = [
   {
     name: 'Maya',
     subtitle: 'Formerly PayMaya',
-    asset: 'https://www.maya.ph/hubfs/Maya/MAYA-Mint%20Green.svg',
+    asset: '/assets/logos/maya.svg',
+    darkBackground: true,
   },
   {
     name: 'PayMongo',
-    asset: 'https://www.paymongo.com/company/press/brand/paymongo-logo.svg',
+    asset: '/assets/logos/paymongo.svg',
   },
   {
     name: 'Wise Business',
     subtitle: 'Business payments',
-    asset: 'https://wise.com/public-resources/assets/logos/wise/brand_logo.svg',
+    asset: '/assets/logos/wise.svg',
+    darkBackground: true,
   },
   { name: 'GCash', asset: '/assets/logos/gcash.svg' },
   { name: 'Stripe', asset: '/assets/logos/stripe.svg' },
@@ -49,13 +54,13 @@ export default function EcosystemLogos() {
           Platforms businesses recognize
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 items-stretch gap-3 sm:gap-4">
-          {brands.map(({ name, asset, subtitle }) => (
-            <div key={name} className="ecosystem-logo min-h-[112px] rounded-xl border border-neutral-800/60 bg-white flex flex-col items-center justify-center p-3 sm:p-4" title={name}>
+          {brands.map(({ name, asset, subtitle, darkBackground }) => (
+            <div key={name} className={`ecosystem-logo min-h-[112px] rounded-xl border border-neutral-800/60 bg-white flex flex-col items-center justify-center p-3 sm:p-4 ${darkBackground ? "ecosystem-logo--contrast" : ""}`} title={name}>
               <div className="h-12 w-full flex items-center justify-center">
                 <img
                   src={asset}
                   alt={name + ' full brand logo'}
-                  loading="lazy"
+                  loading="eager"
                   decoding="async"
                   width="160"
                   height="48"

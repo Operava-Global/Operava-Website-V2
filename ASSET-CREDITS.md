@@ -27,10 +27,10 @@ Local SVG artwork in `public/assets/logos/`:
 - **Visa, Mastercard, Apple Pay, Meta, TikTok, Apple, Zoho, Google, Stripe:** [gilbarbara/logos on GitHub](https://github.com/gilbarbara/logos), curated original-brand vector paths. Individual source URLs use `logos/<brand>.svg` in that repository. All brands retain their independent trademarks.
 - **GCash:** `assets/icons/gcash.svg` in [PalengkeGo/PalengkeGoApp](https://github.com/PalengkeGo/PalengkeGoApp), derived from [GCash logo.svg on Wikimedia Commons](https://commons.wikimedia.org/wiki/File:GCash_logo.svg) (public-domain text logo, trademark retained).
 
-Owner-hosted, full brand wordmarks:
+Locally hosted, brand-supplied full wordmarks (copies in `public/assets/logos/`, so the website does not depend on third-party hotlinks):
 
-- **Maya (formerly PayMaya):** `https://www.maya.ph/hubfs/Maya/MAYA-Mint%20Green.svg` (official Maya site). For provenance, see also [Maya logo.svg on Commons](https://commons.wikimedia.org/wiki/File:Maya_logo.svg), credited to Maya Bank, Inc. and PayMaya Philippines, Inc. under CC BY 4.0.
-- **PayMongo:** `https://www.paymongo.com/company/press/brand/paymongo-logo.svg`, PayMongo's [official press kit](https://www.paymongo.com/company/press). Use unmodified artwork on light background.
-- **Wise Business:** Wise wordmark from `https://wise.com/public-resources/assets/logos/wise/brand_logo.svg`, identified as the Wise Business offering through the adjacent card label; [Wise press site](https://wise.com/gb/press).
+- **Maya (formerly PayMaya):** `public/assets/logos/maya.svg` saved from `https://www.maya.ph/hubfs/Maya/MAYA-Mint%20Green.svg` (official Maya site). For provenance, see also [Maya logo.svg on Commons](https://commons.wikimedia.org/wiki/File:Maya_logo.svg), credited to Maya Bank, Inc. and PayMaya Philippines, Inc. under CC BY 4.0.
+- **PayMongo:** `public/assets/logos/paymongo.svg` saved from `https://www.paymongo.com/company/press/brand/paymongo-logo.svg`, PayMongo's [official press kit](https://www.paymongo.com/company/press). Use unmodified artwork on light background.
+- **Wise Business:** `public/assets/logos/wise.svg`, saved from Wise's official wordmark at `https://wise.com/public-resources/assets/logos/wise/brand_logo.svg`, identified as the Wise Business offering through the adjacent card label; [Wise press site](https://wise.com/gb/press).
 
 The presence of logos is for brand identification and does **not** imply payment-method acceptance, merchant account approval, integrations, business relationships, authorization, or endorsements.

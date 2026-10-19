@@ -98,6 +98,24 @@ html[data-theme="light"] #site-shell .copyright-chip { background:#fff; border-c
 html[data-theme="light"] #site-shell .ecosystem-float { background:rgba(255,255,255,.94); border-color:#dfd3ee; box-shadow:0 14px 35px rgba(60,28,106,.1); }
 html[data-theme="light"] #site-shell .ecosystem-logo { background:#faf8fd; border-color:#e9e0f0; }
 
+/* Maintain contrast for the brand-supplied light/mint logo artwork.
+   The regular dark-wordmark logos retain their light cards. */
+html #site-shell .ecosystem-logo.ecosystem-logo--contrast,
+html[data-theme="light"] #site-shell .ecosystem-logo.ecosystem-logo--contrast {
+  background:#092731!important;
+  border-color:#245060!important;
+}
+html #site-shell .ecosystem-logo.ecosystem-logo--contrast p,
+html[data-theme="light"] #site-shell .ecosystem-logo.ecosystem-logo--contrast p {
+  color:#f5fffb!important;
+}
+html #site-shell .ecosystem-logo img {
+  content-visibility:visible!important;
+  opacity:1;
+  visibility:visible;
+}
+
+
 /* Light-theme foregrounds: dark words on paper, white only on dark imagery or purple. */
 html[data-theme="light"] #site-shell :is(.text-white\/80,.text-white\/90) { color:#24182f!important; }
 html[data-theme="light"] #site-shell .site-nav-link { color:#20172e!important; }
