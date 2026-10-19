@@ -225,6 +225,10 @@ export const TERMS_AND_CONDITIONS: LegalDoc = {
     {
      "t": "p",
      "text": "Unless otherwise agreed, OPERAVA and its licensors retain rights in OPERAVA websites, branding, software, templates, systems, documentation, processes, designs, and proprietary materials. Client deliverable ownership or licensing is governed by the applicable agreement."
+    },
+    {
+     "t": "p",
+     "text": "Illustrative references to independent payment, commerce and technology brands. Their inclusion does not confirm availability as an OPERAVA payment method, integration, client, partner or endorsement. All trademarks belong to their respective owners."
     }
    ]
   },

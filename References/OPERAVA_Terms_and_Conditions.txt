@@ -101,6 +101,8 @@ Users must not use OPERAVA systems unlawfully, attempt unauthorized access, intr
 13. INTELLECTUAL PROPERTY
 Unless otherwise agreed, OPERAVA and its licensors retain rights in OPERAVA websites, branding, software, templates, systems, documentation, processes, designs, and proprietary materials. Client deliverable ownership or licensing is governed by the applicable agreement.
 
+Illustrative references to independent payment, commerce and technology brands. Their inclusion does not confirm availability as an OPERAVA payment method, integration, client, partner or endorsement. All trademarks belong to their respective owners.
+
 14. CLIENT MATERIALS
 Clients retain rights in materials supplied to OPERAVA, subject to the rights necessary to perform contracted services. Clients must have lawful authority to provide such materials.
 

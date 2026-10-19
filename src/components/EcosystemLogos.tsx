@@ -69,11 +69,6 @@ export default function EcosystemLogos() {
             </div>
           ))}
         </div>
-        <p className="text-center text-neutral-500 text-[11px] leading-relaxed mt-6 max-w-[960px] mx-auto">
-          Illustrative references to independent payment, commerce and technology brands.
-          Their inclusion does not confirm availability as an OPERAVA payment method, integration,
-          client, partner or endorsement. All trademarks belong to their respective owners.
-        </p>
       </div>
     </section>
   )
