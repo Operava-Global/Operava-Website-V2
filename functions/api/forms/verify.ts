@@ -5,7 +5,7 @@ import {
   otpCodeMatches,
   json,
   makeReference,
-  sendResend,
+  sendEmail,
   resolveSecret,
   otpSecretMissingResponse,
   readSignedDraft,
@@ -70,8 +70,8 @@ function payloadRows(payload: Record<string, unknown>): Array<{ label: string; v
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
   try {
-    if (!env.RESEND_API_KEY || String(env.RESEND_API_KEY).trim().length < 8) {
-      return json({ error: 'Email delivery is not configured.' }, 503)
+    if (!env.SES_SMTP_USERNAME || !env.SES_SMTP_PASSWORD) {
+      return json({ error: 'Email verification is temporarily unavailable. Please contact hello@operavaglobal.com.', code: 'SES_SMTP_NOT_CONFIGURED' }, 503)
     }
     const secret = resolveSecret(env)
     if (!secret) return otpSecretMissingResponse()
@@ -261,7 +261,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const from = senderFor(formType, env)
 
     try {
-      await sendResend(env, {
+      await sendEmail(env, {
         from,
         to: [email],
         ...(isAcademy ? { bcc: [env.ACADEMY_INBOX || ACADEMY_INBOX_DEFAULT] } : {}),
@@ -276,7 +276,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     try {
       if (staffInbox.toLowerCase() !== email.toLowerCase()) {
-        await sendResend(env, {
+        await sendEmail(env, {
           from,
           to: [staffInbox],
           reply_to: email,
