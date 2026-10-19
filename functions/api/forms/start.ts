@@ -9,7 +9,7 @@ import {
   otpEmailHtml,
   otpEmailText,
   purposeLabel,
-  sendResend,
+  sendEmail,
   resolveSecret,
   otpSecretMissingResponse,
   issueSignedDraft,
@@ -21,42 +21,21 @@ import {
 const TYPES = new Set(['SERVICES', 'CAREERS', 'CONTACT', 'ACADEMY'])
 
 function mailErrorResponse(msg: string) {
-  let error =
-    'Unable to send verification email right now. Please try again in a moment, or contact hello@operavaglobal.com.'
-  let code = 'EMAIL_SEND_FAILED'
-  if (msg === 'EMAIL_DOMAIN_NOT_VERIFIED') {
-    error =
-      'Email sender domain is not verified with Resend. Verify operavaglobal.com (or the From address domain) in the Resend dashboard, then retry.'
-    code = msg
-  } else if (msg === 'EMAIL_ADDRESS_PATTERN') {
-    error =
-      'Email address was rejected by the mail provider. Check the email format and try again.'
-    code = msg
-  } else if (msg === 'EMAIL_INVALID_TO') {
-    error = 'A valid email is required.'
-    code = msg
-  } else if (msg === 'RESEND_API_KEY is not configured') {
-    error = 'Email delivery is not configured. Please contact hello@operavaglobal.com.'
-    code = 'RESEND_NOT_CONFIGURED'
-  } else if (msg === 'EMAIL_UNAUTHORIZED' || msg === 'EMAIL_API_KEY_INVALID') {
-    error =
-      'Email service authentication failed. Update RESEND_API_KEY in Cloudflare Pages secrets (full re_ key from Resend).'
-    code = msg
-  }
-  return json({ error, code }, 502)
+  const code = msg === 'SES_SMTP_NOT_CONFIGURED'
+    ? 'SES_SMTP_NOT_CONFIGURED'
+    : msg.includes('SES_SMTP_REJECTED_535')
+      ? 'SES_SMTP_AUTH_FAILED'
+      : 'EMAIL_SEND_FAILED'
+  const error = code === 'SES_SMTP_NOT_CONFIGURED'
+    ? 'Email delivery is not configured. Please contact hello@operavaglobal.com.'
+    : 'Unable to send the verification email at this time. Please try again, or contact hello@operavaglobal.com.'
+  return json({ error, code }, code === 'SES_SMTP_NOT_CONFIGURED' ? 503 : 502)
 }
 
 export const onRequestPost: PagesFunction<FormEnv> = async ({ request, env }) => {
   try {
-    if (!env.RESEND_API_KEY || String(env.RESEND_API_KEY).trim().length < 8) {
-      console.error('forms/start: RESEND_API_KEY missing')
-      return json(
-        {
-          error: 'Email delivery is not configured. Please contact hello@operavaglobal.com.',
-          code: 'RESEND_NOT_CONFIGURED',
-        },
-        503,
-      )
+    if (!env.SES_SMTP_USERNAME || !env.SES_SMTP_PASSWORD) {
+      return json({ error: 'Email verification is temporarily unavailable. Please contact hello@operavaglobal.com.', code: 'SES_SMTP_NOT_CONFIGURED' }, 503)
     }
 
     const secret = resolveSecret(env)
@@ -107,7 +86,9 @@ export const onRequestPost: PagesFunction<FormEnv> = async ({ request, env }) =>
     const now = Date.now()
     const code = generateOtp()
     const codeHash = await hashOtp(secret, code)
-    const payload = JSON.stringify({ ...body, name, email, formType })
+    // Anti-bot tokens must never be persisted, echoed, or included in confirmation email details.
+    const safeFields = Object.fromEntries(Object.entries(body).filter(([key]) => !/turnstile|captcha|token|secret/i.test(key)))
+    const payload = JSON.stringify({ ...safeFields, name, email, formType })
     const expiresAt = now + 10 * 60 * 1000
 
     const draftId = await issueSignedDraft(secret, {
@@ -142,7 +123,7 @@ export const onRequestPost: PagesFunction<FormEnv> = async ({ request, env }) =>
     }
 
     try {
-      await sendResend(env, {
+      await sendEmail(env, {
         from: senderFor(formType, env),
         to: [email],
         subject: 'Verification Code',
