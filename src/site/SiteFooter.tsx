@@ -53,7 +53,7 @@ export default function SiteFooter() {
         <span className="flex flex-wrap gap-x-6 gap-y-2">
           <span>SEC Reg. No. {COMPANY.sec}</span>
           <span>Philippines • Global Operations</span>
-          <a className="hover:text-accent transition-colors" href="https://www.operavaglobal.com/" target="_blank" rel="noopener noreferrer">operavaglobal.com</a>
+          <a className="hover:text-accent transition-colors" href="https://www.operavaglobal.com/" target="_blank" rel="noopener noreferrer">www.operavaglobal.com</a>
         </span>
       </div>
     </footer>
