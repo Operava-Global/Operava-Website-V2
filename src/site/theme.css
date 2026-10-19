@@ -106,6 +106,30 @@ html[data-theme="light"] #site-shell .bg-white.hover\:bg-accent-solid:hover {
 }
 html[data-theme="light"] #site-shell .photo-overlay :is(.text-white\/80,.text-white\/90) { color:#fff!important; }
 
+/* Purple feature cards still use white descriptive copy in the light theme. */
+html[data-theme="light"] #site-shell .bg-accent-solid :is(.text-white\/80,.text-white\/90) {
+  color:#fff!important;
+}
+/* Explicit dark CTA from dark mode must not become white lettering on white paper. */
+html[data-theme="light"] #site-shell .bg-accent-solid :is(a.bg-black,button.bg-black) {
+  background:#fff!important;
+  color:#24182f!important;
+}
+/* Buttons that fill white on hover must switch text to ink, even over photo overlays. */
+html[data-theme="light"] #site-shell .photo-overlay :is(a,button).hover\:bg-white:hover {
+  background:#fff!important;
+  color:#24182f!important;
+}
+html[data-theme="light"] #site-shell .photo-overlay :is(a,button).hover\:bg-white:hover :is(span,svg) {
+  color:#24182f!important;
+}
+/* Purple hover buttons keep white text in every component, including forms. */
+html[data-theme="light"] #site-shell .hover\:bg-accent-solid:hover {
+  background:#6520ad!important;
+  color:#fff!important;
+}
+
+
 @media (prefers-contrast:more) {
  html[data-theme="light"] #site-shell :is(.text-neutral-400,.text-neutral-500,.text-neutral-600) { color:#42334d!important; }
 }
