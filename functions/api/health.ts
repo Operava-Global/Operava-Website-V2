@@ -1,5 +1,6 @@
 interface Env {
-  RESEND_API_KEY?: string
+  SES_SMTP_USERNAME?: string
+  SES_SMTP_PASSWORD?: string
   OTP_SECRET?: string
   AI?: unknown
   RESUMES_BUCKET?: unknown
@@ -29,7 +30,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
     service: 'OPERAVA Global Solutions Edge API',
     timestamp: new Date().toISOString(),
     bindings: {
-      resendConfigured: Boolean(env.RESEND_API_KEY && String(env.RESEND_API_KEY).length > 8),
+      sesSmtpConfigured: Boolean(env.SES_SMTP_USERNAME && env.SES_SMTP_PASSWORD),
       otpSecretConfigured: Boolean(env.OTP_SECRET && String(env.OTP_SECRET).trim().length >= 32),
       aiBound: Boolean(env.AI),
       resumesBucketBound: Boolean(env.RESUMES_BUCKET),
