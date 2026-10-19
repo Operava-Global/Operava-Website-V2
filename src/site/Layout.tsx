@@ -2,7 +2,6 @@ import { useEffect, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import SiteHeader from './SiteHeader'
 import SiteFooter from './SiteFooter'
-import EcosystemLogos from '../components/EcosystemLogos'
 
 /** Adds `.visible` to every `.reveal` element as it scrolls into view — including ones rendered later. */
 function useRevealObserver(pathname: string) {
@@ -90,20 +89,6 @@ export default function Layout({ children }: { children: ReactNode }) {
       <main id="main" key={pathname} className="flex-1 page-enter">
         {children}
       </main>
-      <EcosystemLogos />
-      <section aria-label="Outsource Accelerator Source Partner" className="px-6 lg:px-12 pt-6 pb-12">
-        <div className="mx-auto flex max-w-[1480px] justify-center">
-          <img
-            src="/brand/outsource-accelerator-source-partner.png"
-            alt="Outsource Accelerator Source Partner badge"
-            width="300"
-            height="298"
-            loading="lazy"
-            decoding="async"
-            className="block w-[220px] sm:w-[260px] h-auto rounded-[12px] bg-white object-contain"
-          />
-        </div>
-      </section>
       <SiteFooter />
     </div>
   )
