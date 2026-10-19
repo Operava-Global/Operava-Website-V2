@@ -24,7 +24,7 @@ html[data-theme="light"] .site-theme-toggle:hover { background:#efe3fc; }
 html[data-theme="light"] select option { background:#fff; color:#211631; }
 html[data-theme="light"] :is(input:not([type=checkbox]),select,textarea) { color:#211631; }
 html[data-theme="light"] :is(input,textarea)::placeholder { color:#80758c; }
-html[data-theme="light"] :is(.btn-sweep,.bg-accent-solid) { color:#fff!important; }
+html[data-theme="light"] .bg-accent-solid { color:#fff!important; }
 html[data-theme="light"] .bg-accent-solid { background:#6520ad!important; }
 html[data-theme="light"] .btn-sweep::before { background:#6c27bc; }
 html[data-theme="light"] .btn-sweep:hover { color:white!important; }
@@ -72,12 +72,40 @@ html[data-theme="light"] #site-shell .photo-overlay :is(h1,h2,h3,h4,p,small,span
 html[data-theme="light"] #site-shell .photo-overlay .text-accent { color:#d1b1ff!important; }
 html[data-theme="light"] #site-shell .photo-overlay :is(.bg-white,.text-black) { color:#17112a!important; }
 html[data-theme="light"] #site-shell .photo-overlay .bg-white { background:#ffffff!important; }
-html[data-theme="light"] #site-shell :is(.bg-accent-solid,.bg-accent-solid *,.text-white\/80,.text-white\/90) { color:#ffffff!important; }
+html[data-theme="light"] #site-shell :is(.bg-accent-solid,.bg-accent-solid *) { color:#ffffff!important; }
 html[data-theme="light"] #site-shell .photo-overlay .bg-accent-solid { color:#ffffff!important; }
 html[data-theme="light"] #site-shell .site-mega-menu .photo-overlay { background:#100b17!important; }
 html[data-theme="light"] #site-shell .copyright-chip { background:#fff; border-color:#d0c4df; color:#29173b; }
 html[data-theme="light"] #site-shell .ecosystem-float { background:rgba(255,255,255,.94); border-color:#dfd3ee; box-shadow:0 14px 35px rgba(60,28,106,.1); }
 html[data-theme="light"] #site-shell .ecosystem-logo { background:#faf8fd; border-color:#e9e0f0; }
+
+/* Light-theme foregrounds: dark words on paper, white only on dark imagery or purple. */
+html[data-theme="light"] #site-shell :is(.text-white\/80,.text-white\/90) { color:#24182f!important; }
+html[data-theme="light"] #site-shell .site-nav-link { color:#20172e!important; }
+html[data-theme="light"] #site-shell .site-nav-link:hover,
+html[data-theme="light"] #site-shell .site-nav-link[aria-expanded="true"] { color:#6c27bc!important; }
+html[data-theme="light"] #site-shell .btn-sweep {
+  color:#24182f!important;
+  border-color:#6c27bc!important;
+}
+html[data-theme="light"] #site-shell .btn-sweep:hover,
+html[data-theme="light"] #site-shell .btn-sweep:focus-visible { color:#fff!important; }
+html[data-theme="light"] #site-shell .photo-overlay .btn-sweep {
+  color:#fff!important;
+  border-color:#fff!important;
+}
+html[data-theme="light"] #site-shell .photo-overlay .btn-sweep:hover,
+html[data-theme="light"] #site-shell .photo-overlay .btn-sweep:focus-visible {
+  color:#fff!important;
+  border-color:#6c27bc!important;
+}
+/* Keep purple primary CTA wording readable on hover. */
+html[data-theme="light"] #site-shell .bg-white.hover\:bg-accent-solid:hover {
+  background:#6520ad!important;
+  color:#fff!important;
+}
+html[data-theme="light"] #site-shell .photo-overlay :is(.text-white\/80,.text-white\/90) { color:#fff!important; }
+
 @media (prefers-contrast:more) {
  html[data-theme="light"] #site-shell :is(.text-neutral-400,.text-neutral-500,.text-neutral-600) { color:#42334d!important; }
 }
