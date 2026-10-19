@@ -294,8 +294,16 @@ export default function Home() {
           <p className="mt-6 text-sm text-neutral-400 max-w-[360px] leading-relaxed">
             Organized as a One Person Corporation and registered with the Philippine Securities and Exchange Commission. Registration No. {COMPANY.sec}.
           </p>
-          <div className="mt-10 flex items-center gap-6">
-            <div className="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center font-black text-sm">SEC</div>
+          <div className="mt-10 flex flex-col items-start gap-6">
+            <img
+              src="/brand/sec-registration-badge.svg"
+              alt="Registered with the Securities and Exchange Commission, Philippines"
+              className="block w-full max-w-[420px] h-auto"
+              width="940"
+              height="515"
+              loading="lazy"
+              decoding="async"
+            />
             <Link to="/about/corporate-registration" className="text-[11px] tracking-widest uppercase border-b border-white pb-1 hover:text-accent hover:border-accent transition-colors">
               Registration details →
             </Link>
