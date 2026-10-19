@@ -26,7 +26,7 @@ export const TERMS_AND_CONDITIONS: LegalDoc = {
     },
     {
      "t": "p",
-     "text": "OPERAVA is an SEC-registered Philippine corporation. Corporate registration is not represented as a blanket government license, accreditation, certification, or authorization for every possible technology, professional, staffing, financial, regulated, or specialized activity. Separate permits, licenses, certifications, professional qualifications, or authorizations may apply to particular activities."
+     "text": "Duly incorporated and registered under the laws of the Republic of the Philippines with the Securities and Exchange Commission, under Registration No. 2026080262213-03. Corporate registration is not represented as a blanket government license, accreditation, certification, or authorization for every possible technology, professional, staffing, financial, regulated, or specialized activity. Separate permits, licenses, certifications, professional qualifications, or authorizations may apply to particular activities."
     }
    ]
   },

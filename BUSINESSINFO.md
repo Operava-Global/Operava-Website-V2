@@ -10,7 +10,7 @@
 
 ## 1. Executive Summary
 
-OPERAVA Global Solutions is a Philippine SEC-registered corporation providing **Workforce**, **Information Technology (IT)**, and **Business Process Outsourcing (BPO)** services on a remote-first, global delivery model.
+OPERAVA Global Solutions provides **Workforce**, **Information Technology (IT)**, and **Business Process Outsourcing (BPO)** services on a remote-first, global delivery model.
 
 The marketing website is a React + Vite SPA deployed on Cloudflare Pages, with:
 - Bilingual/multi-language UI (en + ar, de, es, fil, fr, ja, zh)
@@ -23,7 +23,7 @@ The marketing website is a React + Vite SPA deployed on Cloudflare Pages, with:
 **Key business identifiers found:**
 - Brand: OPERAVA / OPERAVA GLOBAL SOLUTIONS
 - Tagline / motto: "Operating in Advance." / "We Operate in Advance"
-- SEC Registration Number: `2026080262213-03`
+- Corporate registration: Duly incorporated and registered under the laws of the Republic of the Philippines with the Securities and Exchange Commission, under Registration No. 2026080262213-03.
 - Initial corporate location: Pagudpud, Ilocos Norte 2919, Philippines
 - Primary public domain: `www.operavaglobal.com`
 - Payment portal: `pay.operavaglobal.com`
@@ -34,12 +34,12 @@ The marketing website is a React + Vite SPA deployed on Cloudflare Pages, with:
 
 | Field | Value found in repository |
 |--------|---------------------------|
-| Legal / business name | OPERAVA Global Solutions (also "Operava Global Solutions Opc" in Refund Policy) |
+| Legal / business name | OPERAVA Global Solutions |
 | Brand name | OPERAVA |
 | Tagline | Global Solutions |
 | Slogan / motto | Operating in Advance. / We Operate in Advance |
 | Positioning | Philippine-based Corporation providing Workforce, IT, and BPO services, operating remotely and globally |
-| Registration | SEC Registration Number: 2026080262213-03 |
+| Registration | Duly incorporated and registered under the laws of the Republic of the Philippines with the Securities and Exchange Commission, under Registration No. 2026080262213-03. |
 | Location | Pagudpud, Ilocos Norte 2919, Philippines (initial corporate location); remote-first global operations |
 | Delivery model | Remote-first / hybrid; 24/7/365 follow-the-sun |
 | Target clients | Startups, SMEs, growing organizations, enterprises |
@@ -392,7 +392,7 @@ Multi-language UI; AVA AI assistant; OTP intake forms; service catalog; careers 
 
 ## 20. Refund Policy
 
-Exists at `/refund-policy`. Entity: Operava Global Solutions Opc. Covers IT/BPO/staffing/SaaS/digital. Principles: no unlawful blanket exclusion; cancellation ≠ refund; case-specific assessment; mandatory rights preserved.
+Exists at `/refund-policy`. Entity: OPERAVA Global Solutions. Covers IT/BPO/staffing/SaaS/digital. Principles: no unlawful blanket exclusion; cancellation ≠ refund; case-specific assessment; mandatory rights preserved.
 
 **Source:** `src/pages/RefundPolicy.tsx`
 
@@ -430,7 +430,7 @@ Copyright © 2026; SEC registration in footer; professional-advice and liability
 
 | Issue | Severity |
 |-------|----------|
-| Entity suffix OPC vs Corporation | Medium |
+| Company registration wording standardized | Resolved |
 | Footer Cloud Services link without service slug | High |
 | SEC number linked to payment portal | Medium |
 | Sitemap incomplete | Medium |
@@ -483,7 +483,7 @@ Copyright © 2026; SEC registration in footer; professional-advice and liability
 - **Name:** OPERAVA Global Solutions  
 - **Brand:** OPERAVA  
 - **Motto:** Operating in Advance.  
-- **Type:** Philippine Corporation (SEC 2026080262213-03)  
+- **Corporate registration:** Duly incorporated and registered under the laws of the Republic of the Philippines with the Securities and Exchange Commission, under Registration No. 2026080262213-03.  
 - **HQ reference:** Pagudpud, Ilocos Norte 2919, Philippines  
 - **Model:** Remote-first IT + BPO + workforce  
 - **Services:** 8 IT + 8 BPO  

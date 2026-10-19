@@ -5,7 +5,7 @@ Website, Services, Employment Applications, Client Engagements and Digital Platf
 Effective Date: 17 August 2026
 
 IMPORTANT NOTICE
-This is a general corporate and website framework for OPERAVA Global Solutions OPC. Specific client agreements, employment agreements, statements of work, NDAs, data-processing agreements, and other contracts may supplement or supersede these Terms for the applicable relationship. This document should be reviewed by qualified Philippine counsel before publication or contractual use.
+This is a general corporate and website framework for OPERAVA Global Solutions. Specific client agreements, employment agreements, statements of work, NDAs, data-processing agreements, and other contracts may supplement or supersede these Terms for the applicable relationship. This document should be reviewed by qualified Philippine counsel before publication or contractual use.
 
 1. ABOUT OPERAVA
 OPERAVA Global Solutions is a Philippine-based technology, workforce, and Business Process Outsourcing organization focused on Information Technology, digital services, cloud-related solutions, business operations, customer service, data processing, and remote professional services.
@@ -14,7 +14,7 @@ OPERAVA may serve startups, small businesses, SMEs, growing organizations, estab
 
 OPERAVA operates with a remote-first model and may work with professionals and clients in different countries, subject to applicable laws and contractual requirements.
 
-OPERAVA is an SEC-registered Philippine corporation. Corporate registration is not represented as a blanket government license, accreditation, certification, or authorization for every possible technology, professional, staffing, financial, regulated, or specialized activity. Separate permits, licenses, certifications, professional qualifications, or authorizations may apply to particular activities.
+Duly incorporated and registered under the laws of the Republic of the Philippines with the Securities and Exchange Commission, under Registration No. 2026080262213-03. Corporate registration is not represented as a blanket government license, accreditation, certification, or authorization for every possible technology, professional, staffing, financial, regulated, or specialized activity. Separate permits, licenses, certifications, professional qualifications, or authorizations may apply to particular activities.
 
 2. ACCEPTANCE
 By accessing or using an OPERAVA website, platform, service, form, portal, or other digital property, you acknowledge these Terms to the extent applicable. If you do not agree, discontinue use of the relevant service or platform.
