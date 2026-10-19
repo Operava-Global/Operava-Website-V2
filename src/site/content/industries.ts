@@ -220,7 +220,7 @@ export const industries: Industry[] = [
       { cat: 'it', slug: 'web-mobile-development', use: 'Websites, web applications and mobile learning experiences.' },
       { cat: 'it', slug: 'saas-platform-development', use: 'Learning platforms and subscription systems.' },
     ],
-    image: '/media/operava-scene-warm-remote-work-welcome.webp',
+    image: '/media/operava-task-learning-workshop.webp',
   },
   {
     slug: 'professional-services',

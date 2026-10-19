@@ -5,7 +5,7 @@ import {
   otpCodeMatches,
   json,
   makeReference,
-  sendResend,
+  sendEmail,
   resolveSecret,
   otpSecretMissingResponse,
   readSignedDraft,
@@ -55,9 +55,12 @@ function payloadRows(payload: Record<string, unknown>): Array<{ label: string; v
     'resumeKey',
     'resumeText',
     'resumeDataMandatory',
+    'cf-turnstile-response',
+    'turnstileToken',
+    'turnstileResponse',
   ])
   return Object.entries(payload)
-    .filter(([key, value]) => !skip.has(key) && value != null && String(value).trim() !== '')
+    .filter(([key, value]) => !skip.has(key) && !/turnstile|captcha|token|secret/i.test(key) && value != null && String(value).trim() !== '')
     .map(([key, value]) => ({
       label: LABEL_MAP[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()),
       value: typeof value === 'object' ? JSON.stringify(value) : String(value),
@@ -67,8 +70,8 @@ function payloadRows(payload: Record<string, unknown>): Array<{ label: string; v
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
   try {
-    if (!env.RESEND_API_KEY || String(env.RESEND_API_KEY).trim().length < 8) {
-      return json({ error: 'Email delivery is not configured.' }, 503)
+    if (!env.SES_SMTP_USERNAME || !env.SES_SMTP_PASSWORD) {
+      return json({ error: 'Email verification is temporarily unavailable. Please contact hello@operavaglobal.com.', code: 'SES_SMTP_NOT_CONFIGURED' }, 503)
     }
     const secret = resolveSecret(env)
     if (!secret) return otpSecretMissingResponse()
@@ -258,7 +261,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const from = senderFor(formType, env)
 
     try {
-      await sendResend(env, {
+      await sendEmail(env, {
         from,
         to: [email],
         ...(isAcademy ? { bcc: [env.ACADEMY_INBOX || ACADEMY_INBOX_DEFAULT] } : {}),
@@ -273,7 +276,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     try {
       if (staffInbox.toLowerCase() !== email.toLowerCase()) {
-        await sendResend(env, {
+        await sendEmail(env, {
           from,
           to: [staffInbox],
           reply_to: email,

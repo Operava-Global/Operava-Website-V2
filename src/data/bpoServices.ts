@@ -7,7 +7,7 @@ export const bpoServices: Service[] = [
     category: 'bpo',
     number: '01',
     name: 'Customer Service',
-    image: '/media/operava-scene-friendly-operava-support-team.webp',
+    image: '/media/operava-task-smiling-call-center.webp',
     shortDescription:
       'Professional customer support teams handling inquiries, orders, and service requests across channels.',
     description:
@@ -125,7 +125,7 @@ export const bpoServices: Service[] = [
     category: 'bpo',
     number: '05',
     name: 'Data Processing',
-    image: '/media/operava-scene-operava-team-analyzing-performance-dashboards.webp',
+    image: '/media/operava-task-data-analytics-team.webp',
     shortDescription:
       'Structured data processing, validation, and transformation for operational and analytical use.',
     description:
@@ -211,7 +211,7 @@ export const bpoServices: Service[] = [
     category: 'bpo',
     number: '08',
     name: 'Virtual Assistance',
-    image: '/media/operava-scene-warm-purple-home-office-video-call.webp',
+    image: '/media/operava-task-remote-assistant-workspace.webp',
     shortDescription:
       'Remote administrative and executive support professionals for day-to-day business tasks.',
     description:

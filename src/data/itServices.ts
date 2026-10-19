@@ -29,7 +29,7 @@ export const itServices: Service[] = [
     category: 'it',
     number: '01',
     name: 'Software Development',
-    image: '/media/operava-scene-operava-developers-collaborating-in-tech-workspace.webp',
+    image: '/media/operava-task-software-collaboration.webp',
     shortDescription:
       'Custom software solutions designed around your business requirements, workflows, integrations, and long-term growth.',
     description:
@@ -123,7 +123,7 @@ export const itServices: Service[] = [
     category: 'it',
     number: '04',
     name: 'IT Systems Development',
-    image: '/media/operava-scene-operava-infrastructure-operations-team.webp',
+    image: '/media/operava-task-infrastructure-technicians.webp',
     shortDescription:
       'Business systems designed to automate workflows, connect operational functions, and increase efficiency.',
     description:
@@ -182,7 +182,7 @@ export const itServices: Service[] = [
     category: 'it',
     number: '06',
     name: 'IT Consulting',
-    image: '/media/operava-scene-collaborative-digital-strategy-roadmap.webp',
+    image: '/media/operava-task-strategy-consultation.webp',
     shortDescription:
       'Technology advisory to help organizations plan systems, architecture, and digital initiatives.',
     description:

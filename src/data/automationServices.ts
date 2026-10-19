@@ -8,7 +8,7 @@ export const automationServices: Service[] = [
     category: 'it',
     number: '01',
     name: 'Workflow Automation',
-    image: '/media/operava-scene-operava-team-collaboration-hub.webp',
+    image: '/media/operava-task-operational-collaboration.webp',
     shortDescription:
       'Connect business tasks into structured digital processes so work moves automatically from one step to the next.',
     description:
