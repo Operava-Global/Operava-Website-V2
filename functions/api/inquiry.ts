@@ -2,7 +2,7 @@ import {
   applicantConfirmationEmail,
   clientConfirmationEmail,
   CLIENT_RESEND_FROM,
-  sendResend,
+  sendEmail,
   staffNotificationEmail,
   TALENT_RESEND_FROM,
   type FormEnv,
@@ -82,7 +82,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     const isCareer = CAREER_KINDS.has(kind)
     const clientInbox = env.CLIENT_INBOX || 'hello@operavaglobal.com'
     const talentInbox = env.TALENT_INBOX || 'talents@operavaglobal.com'
-    const apiKey = env.RESEND_API_KEY
+    const smtpReady = Boolean(env.SES_SMTP_USERNAME && env.SES_SMTP_PASSWORD)
     const ticketId = makeTicketId()
     const sourceLabel = {
       contact: 'Website contact form',
@@ -121,8 +121,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       ? `CONFIRMATION\n\nHi ${name},\n\nThank you for submitting your application. Our team will review your profile and get in touch with you as soon as possible.\n\nTalent Acquisition Team,\nOperava Global Solutions`
       : `CONFIRMATION\n\nHi ${name},\n\nThank you for submitting your inquiry. The team will get in touch with you as soon as possible.\n\nClient Support Team,\nOperava Global Solutions`
 
-    if (!apiKey) {
-      console.error('RESEND_API_KEY is not configured')
+    if (!smtpReady) {
+      console.error('SES_SMTP credentials are not configured')
       return json({ error: 'Email delivery is not configured yet.' }, 503)
     }
 
@@ -135,9 +135,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       text,
     }
     try {
-      await sendResend(env, payload)
+      await sendEmail(env, payload)
       if (cc.length) {
-        await sendResend(env, {
+        await sendEmail(env, {
           from: isCareer ? TALENT_RESEND_FROM : CLIENT_RESEND_FROM,
           to: cc,
           subject: isCareer ? 'New Application Received' : 'New Inquiry Received',

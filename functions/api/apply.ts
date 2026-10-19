@@ -1,7 +1,7 @@
 import {
   applicantConfirmationEmail,
   APPLICANT_CONFIRMATION_FROM,
-  sendResend,
+  sendEmail,
   staffNotificationEmail,
   TALENT_RESEND_FROM,
   type FormEnv,
@@ -61,8 +61,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     const notes = clean(body.notes || body.description, 4000)
     const ticketId = `OPV-${Math.floor(100000 + Math.random() * 900000)}`
     const talentInbox = env.TALENT_INBOX || 'talents@operavaglobal.com'
-    const apiKey = env.RESEND_API_KEY
-    if (!apiKey) return json({ error: 'Email delivery is not configured yet.' }, 503)
+    const smtpReady = Boolean(env.SES_SMTP_USERNAME && env.SES_SMTP_PASSWORD)
+    if (!smtpReady) return json({ error: 'Email delivery is not configured yet.' }, 503)
 
     const staffRecipients = uniqueEmails([talentInbox, ...parseList(env.APPLICANT_CC)], email)
     const rows = [
@@ -85,7 +85,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     const bccList = [talentInbox].filter((addr) => addr && addr.toLowerCase() !== email)
 
     try {
-      await sendResend(env, {
+      await sendEmail(env, {
         from: 'Operava Notification <notification-noreply@operavaglobal.com>',
         to: [email],
         bcc: bccList.length ? bccList : undefined,
