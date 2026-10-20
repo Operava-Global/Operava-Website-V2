@@ -68,6 +68,7 @@ export default function Footer() {
     { label: 'Calendar', href: '/utilities/calendar/' },
     { label: 'Scientific Calculator', href: '/utilities/scientific-calculator/' },
     { label: 'PDF Viewer & Converter', href: '/utilities/pdf-viewer/' },
+            { label: 'Word to PDF Converter', href: '/utilities/word-to-pdf/' },
     { label: 'HTML Viewer & Editor', href: '/utilities/html-editor/' },
     { label: 'News, Politics & Research References', href: '/utilities/references/' },
   ]
