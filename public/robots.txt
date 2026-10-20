@@ -9,3 +9,4 @@ Allow: /llms.txt
 
 # Sitemap
 Sitemap: https://www.operavaglobal.com/sitemap.xml
+Sitemap: https://www.operavaglobal.com/utilities/sitemap.xml

@@ -62,6 +62,16 @@ export default function Footer() {
     { label: t('nav.contact', 'Contact'), href: '/contact' },
   ]
 
+  /** Public standalone tools appear only in the footer (not the main navigation). */
+  const footerUtilities = [
+    { label: 'Currency Converter', href: '/utilities/currency-converter/' },
+    { label: 'Calendar', href: '/utilities/calendar/' },
+    { label: 'Scientific Calculator', href: '/utilities/scientific-calculator/' },
+    { label: 'PDF Viewer & Converter', href: '/utilities/pdf-viewer/' },
+    { label: 'HTML Viewer & Editor', href: '/utilities/html-editor/' },
+    { label: 'News, Politics & Research References', href: '/utilities/references/' },
+  ]
+
   const footerLegal = [
     { label: t('footer.privacy', 'Privacy Policy'), href: '/privacy' },
     { label: t('footer.terms', 'Terms & Conditions'), href: '/terms' },
@@ -190,6 +200,24 @@ export default function Footer() {
               ))}
             </div>
           </div>
+
+          <section className="py-8 border-b border-white/10" aria-label="OPERAVA free utilities">
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-1 mb-5">
+              <h3 className="text-xs font-semibold tracking-[0.12em] uppercase text-white">Free OPERAVA Utilities</h3>
+              <p className="text-xs text-white/60">Separate tools, connected by OPERAVA</p>
+            </div>
+            <nav aria-label="OPERAVA utility quick links" className="flex flex-wrap gap-2 sm:gap-3">
+              {footerUtilities.map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="inline-flex rounded-full border border-violet-300/25 bg-violet-400/10 px-4 py-2 text-xs sm:text-sm font-medium text-white hover:bg-violet-400/20 hover:border-violet-300/60 transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-300"
+                >
+                  {item.label}
+                </a>
+              ))}
+            </nav>
+          </section>
 
           <div className="lg:hidden py-8 border-b border-white/10">
             <h3 className="text-xs font-semibold tracking-[0.12em] uppercase text-white mb-4">Contacts</h3>
