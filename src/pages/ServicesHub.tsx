@@ -101,7 +101,7 @@ export default function ServicesHub() {
           <div className="max-w-[740px]">
             <p className="text-accent text-xs tracking-widest font-bold uppercase">Planning beyond the job title</p>
             <h2 className="text-3xl lg:text-4xl font-black uppercase mt-3">Direct hire, managed teams or automation?</h2>
-            <p className="text-sm lg:text-base text-neutral-400 leading-relaxed mt-4">Compare eight practical risk scenarios involving virtual assistance, data access, customer service, continuity, software handover and automation. Learn which safeguards to discuss before starting.</p>
+            <p className="text-sm lg:text-base text-neutral-400 leading-relaxed mt-4">Explore general, hypothetical case reviews involving individuals, contractors, service providers and internal teams. Review access, quality, continuity, required authorizations and practical safeguards, with clear disclaimers.</p>
           </div>
           <Link to="/insights/outsourcing-risks" className="px-6 py-4 border border-neutral-500 rounded-lg font-bold tracking-wider text-xs uppercase shrink-0 hover:border-accent hover:text-accent transition-colors">Explore risks & controls →</Link>
         </div>
