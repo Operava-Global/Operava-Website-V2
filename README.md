@@ -226,7 +226,7 @@ After deploy, confirm the **AI** binding is attached to the Pages project so `/a
 ## 📞 Contact & Governance
 
 **OPERAVA Global Solutions**  
-- **Website**: [https://operava.com](https://operava.com)  
+- **Website**: [https://www.operavaglobal.com](https://operavaglobal.com)  
 - **Location**: Philippine-Based, operating remotely and globally  
 - **Global Delivery**: North America &bull; Europe &bull; Australia &bull; Asia-Pacific  
-- **Enterprise Support**: `contact@operava.com`
+- **Enterprise Support**: `hello@operavaglobal.com`
