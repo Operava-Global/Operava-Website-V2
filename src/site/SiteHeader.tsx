@@ -238,11 +238,11 @@ export default function SiteHeader() {
             type="button"
             onClick={() => setDrawer(true)}
             aria-label="Open menu"
-            className="lg:hidden w-9 h-9 flex flex-col justify-center gap-1.5"
+            className="lg:hidden w-9 h-9 flex flex-col justify-center gap-1.5 text-white"
           >
-            <span className="h-[2px] w-6 bg-white block" />
-            <span className="h-[2px] w-6 bg-white block" />
-            <span className="h-[2px] w-4 bg-white block" />
+            <span className="h-[2px] w-6 bg-current block" />
+            <span className="h-[2px] w-6 bg-current block" />
+            <span className="h-[2px] w-4 bg-current block" />
           </button>
         </div>
 
