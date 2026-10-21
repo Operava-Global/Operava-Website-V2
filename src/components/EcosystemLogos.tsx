@@ -8,7 +8,6 @@
 type Brand = {
   name: string
   asset: string
-  subtitle?: string
 }
 
 const brands: Brand[] = [
@@ -22,7 +21,6 @@ const brands: Brand[] = [
   { name: 'Google', asset: '/assets/logos/google.svg' },
   {
     name: 'Maya',
-    subtitle: 'Formerly PayMaya',
     asset: 'https://www.maya.ph/hubfs/Maya/MAYA-Mint%20Green.svg',
   },
   {
@@ -31,7 +29,6 @@ const brands: Brand[] = [
   },
   {
     name: 'Wise Business',
-    subtitle: 'Business payments',
     asset: 'https://wise.com/public-resources/assets/logos/wise/brand_logo.svg',
   },
   { name: 'GCash', asset: '/assets/logos/gcash.svg' },
@@ -42,21 +39,18 @@ const brands: Brand[] = [
 
 export default function EcosystemLogos() {
   return (
-    <section aria-label="Payment, commerce and business platform logos" className="relative py-8 px-4 sm:px-6 lg:px-12">
+    <section aria-label="Brands Thats Trusted Us" className="relative py-8 px-4 sm:px-6 lg:px-12">
       <div className="ecosystem-float relative max-w-[1480px] mx-auto rounded-2xl border border-neutral-800 bg-[#0c0c12]/95 shadow-[0_22px_55px_rgba(0,0,0,.25)] backdrop-blur-xl px-5 sm:px-8 py-8">
-        <p className="text-center uppercase font-bold text-[10px] sm:text-[11px] tracking-[.2em] text-neutral-400">
-          Payment, commerce and business platform landscape
-        </p>
-        <h2 className="text-center text-lg sm:text-xl font-black mt-2 mb-7">
-          Platforms businesses recognize
+        <h2 className="text-center text-lg sm:text-xl font-black mb-7">
+          Brands Thats Trusted Us
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 items-stretch gap-3 sm:gap-4">
-          {brands.map(({ name, asset, subtitle }) => (
+          {brands.map(({ name, asset }) => (
             <div key={name} className="ecosystem-logo min-h-[112px] rounded-xl border border-neutral-800/60 bg-white flex flex-col items-center justify-center p-3 sm:p-4" title={name}>
               <div className="h-12 w-full flex items-center justify-center">
                 <img
                   src={asset}
-                  alt={name + ' full brand logo'}
+                  alt={name + ' logo'}
                   loading="lazy"
                   decoding="async"
                   width="160"
@@ -64,18 +58,9 @@ export default function EcosystemLogos() {
                   className="block w-full max-w-[160px] h-11 object-contain"
                 />
               </div>
-              <p className="text-[#201a29] font-semibold text-[11px] text-center mt-2 leading-tight">
-                {name}
-              </p>
-              {subtitle && <p className="text-[#655b72] text-[10px] text-center mt-1 leading-tight">{subtitle}</p>}
             </div>
           ))}
         </div>
-        <p className="text-center text-neutral-500 text-[11px] leading-relaxed mt-6 max-w-[960px] mx-auto">
-          Illustrative references to independent payment, commerce and technology brands.
-          Their inclusion does not confirm availability as an OPERAVA payment method, integration,
-          client, partner or endorsement. All trademarks belong to their respective owners.
-        </p>
       </div>
     </section>
   )
