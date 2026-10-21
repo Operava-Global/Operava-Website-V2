@@ -34,3 +34,5 @@ Owner-hosted, full brand wordmarks:
 - **Wise Business:** Wise wordmark from `https://wise.com/public-resources/assets/logos/wise/brand_logo.svg`, identified as the Wise Business offering through the adjacent card label; [Wise press site](https://wise.com/gb/press).
 
 The presence of logos is for brand identification and does **not** imply payment-method acceptance, merchant account approval, integrations, business relationships, authorization, or endorsements.
+
+- **ShopeePay and GrabPay:** unaltered full SVG brand artwork from [SnorSnor9998/Payment-Icon](https://github.com/SnorSnor9998/Payment-Icon), specifically `Wallet/ShopeePay/ShopeePay_SVG.svg` and `Wallet/GrabPay/GrabPay_SVG.svg`. Refer to the [ShopeePay brand guidelines](https://product.shopeepay.com/products/brand-guidelines) and the [GrabPay brand guidelines](https://merchant.grab.com/my-my/brand-centre/grabpay-online). Trademarks are held by the respective owners; their inclusion is for identification only.

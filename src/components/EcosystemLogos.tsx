@@ -35,6 +35,8 @@ const brands: Brand[] = [
     asset: 'https://wise.com/public-resources/assets/logos/wise/brand_logo.svg',
   },
   { name: 'GCash', asset: '/assets/logos/gcash.svg' },
+  { name: 'ShopeePay', asset: '/assets/logos/shopeepay.svg' },
+  { name: 'GrabPay', asset: '/assets/logos/grabpay.svg' },
   { name: 'Stripe', asset: '/assets/logos/stripe.svg' },
 ]
 
@@ -48,7 +50,7 @@ export default function EcosystemLogos() {
         <h2 className="text-center text-lg sm:text-xl font-black mt-2 mb-7">
           Platforms businesses recognize
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 items-stretch gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 items-stretch gap-3 sm:gap-4">
           {brands.map(({ name, asset, subtitle }) => (
             <div key={name} className="ecosystem-logo min-h-[112px] rounded-xl border border-neutral-800/60 bg-white flex flex-col items-center justify-center p-3 sm:p-4" title={name}>
               <div className="h-12 w-full flex items-center justify-center">
