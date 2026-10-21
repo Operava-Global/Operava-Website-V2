@@ -49,7 +49,7 @@ export default function SiteFooter() {
         ))}
       </div>
       <div className="mt-16 pt-8 border-t border-neutral-900 flex flex-col lg:flex-row justify-between gap-4 text-[11px] tracking-widest uppercase text-neutral-600">
-        <span className="copyright-chip inline-flex items-center px-4 py-2 rounded-full border border-neutral-700 normal-case tracking-normal font-semibold">© 2026 OPERAVA Global Solutions. All Rights Reserved.</span>
+        <span className="copyright-chip inline-flex items-center px-4 py-2 rounded-full border border-neutral-700 normal-case tracking-normal font-semibold">© 2024 OPERAVA Global Solutions. All Rights Reserved.</span>
       </div>
     </footer>
   )
