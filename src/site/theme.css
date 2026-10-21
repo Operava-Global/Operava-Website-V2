@@ -170,3 +170,79 @@ html[data-theme="light"] #site-shell .hover\:bg-accent-solid:hover {
 @media (prefers-contrast:more) {
  html[data-theme="light"] #site-shell :is(.text-neutral-400,.text-neutral-500,.text-neutral-600) { color:#42334d!important; }
 }
+
+
+/* Trusted brands: monochrome until hover, keyboard focus, or touch selection. */
+html #site-shell .ecosystem-logo--interactive {
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  transition:border-color .28s ease, box-shadow .28s ease, transform .28s ease;
+}
+html #site-shell .ecosystem-logo--interactive img {
+  filter:grayscale(1);
+  opacity:.65;
+  transform:scale(1);
+  transition:filter .3s ease, opacity .3s ease, transform .3s ease;
+}
+html #site-shell .ecosystem-logo--interactive::after {
+  content:"";
+  position:absolute;
+  left:16%;
+  right:16%;
+  bottom:0;
+  height:3px;
+  border-radius:3px 3px 0 0;
+  background:#A000F0;
+  box-shadow:0 0 17px rgba(160,0,240,.65);
+  opacity:0;
+  transform:scaleX(.18);
+  transition:opacity .28s ease, transform .28s ease;
+}
+html #site-shell .ecosystem-logo--interactive:is(:focus-visible,[aria-pressed="true"]) {
+  border-color:#A000F0!important;
+  transform:translateY(-3px);
+  box-shadow:0 12px 28px rgba(160,0,240,.18),0 0 0 1px rgba(160,0,240,.4);
+}
+html #site-shell .ecosystem-logo--interactive:is(:focus-visible,[aria-pressed="true"]) img {
+  filter:grayscale(0);
+  opacity:1;
+  transform:scale(1.045);
+}
+html #site-shell .ecosystem-logo--interactive:is(:focus-visible,[aria-pressed="true"])::after {
+  opacity:1;
+  transform:scaleX(1);
+}
+html #site-shell .ecosystem-logo--interactive:focus-visible {
+  outline:2px solid #A000F0;
+  outline-offset:2px;
+}
+@media (hover:hover) {
+  html #site-shell .ecosystem-logo--interactive:hover {
+    border-color:#A000F0!important;
+    transform:translateY(-3px);
+    box-shadow:0 12px 28px rgba(160,0,240,.18),0 0 0 1px rgba(160,0,240,.4);
+  }
+  html #site-shell .ecosystem-logo--interactive:hover img {
+    filter:grayscale(0);
+    opacity:1;
+    transform:scale(1.045);
+  }
+  html #site-shell .ecosystem-logo--interactive:hover::after {
+    opacity:1;
+    transform:scaleX(1);
+  }
+}
+@media (prefers-reduced-motion:reduce) {
+  html #site-shell .ecosystem-logo--interactive,
+  html #site-shell .ecosystem-logo--interactive img,
+  html #site-shell .ecosystem-logo--interactive::after {
+    transition:none!important;
+  }
+  html #site-shell .ecosystem-logo--interactive:is(:hover,:focus-visible,[aria-pressed="true"]),
+  html #site-shell .ecosystem-logo--interactive:is(:hover,:focus-visible,[aria-pressed="true"]) img {
+    transform:none!important;
+  }
+}
