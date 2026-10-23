@@ -13,7 +13,7 @@
 | **v3 — Legacy alternate website & utilities** | Historical variant, not official | [newwebsite-7jn.pages.dev](https://newwebsite-7jn.pages.dev) / `newwebsite` | 2026-10-20 08:38 | `6ee27b017dab` |
 | **v4 — CURRENT OFFICIAL** | **Current production website** | [operavaglobal.com](https://operavaglobal.com) and [www](https://www.operavaglobal.com) / `ax-website` | 2026-10-21 10:36 | `251ae3c4a54f` |
 
-The current v4 GitHub source is **[`Dev-Jel-Works/Operava-Website`](https://github.com/Dev-Jel-Works/Operava-Website)**, branch `main`. The old `newwebsite` deployment has code in [`Dev-Jel-Works/newwebsite`](https://github.com/Dev-Jel-Works/newwebsite); the original GitHub source for the other legacy Pages projects is not established by the current Pages configurations. **Do not infer that v1 → v2 → v3 → v4 are successive revisions of the same repository.** The v1–v4 numbering is an archive catalogue only.
+**Verified GitHub source mapping:** v1's deployed commit exists in the history of [`Dev-Jel-Works/Operava-Website`](https://github.com/Dev-Jel-Works/Operava-Website), also the source of the current v4 site (branch `main`). v2's deployed commit exists in [`Dev-Jel-Works/Website`](https://github.com/Dev-Jel-Works/Website) ([archived v2 README](https://github.com/Dev-Jel-Works/Website/blob/main/README.md)). v3's deployed commit exists in [`Dev-Jel-Works/newwebsite`](https://github.com/Dev-Jel-Works/newwebsite) ([archived v3 README](https://github.com/Dev-Jel-Works/newwebsite/blob/main/README.md)). **Do not infer that v1 → v2 → v3 → v4 are successive revisions of the same repository.** These are archive catalogue labels; v2 and v3 came from different repository histories.
 
 ## Verified desktop screenshots
 
