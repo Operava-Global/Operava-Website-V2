@@ -18,6 +18,27 @@ This codebase, including all design assets, architectural specifications, propri
 
 ---
 
+## Website release status (verified 23 October 2026)
+
+**CURRENT OFFICIAL WEBSITE — v4:** [operavaglobal.com](https://operavaglobal.com) ([www](https://www.operavaglobal.com)), served by Cloudflare Pages project `ax-website` and this repository's `main` branch.
+
+All other website deployments below are **legacy / historical variants**, not alternate official websites. Keep existing Pages URLs available for reference; do not promote them as production.
+
+| Archive label | Website | Status | Latest successful production deployment (UTC) |
+| --- | --- | --- | --- |
+| **v1 — Legacy original** | [operava-website.pages.dev](https://operava-website.pages.dev) | Archived/reference | 28 Sep 2026 |
+| **v2 — Legacy official-named copy** | [operava-global-official-website.pages.dev](https://operava-global-official-website.pages.dev) | Archived/reference | 11 Oct 2026 |
+| **v3 — Legacy alternate website & utilities** | [newwebsite-7jn.pages.dev](https://newwebsite-7jn.pages.dev) | Archived/reference | 20 Oct 2026 |
+| **v4 — Current official** | [operavaglobal.com](https://operavaglobal.com) | **Production** | 21 Oct 2026 |
+
+**[View version documentation and screenshots](docs/website-version-history/README.md)** (captured 23 Oct 2026).
+
+> Version numbers are **archive inventory labels**, assigned from the deployment chronology. These separately deployed projects are not verified to be sequential releases of one codebase. Pages project names / `pages.dev` URLs have not been renamed because Cloudflare does not allow renaming the existing `pages.dev` subdomain in place. No older project or live domain was deleted or redirected.
+
+![Current official Operava homepage — desktop capture](docs/website-version-history/screenshots/v4-current-official.png)
+
+---
+
 ## 🌐 Project Overview & Purpose
 
 The **OPERAVA Web Platform** is an enterprise-grade digital experience presenting OPERAVA's dual capabilities:
