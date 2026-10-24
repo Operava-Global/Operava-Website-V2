@@ -12,7 +12,7 @@ All public verification-code, application, inquiry, and submission-confirmation 
 
 ## Configure Cloudflare Pages secrets
 
-Open Cloudflare > Workers & Pages > `ax-website` > Settings > Variables and Secrets. Add in both Production and Preview as **encrypted secrets**:
+Open Cloudflare > Workers & Pages > `operava-website-v2` (in **Jelvan - Business - Operava**) > Settings > Variables and Secrets. These are already configured in **Production** as encrypted secrets; configure Preview independently only if preview email sending is intentionally needed:
 
 - `SES_SMTP_USERNAME`: SES SMTP username generated in `ap-southeast-2`
 - `SES_SMTP_PASSWORD`: its matching SES SMTP password
@@ -36,3 +36,6 @@ Cloudflare Pages deploys these functions from the `functions/` directory. Trigge
 Test the full form workflow with an inbox you control: visit Contact, request a code, receive and enter the code, confirm a D1 submission record and both recipient/staff email, then try the same code again to ensure it cannot be reused. Repeat for service inquiry, Academy inquiry and Careers application. Check SMTP delivery logs/SES sending reputation if messages are delayed.
 
 Security: Always store SMTP credentials as Cloudflare encrypted secrets, never as public `vars` or browser configuration.
+
+## Current production state (25 October 2026)
+Production has encrypted SES SMTP username/password and OTP secret, the D1 `SUBMISSIONS_DB` binding, and Cloudflare Pages Functions. `/api/health` reports `sesSmtpConfigured: true`, which verifies secret presence, **not successful email delivery**. The full authorized-inbox verification and staff-email delivery test remains necessary before treating the email flow as end-to-end validated.
