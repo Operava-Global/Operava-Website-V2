@@ -251,7 +251,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const isAcademy = formType === 'ACADEMY'
 
     const subject = isCareer
-      ? 'WE RECEIVED YOUR APPLICATION'
+      ? 'Thank you for submitting your OPERAVA job application'
       : isAcademy
         ? 'WE RECEIVED YOUR ACADEMY INQUIRY'
         : 'WE RECEIVED YOUR INQUIRY'
@@ -277,11 +277,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         })
 
     const text = isCareer
-      ? 'CONFIRMATION\n\nHi ' +
+      ? 'JOB APPLICATION CONFIRMATION\n\nHi ' +
         name +
-        ',\n\nThank you for contacting OPERAVA and for your interest in our opportunities.\n\nWe confirm that we have received your application. Reference: ' +
+        ',\n\nThank you for submitting your application to OPERAVA Global Solutions.\n\nWe have received your job application following email verification. Application reference: ' +
         referenceId +
-        '.\n\nYour application will be reviewed by the appropriate team.\n\nRegards,\nTalent Acquisition Team\nOPERAVA Global Solutions\n\nwww.operavaglobal.com'
+        '.\n\nOur Talent Acquisition Team will review your application and may contact you if your qualifications match an available opportunity.\n\nRegards,\nTalent Acquisition Team\nOPERAVA Global Solutions\n\nwww.operavaglobal.com'
       : isAcademy
         ? 'CONFIRMATION\n\nHi ' +
           name +
@@ -301,7 +301,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         : env.CLIENT_INBOX || 'hello@operavaglobal.com'
 
     const staffSubject = isCareer
-      ? 'New application — ' + referenceId
+      ? 'New job application received — ' + referenceId
       : isAcademy
         ? 'New Academy enrollment / inquiry — ' + referenceId
         : 'New inquiry — ' + referenceId
@@ -315,7 +315,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
 
     const staffText =
-      (isCareer ? 'APPLICATION' : isAcademy ? 'ACADEMY' : 'INQUIRY') +
+      (isCareer ? 'JOB APPLICATION' : isAcademy ? 'ACADEMY' : 'INQUIRY') +
       ' received\nReference: ' +
       referenceId +
       '\nFrom: ' +
