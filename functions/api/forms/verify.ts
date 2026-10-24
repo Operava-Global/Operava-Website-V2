@@ -106,24 +106,32 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
     const draftId = String(body.draftId || '').trim()
     const code = String(body.code || '').replace(/\D/g, '').slice(0, 6)
-    if (!draftId || code.length !== 6) return json({ error: 'Enter the 6-digit code.' }, 400)
+    if (!draftId) return json({ error: 'Verification session is missing. Return to the Careers form to request a new email code.', code: 'OTP_SESSION_MISSING' }, 400)
+    if (code.length !== 6) return json({ error: 'Incorrect verification code format: enter exactly 6 digits from your latest OPERAVA email.', code: 'OTP_CODE_FORMAT' }, 400)
 
     const signed = await readSignedDraft(secret, draftId)
-    if (!signed) return json({ error: 'This code is no longer valid. Start the form again.' }, 400)
-    if (Date.now() > Number(signed.expiresAt)) return json({ error: 'This code has expired.' }, 400)
+    if (!signed) return json({ error: 'This verification session is invalid or no longer available. Return to the form and request a new six-digit code.', code: 'OTP_SESSION_INVALID' }, 400)
+    if (Date.now() > Number(signed.expiresAt)) return json({ error: 'The verification code expired after 10 minutes. Return to the form and request a new code.', code: 'OTP_EXPIRED' }, 400)
     // The database, not the browser's signed draft, is the verification authority.
     try {
       await ensureTables(db)
       const record = await db.prepare('SELECT code_hash, attempts, consumed, expires_at, email, form_type FROM form_otps WHERE draft_id = ? ORDER BY id DESC LIMIT 1')
         .bind(draftId).first<{ code_hash: string; attempts: number; consumed: number; expires_at: number; email: string; form_type: string }>()
-      if (!record || record.consumed || record.expires_at < Date.now() || record.email !== signed.email || record.form_type !== signed.formType) {
-        return json({ error: 'This verification session is no longer valid. Request a new code.' }, 400)
+      if (!record) return json({ error: 'No verification session was found for this code. Return to the form and request a new code.', code: 'OTP_NOT_FOUND' }, 400)
+      if (record.consumed) return json({ error: 'This verification code has already been used. To submit another application, start a new verification.', code: 'OTP_ALREADY_USED' }, 409)
+      if (record.expires_at < Date.now()) return json({ error: 'The verification code has expired (10-minute limit). Return to the form and request a new code.', code: 'OTP_EXPIRED' }, 400)
+      if (record.email !== signed.email || record.form_type !== signed.formType) {
+        return json({ error: 'Verification session does not match this form or email address. Restart verification from your application.', code: 'OTP_SESSION_MISMATCH' }, 400)
       }
-      if (record.attempts >= 5) return json({ error: 'Too many attempts. Start the verification again.' }, 429)
+      if (record.attempts >= 5) return json({ error: 'Too many incorrect code attempts (5 maximum). Return to the form and request a new verification session.', code: 'OTP_TOO_MANY_ATTEMPTS' }, 429)
       if (!(await otpCodeMatches(secret, code, record.code_hash))) {
         await db.prepare('UPDATE form_otps SET attempts = attempts + 1 WHERE draft_id = ? AND consumed = 0 AND attempts < 5')
           .bind(draftId).run()
-        return json({ error: 'Invalid verification code.', attemptsRemaining: Math.max(0, 4 - record.attempts) }, 401)
+        return json({
+          error: 'The six-digit code is incorrect. Check the latest OPERAVA verification email and enter its code exactly.',
+          code: 'OTP_CODE_INCORRECT',
+          attemptsRemaining: Math.max(0, 4 - record.attempts),
+        }, 401)
       }
     } catch (storageError) {
       console.error('OTP lookup failed', storageError instanceof Error ? storageError.message : 'unknown')
@@ -141,21 +149,41 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Never write attachment bytes into R2, D1, logs or background backups.
     let attachment: EmailAttachment | undefined
     const declaredName = String(payload.attachmentName || '')
+    if (signed.formType === 'CAREERS' && (!declaredName || !declaredName.toLowerCase().endsWith('.pdf'))) {
+      return json({
+        error: 'Careers CV / résumé requirement not met: a valid PDF (.pdf) under 5 MB is mandatory. Return to the application and request a new verification code.',
+        code: 'CAREER_RESUME_PDF_REQUIRED',
+      }, 400)
+    }
     if (declaredName) {
-      if (!submittedFile) return json({ error: 'Please reattach the selected file to complete verification.' }, 400)
+      if (!submittedFile) return json({
+        error: signed.formType === 'CAREERS'
+          ? 'CV / résumé was not received with your verification. Return to the Careers form, reselect your PDF and request a new email code.'
+          : 'Your selected file was not included. Return to the form and reselect it.',
+        code: 'ATTACHMENT_MISSING',
+      }, 400)
       try {
         attachment = await readEmailAttachment(submittedFile)
       } catch (err) {
-        return json({ error: err instanceof Error ? err.message : 'Invalid attachment.' }, 400)
+        return json({
+          error: 'Attached file rejected: ' + (err instanceof Error ? err.message : 'Invalid attachment.') + ' Please select a valid document and restart verification.',
+          code: 'ATTACHMENT_REJECTED',
+        }, 400)
+      }
+      if (signed.formType === 'CAREERS' && attachment.contentType !== 'application/pdf') {
+        return json({ error: 'Incorrect Careers CV / résumé format: only PDF documents are allowed. DOC, DOCX, TXT and images are not accepted.', code: 'CAREER_RESUME_PDF_ONLY' }, 400)
       }
       const expectedSize = Number(payload.attachmentSize)
       const expectedHash = String(payload.attachmentSha256 || '')
       const hash = await attachmentSha256(attachment.bytes)
       if (attachment.filename !== declaredName || attachment.bytes.length !== expectedSize || hash !== expectedHash) {
-        return json({ error: 'The selected attachment changed. Return to the form and request a new code.' }, 400)
+        return json({
+          error: 'CV / attachment mismatch: the filename, file size, or file contents differ from the file selected before OTP. Return to the form, reselect the correct PDF, and request a new verification code.',
+          code: 'ATTACHMENT_CHANGED',
+        }, 400)
       }
     } else if (submittedFile) {
-      return json({ error: 'Attachment was not included in the verified form. Return to the form.' }, 400)
+      return json({ error: 'Unexpected attachment: this file was not selected when verification started. Return to the form and request a new code for the selected document.', code: 'ATTACHMENT_UNDECLARED' }, 400)
     }
 
     const resumeKey = String(payload.resumeKey || '').trim()
@@ -299,6 +327,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ' directly.\n'
 
     let emailWarning: string | undefined
+    const careerDeliveryWarnings: string[] = []
     const from = senderFor(formType, env)
 
     try {
@@ -313,6 +342,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     } catch (mailErr) {
       console.error('confirmation email failed', mailErr instanceof Error ? mailErr.message : 'unknown')
       emailWarning = 'Submission recorded; confirmation email could not be delivered right now.'
+      if (isCareer) careerDeliveryWarnings.push('Applicant confirmation email: SES rejected or could not accept the message. Your verified application is saved, but we cannot confirm that a confirmation email was sent.')
     }
 
     try {
@@ -332,7 +362,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       emailWarning = attachment
         ? 'Your form was recorded but the attachment email could not be sent. Please contact the team with your reference ID.'
         : 'Your form was recorded but the team notification email could not be sent. Please contact the team with your reference ID.'
+      if (isCareer) careerDeliveryWarnings.push('Talent Acquisition notification: SES could not accept the CV / résumé PDF attachment. Your application was recorded, but the file has not been confirmed sent. Contact Talent Acquisition and quote your reference ID.')
     }
+
+    if (isCareer && careerDeliveryWarnings.length) emailWarning = careerDeliveryWarnings.join(' ')
 
     return json({
       ok: true,

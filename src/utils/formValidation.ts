@@ -21,6 +21,7 @@ export interface FormValidationState {
   education?: string
   experience?: string
   portfolio?: string
+  resume?: string
   accurate?: string
   privacy?: string
 }
@@ -145,14 +146,11 @@ export function validateSingleField(
       }
       return undefined
     case 'portfolio':
-      if (kind !== 'CAREERS') return undefined
-      if (!extra?.hasResume && !String(value || '').trim()) {
-        return 'Please upload a resume or provide a portfolio/LinkedIn profile URL.'
-      }
-      if (String(value || '').trim()) {
-        return validateWebsiteUrl(String(value || ''))
-      }
-      return undefined
+      return kind === 'CAREERS' ? validateWebsiteUrl(String(value || '')) : undefined
+    case 'resume':
+      return kind === 'CAREERS' && !extra?.hasResume
+        ? 'CV / résumé is required. Choose one non-editable PDF file smaller than 5 MB (5,000,000 bytes).'
+        : undefined
     case 'accurate':
       return validateCheckbox(Boolean(value), 'You must confirm that the provided information is accurate.')
     case 'privacy':
@@ -226,9 +224,10 @@ export function validateIntakeForm(
     } else if (form.experience.trim().length < 15) {
       errors.experience = 'Please provide at least 15 characters summarizing your experience.'
     }
-    if (!hasResume && !form.portfolio.trim()) {
-      errors.portfolio = 'Please upload a resume or provide a portfolio/LinkedIn profile URL.'
-    } else if (form.portfolio.trim()) {
+    if (!hasResume) {
+      errors.resume = 'CV / résumé is required. Select a PDF file smaller than 5 MB. DOC, DOCX, TXT and image files are not accepted.'
+    }
+    if (form.portfolio.trim()) {
       const pUrlErr = validateWebsiteUrl(form.portfolio)
       if (pUrlErr) errors.portfolio = pUrlErr
     }

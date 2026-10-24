@@ -100,9 +100,20 @@ export const onRequestPost: PagesFunction<FormEnv> = async ({ request, env }) =>
       if (!clean(body.education, 300) || clean(body.experience, 4000).length < 15) {
         return json({ error: 'Education and work experience are required.' }, 400)
       }
-      const portfolio = clean(body.portfolio, 500)
-      if (!String(body.attachmentName || '').trim() && !portfolio && !clean(body.resumeKey, 240)) {
-        return json({ error: 'Attach a resume or include a portfolio URL.' }, 400)
+      // Careers always requires the actual PDF CV, not a portfolio URL or a legacy resume key.
+      if (!String(body.attachmentName || '').trim()) {
+        return json({
+          error: 'CV / résumé is missing. Attach one non-editable PDF (.pdf) smaller than 5 MB. A portfolio or LinkedIn URL does not replace the PDF.',
+          code: 'CAREER_RESUME_REQUIRED',
+          fieldErrors: { resume: 'A PDF CV / résumé under 5 MB is required.' },
+        }, 400)
+      }
+      if (!String(body.attachmentName).toLowerCase().endsWith('.pdf')) {
+        return json({
+          error: 'Incorrect CV / résumé file type. Careers accepts PDF (.pdf) only; Word, TXT and image files are not allowed.',
+          code: 'CAREER_RESUME_PDF_ONLY',
+          fieldErrors: { resume: 'Upload a PDF document, not DOC, DOCX, TXT or an image.' },
+        }, 400)
       }
     }
 
@@ -114,10 +125,18 @@ export const onRequestPost: PagesFunction<FormEnv> = async ({ request, env }) =>
       const size = Number(body.attachmentSize)
       const hash = String(body.attachmentSha256 || '')
       try { checkAttachmentName(filename) }
-      catch { return json({ error: 'Attach a PDF, DOC, DOCX, or TXT file.' }, 400) }
+      catch { return json({
+        error: formType === 'CAREERS' ? 'CV / résumé must be a valid PDF (.pdf).' : 'Attach a PDF, DOC, DOCX, or TXT file.',
+        code: 'ATTACHMENT_TYPE_INVALID',
+        ...(formType === 'CAREERS' ? { fieldErrors: { resume: 'Select a valid PDF CV / résumé.' } } : {}),
+      }, 400) }
       if (!Number.isSafeInteger(size) || size < 1 || size >= MAX_ATTACHMENT_BYTES ||
           !/^[a-f0-9]{64}$/.test(hash)) {
-        return json({ error: 'Invalid attachment. File must be smaller than 5 MB.' }, 400)
+        return json({
+          error: 'Incorrect attachment size or security hash. The file must contain data and be strictly smaller than 5 MB (5,000,000 bytes). Select the file again.',
+          code: 'ATTACHMENT_METADATA_INVALID',
+          ...(formType === 'CAREERS' ? { fieldErrors: { resume: 'CV / résumé must be a valid PDF smaller than 5 MB.' } } : {}),
+        }, 400)
       }
     }
 

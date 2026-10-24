@@ -21,6 +21,14 @@
 - **Keep delivery unchanged:** existing SES SMTP in Sydney, verified six-digit email OTP, one-use/expiry limits, sender identity, submission reference numbers, inbox routing and optional under-5-MB direct-to-email attachments remain as implemented. Styling approval is **not** permission to change authentication, SMTP, D1/R2, attachments, unrelated website UI, or production configuration.
 - **Required tests before release:** `npm run lint`, `npm run build:pages`, and the email-template regression check confirming byte-for-byte OTP template parity with the reference HTML (except the authorized footer-label change). Verify HTML rendering and email inbox behavior with an owner-controlled test mailbox before asserting end-to-end delivery.
 
+### Careers CV / résumé — mandatory PDF and detailed validation
+
+- Careers application **requires exactly one CV / résumé in PDF (.pdf) format**, strictly smaller than **5,000,000 bytes (5 MB)**. DOC, DOCX, TXT, PNG/JPEG and missing or empty files must be rejected. Portfolio/LinkedIn links remain optional and do not substitute for the PDF. This restriction applies to Careers, **not** other inquiry/Academy attachments.
+- Client and server both check the extension, MIME when present, PDF header, strict size, and bind SHA-256/name/size to the OTP draft. The original file remains transient until successful OTP verification, when it is attached to the Talent Acquisition notification through AWS SES SMTP. **Never store original file bytes in R2, D1 or MEGA**; do not include the PDF in the applicant's confirmation.
+- Careers form must identify each invalid field individually (field label, exact condition, correction), render an inline error and an accessible summary. The OTP step must distinguish wrong, expired, consumed, missing-session, attempt-limit and changed/missing/invalid-PDF errors without revealing secrets or codes.
+- **Email visual contract remains unchanged:** the exact uploaded `email/templates/operava-otp.html` is used for OTP, and the corresponding confirmation shell matches it. Footer visible text is `www.operavaglobal.com`. Do not redesign the canonical email template or modify sender/subject/routing/OTP expiry.
+- Required release checks: `npm run lint`, `npm run build:pages`, automated `tests/*.test.mjs`, plus a controlled real-inbox application to establish actual PDF attachment delivery and receipt; SMTP acceptance alone does not prove inbox delivery.
+
 ## 🔒 Confidentiality & License Notice
 
 **PROPRIETARY AND CONFIDENTIAL — STRICTLY PRIVATE & ONLY FOR OPERAVA GLOBAL SOLUTIONS.**
