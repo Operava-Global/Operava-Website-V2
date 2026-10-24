@@ -246,3 +246,32 @@ html #site-shell .ecosystem-logo--interactive:focus-visible {
     transform:none!important;
   }
 }
+
+/*
+ * Careers OTP only. The six input squares previously blended into the dark
+ * site (black fill plus low-contrast neutral border). Keep their geometry and
+ * all other forms untouched, but give dark/light/focus explicit contrast.
+ */
+html:not([data-theme="light"]) #site-shell input.operava-careers-otp-digit {
+  background-color:#2b2139!important;
+  color:#ffffff!important;
+  border:2px solid #b8a0f2!important;
+  border-radius:7px;
+  box-shadow:0 0 0 1px rgba(184,160,242,.2);
+  caret-color:#ffffff;
+}
+html:not([data-theme="light"]) #site-shell input.operava-careers-otp-digit:focus-visible {
+  border-color:#ffffff!important;
+  box-shadow:0 0 0 3px rgba(151,101,238,.68);
+}
+html[data-theme="light"] #site-shell input.operava-careers-otp-digit {
+  background-color:#ffffff!important;
+  color:#211631!important;
+  border:2px solid #7334b9!important;
+  border-radius:7px;
+  caret-color:#211631;
+}
+html[data-theme="light"] #site-shell input.operava-careers-otp-digit:focus-visible {
+  border-color:#55218e!important;
+  box-shadow:0 0 0 3px rgba(108,39,188,.25);
+}
