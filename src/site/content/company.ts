@@ -205,7 +205,7 @@ export const CAREER_PERKS = [
 
 /** Hiring process (Terms §, BUSINESSINFO §9, previous Careers page) */
 export const HIRING_STEPS = [
-  { n: 'Initial / AI-Assisted Evaluation', d: 'Your application is reviewed for relevant background, professional skills, communication and role suitability after submission through the online form.' },
+  { n: 'Initial Application Review', d: 'Your application is reviewed for relevant background, professional skills, communication and role suitability after submission through the online form.' },
   { n: 'Skills & Specialization Assessment', d: 'Practical tests tailored to the track: software tasks, customer-support scenarios or operational accuracy exercises.' },
   { n: 'Talent Acquisition Interview', d: 'A conversation with OPERAVA talent specialists to align your goals, availability and specialization track.' },
   { n: 'Client Alignment Interview', d: 'For dedicated client engagements, a match and interview with the client team you would join.' },
