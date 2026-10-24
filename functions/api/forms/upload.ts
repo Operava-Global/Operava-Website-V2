@@ -69,7 +69,7 @@ export const onRequestPost: PagesFunction<FormEnv> = async ({ request, env }) =>
         await env.RESUMES_BUCKET.put(key, buffer, {
           httpMetadata: { contentType: file.type || 'application/octet-stream' },
         })
-        const txtKey = key.replace(/\\.[^.]+$/, '') + '.txt'
+        const txtKey = key.replace(/\.[^.]+$/, '') + '.txt'
         await env.RESUMES_BUCKET.put(txtKey, parsed.text, {
           httpMetadata: { contentType: 'text/plain; charset=utf-8' },
         })
