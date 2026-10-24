@@ -21,6 +21,7 @@ import {
   type MegaBackupEnv,
 } from '../../lib/megaBackupHook'
 import { getResumeByKey, mergeResumeIntoPayload, ensureResumeTables } from '../../lib/resumeDb'
+import { MAX_MULTIPART_BYTES, readEmailAttachment, attachmentSha256, type EmailAttachment } from '../../lib/emailAttachment'
 
 type Env = FormEnv & MegaBackupEnv
 
@@ -55,6 +56,8 @@ function payloadRows(payload: Record<string, unknown>): Array<{ label: string; v
     'resumeKey',
     'resumeText',
     'resumeDataMandatory',
+    'attachmentSha256',
+    'attachmentSize',
     'cf-turnstile-response',
     'turnstileToken',
     'turnstileResponse',
@@ -79,8 +82,25 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!db) return json({ error: 'Secure form storage is temporarily unavailable.', code: 'STORAGE_UNAVAILABLE' }, 503)
 
     let body: { draftId?: string; code?: string }
+    let submittedFile: File | null = null
+    const contentType = request.headers.get('Content-Type') || ''
+    if (Number(request.headers.get('Content-Length') || 0) > MAX_MULTIPART_BYTES) {
+      return json({ error: 'File must be smaller than 5 MB.' }, 413)
+    }
     try {
-      body = (await request.json()) as { draftId?: string; code?: string }
+      if (contentType.toLowerCase().startsWith('multipart/form-data')) {
+        const form = await request.formData()
+        const files = [...form.values()].filter((v): v is File => v instanceof File)
+        if (files.length > 1 || (files.length === 1 && form.get('file') !== files[0])) {
+          return json({ error: 'Choose one supported attachment.' }, 400)
+        }
+        submittedFile = files[0] || null
+        body = { draftId: String(form.get('draftId') || ''), code: String(form.get('code') || '') }
+      } else if (contentType.toLowerCase().startsWith('application/json')) {
+        body = (await request.json()) as { draftId?: string; code?: string }
+      } else {
+        return json({ error: 'Invalid request type.' }, 415)
+      }
     } catch {
       return json({ error: 'Invalid request body.' }, 400)
     }
@@ -115,6 +135,27 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       payload = JSON.parse(signed.payload || '{}') as Record<string, unknown>
     } catch {
       payload = {}
+    }
+
+    // Exactly the file selected before OTP must accompany the verified submission.
+    // Never write attachment bytes into R2, D1, logs or background backups.
+    let attachment: EmailAttachment | undefined
+    const declaredName = String(payload.attachmentName || '')
+    if (declaredName) {
+      if (!submittedFile) return json({ error: 'Please reattach the selected file to complete verification.' }, 400)
+      try {
+        attachment = await readEmailAttachment(submittedFile)
+      } catch (err) {
+        return json({ error: err instanceof Error ? err.message : 'Invalid attachment.' }, 400)
+      }
+      const expectedSize = Number(payload.attachmentSize)
+      const expectedHash = String(payload.attachmentSha256 || '')
+      const hash = await attachmentSha256(attachment.bytes)
+      if (attachment.filename !== declaredName || attachment.bytes.length !== expectedSize || hash !== expectedHash) {
+        return json({ error: 'The selected attachment changed. Return to the form and request a new code.' }, 400)
+      }
+    } else if (submittedFile) {
+      return json({ error: 'Attachment was not included in the verified form. Return to the form.' }, 400)
     }
 
     const resumeKey = String(payload.resumeKey || '').trim()
@@ -275,7 +316,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     try {
-      if (staffInbox.toLowerCase() !== email.toLowerCase()) {
+      if (attachment || staffInbox.toLowerCase() !== email.toLowerCase()) {
         await sendEmail(env, {
           from,
           to: [staffInbox],
@@ -283,10 +324,14 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           subject: staffSubject,
           html: staffHtml,
           text: staffText,
+          ...(attachment ? { attachments: [attachment] } : {}),
         })
       }
     } catch (staffErr) {
       console.error('staff notification failed', staffErr instanceof Error ? staffErr.message : 'unknown')
+      emailWarning = attachment
+        ? 'Your form was recorded but the attachment email could not be sent. Please contact the team with your reference ID.'
+        : 'Your form was recorded but the team notification email could not be sent. Please contact the team with your reference ID.'
     }
 
     return json({

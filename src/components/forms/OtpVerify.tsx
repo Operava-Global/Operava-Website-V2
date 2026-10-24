@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 interface Props {
   maskedEmail: string
   draftId: string
-  onVerified: (result: { referenceId: string; name: string; formType: string }) => void
+  onVerified: (result: { referenceId: string; name: string; formType: string; emailWarning?: string }) => void
+  attachment?: File | null
   onChangeEmail: () => void
   onBack: () => void
   onDraftIdChange?: (draftId: string) => void
@@ -16,6 +17,7 @@ export default function OtpVerify({
   onChangeEmail,
   onBack,
   onDraftIdChange,
+  attachment,
 }: Props) {
   const [digits, setDigits] = useState(['', '', '', '', '', ''])
   const [error, setError] = useState('')
@@ -41,10 +43,14 @@ export default function OtpVerify({
     setBusy(true)
     setError('')
     try {
+      const body = new FormData()
+      body.set('draftId', draftId)
+      body.set('code', value)
+      if (attachment) body.set('file', attachment, attachment.name)
       const res = await fetch('/api/forms/verify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draftId, code: value }),
+        // The browser sets the multipart boundary; do not set Content-Type manually.
+        body,
       })
       const data = await res.json()
       if (data.draftId) {
@@ -59,7 +65,7 @@ export default function OtpVerify({
         }
         throw new Error(base)
       }
-      onVerified({ referenceId: data.referenceId, name: data.name, formType: data.formType })
+      onVerified({ referenceId: data.referenceId, name: data.name, formType: data.formType, emailWarning: data.emailWarning })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Verification failed.')
     } finally {

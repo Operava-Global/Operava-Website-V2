@@ -4,6 +4,7 @@
  * Credentials belong only in Cloudflare environment secrets, not Git.
  */
 import { connect } from 'cloudflare:sockets'
+import { MAX_ATTACHMENT_BYTES, type EmailAttachment } from './emailAttachment'
 
 export type SesSmtpEnv = {
   SES_SMTP_USERNAME?: string
@@ -18,6 +19,7 @@ export type OutboundEmail = {
   subject: string
   html?: string
   text?: string
+  attachments?: EmailAttachment[]
 }
 
 const enc = new TextEncoder()
@@ -45,14 +47,27 @@ function b64(value: string) {
 function b64lines(value: string) {
   return b64(value).match(/.{1,76}/g)?.join('\r\n') || ''
 }
+function b64bytes(bytes: Uint8Array) {
+  let out = ''
+  for (let i = 0; i < bytes.length; i += 8190) {
+    out += btoa(String.fromCharCode(...bytes.subarray(i, i + 8190)))
+  }
+  return out.match(/.{1,76}/g)?.join('\r\n') || ''
+}
+function safeFilename(filename: string) {
+  return filename.replace(/[^a-zA-Z0-9._ -]/g, '_').replace(/[\r\n\"\\]/g, '_').slice(0, 120)
+}
 
 function mimeMessage(mail: OutboundEmail) {
   const boundary = 'operava-' + crypto.randomUUID().replace(/-/g, '')
+  const attachmentBoundary = 'operava-attachments-' + crypto.randomUUID().replace(/-/g, '')
   const subject = cleanHeader(mail.subject).slice(0, 200)
   const from = cleanHeader(mail.from).slice(0, 180)
   const to = mail.to.map(mailbox).join(', ')
   const safeText = mail.text || 'Your OPERAVA email has been sent. Please view the HTML version for more information.'
   const safeHtml = mail.html || `<p>${safeText.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('\n', '<br>')}</p>`
+  const attachments = mail.attachments || []
+  if (attachments.length > 1) throw new Error('EMAIL_ATTACHMENT_COUNT_INVALID')
   const lines = [
     `From: ${from}`, `To: ${to}`,
     ...(mail.replyTo ? [`Reply-To: ${mailbox(mail.replyTo)}`] : []),
@@ -60,8 +75,9 @@ function mimeMessage(mail: OutboundEmail) {
     `Date: ${new Date().toUTCString()}`,
     `Message-ID: <${crypto.randomUUID()}@operavaglobal.com>`,
     'MIME-Version: 1.0',
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    ...(attachments.length ? [`Content-Type: multipart/mixed; boundary="${attachmentBoundary}"`] : [`Content-Type: multipart/alternative; boundary="${boundary}"`]),
     '',
+    ...(attachments.length ? [`--${attachmentBoundary}`, `Content-Type: multipart/alternative; boundary="${boundary}"`, ''] : []),
     `--${boundary}`,
     'Content-Type: text/plain; charset=UTF-8',
     'Content-Transfer-Encoding: base64',
@@ -77,6 +93,23 @@ function mimeMessage(mail: OutboundEmail) {
     `--${boundary}--`,
     '',
   ]
+  for (const attachment of attachments) {
+    if (attachment.bytes.length < 1 || attachment.bytes.length >= MAX_ATTACHMENT_BYTES) {
+      throw new Error('EMAIL_ATTACHMENT_SIZE_INVALID')
+    }
+    const filename = safeFilename(attachment.filename)
+    lines.push(
+      `--${attachmentBoundary}`,
+      `Content-Type: ${attachment.contentType}; name="${filename}"`,
+      'Content-Transfer-Encoding: base64',
+      `Content-Disposition: attachment; filename="${filename}"`,
+      'X-Content-Type-Options: nosniff',
+      '',
+      b64bytes(attachment.bytes),
+      '',
+    )
+  }
+  if (attachments.length) lines.push(`--${attachmentBoundary}--`, '')
   return lines.join('\r\n')
 }
 

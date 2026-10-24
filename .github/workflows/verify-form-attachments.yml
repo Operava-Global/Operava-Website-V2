@@ -1,0 +1,25 @@
+name: Validate OPERAVA form attachments
+on:
+  pull_request:
+    paths:
+      - 'functions/**'
+      - 'src/**'
+      - 'tests/**'
+      - 'docs/AWS_SES_SMTP_SETUP.md'
+      - '.github/workflows/verify-form-attachments.yml'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run build:pages
+      - run: node --experimental-strip-types --test tests/emailAttachment.test.mjs

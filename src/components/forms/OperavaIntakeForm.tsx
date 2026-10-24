@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { AlertCircle, CheckCircle2 } from 'lucide-react'
 import OtpVerify from './OtpVerify'
 import FormSuccess from './FormSuccess'
+import { ATTACHMENT_ACCEPT, attachmentMetadata, validateAttachment } from '../../utils/attachments'
 import {
   CAREER_POSITIONS,
   SKILLS_SPECIALIZATIONS,
@@ -107,14 +108,14 @@ export default function OperavaIntakeForm({
   const [step, setStep] = useState<'form' | 'otp' | 'done'>('form')
   const [draftId, setDraftId] = useState('')
   const [maskedEmail, setMaskedEmail] = useState('')
-  const [result, setResult] = useState<{ referenceId: string; name: string; formType: string }>({
+  const [result, setResult] = useState<{ referenceId: string; name: string; formType: string; emailWarning?: string }>({
     referenceId: '',
     name: '',
     formType: kind,
   })
   const [error, setError] = useState('')
   const [sending, setSending] = useState(false)
-  const [resumeKey, setResumeKey] = useState('')
+  const [attachment, setAttachment] = useState<File | null>(null)
   const [resumeName, setResumeName] = useState('')
   const [errors, setErrors] = useState<FormValidationState>({})
   const [touched, setTouched] = useState<Partial<Record<keyof FormValidationState, boolean>>>({})
@@ -183,7 +184,7 @@ export default function OperavaIntakeForm({
   const handleBlur = (key: keyof FormValidationState) => {
     setTouched((prev) => ({ ...prev, [key]: true }))
     const fieldError = validateSingleField(key, form[key as keyof typeof form], kind, {
-      hasResume: Boolean(resumeKey),
+      hasResume: Boolean(attachment),
       formValues: form,
     })
     setErrors((prev) => {
@@ -202,7 +203,7 @@ export default function OperavaIntakeForm({
         const nextForm = { ...prev, [key]: value }
         if (touched[key as keyof FormValidationState] || errors[key as keyof FormValidationState]) {
           const fieldError = validateSingleField(key as keyof FormValidationState, value, kind, {
-            hasResume: Boolean(resumeKey),
+            hasResume: Boolean(attachment),
             formValues: nextForm,
           })
           setErrors((prevErr) => {
@@ -217,13 +218,16 @@ export default function OperavaIntakeForm({
     }
 
   const uploadResume = async (file: File) => {
+    const problem = validateAttachment(file)
+    if (problem) throw new Error(problem)
+    setAttachment(file)
+    setResumeName(file.name)
     const data = new FormData()
     data.append('file', file)
     const res = await fetch('/api/forms/upload', { method: 'POST', body: data })
     const json = await res.json()
-    if (!res.ok) throw new Error(json.error || 'Resume upload failed.')
-    setResumeKey(json.resumeKey)
-    setResumeName(file.name)
+    if (!res.ok) throw new Error('File attached. Autofill unavailable; complete the remaining fields manually.')
+
 
     const p = json.parsed || {}
     setForm((prev) => {
@@ -257,7 +261,7 @@ export default function OperavaIntakeForm({
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     setError('')
-    const validationErrors = validateIntakeForm(form, kind, Boolean(resumeKey))
+    const validationErrors = validateIntakeForm(form, kind, Boolean(attachment))
     const errorKeys = Object.keys(validationErrors) as (keyof FormValidationState)[]
     if (errorKeys.length > 0) {
       setErrors(validationErrors)
@@ -281,6 +285,7 @@ export default function OperavaIntakeForm({
 
     setSending(true)
     try {
+      const attachmentInfo = attachment ? await attachmentMetadata(attachment) : {}
       const res = await fetch('/api/forms/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -305,7 +310,7 @@ export default function OperavaIntakeForm({
           skills: form.specialization + (form.skills.trim() ? ` — Additional: ${form.skills.trim()}` : ''),
           portfolio: form.portfolio,
           additional: form.additional,
-          resumeKey,
+          ...attachmentInfo,
           accurate: form.accurate,
           privacy: form.privacy,
           website: form.website,
@@ -324,7 +329,7 @@ export default function OperavaIntakeForm({
   }
 
   if (step === 'done') {
-    return <FormSuccess formType={result.formType} name={result.name} referenceId={result.referenceId} />
+    return <FormSuccess formType={result.formType} name={result.name} referenceId={result.referenceId} emailWarning={result.emailWarning} />
   }
 
   if (step === 'otp') {
@@ -332,6 +337,7 @@ export default function OperavaIntakeForm({
       <OtpVerify
         maskedEmail={maskedEmail}
         draftId={draftId}
+        attachment={attachment}
         onDraftIdChange={setDraftId}
         onVerified={(value) => {
           setResult(value)
@@ -363,7 +369,7 @@ export default function OperavaIntakeForm({
               Full Name <span className="text-accent">*</span>
             </label>
           </div>
-          <input id="field-name" name="name" required value={form.name} onChange={set('name')} onBlur={() => handleBlur('name')} placeholder="Jane Doe" className={getFieldClass(Boolean(errors.name), Boolean(touched.name))} />
+          <input id="field-name" name="name" autoComplete="name" autoCapitalize="words" spellCheck autoCorrect="on" required value={form.name} onChange={set('name')} onBlur={() => handleBlur('name')} placeholder="Jane Doe" className={getFieldClass(Boolean(errors.name), Boolean(touched.name))} />
           {touched.name && errors.name && (
             <p role="alert" className="mt-1.5 flex items-center gap-1.5 text-xs text-red-400 font-medium">
               <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-400" />
@@ -375,21 +381,21 @@ export default function OperavaIntakeForm({
         {kind === 'SERVICES' && (
           <div>
             <label htmlFor="field-company" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Company / Organization Name (Optional)</label>
-            <input id="field-company" name="company" value={form.company} onChange={set('company')} placeholder="Acme Corp" className={getFieldClass(false, false)} />
+            <input id="field-company" name="company" autoComplete="organization" spellCheck autoCorrect="on" value={form.company} onChange={set('company')} placeholder="Acme Corp" className={getFieldClass(false, false)} />
           </div>
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label htmlFor="field-email" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">{kind === 'SERVICES' ? 'Business Email Address' : 'Email Address'} <span className="text-accent">*</span></label>
-            <input id="field-email" name="email" required type="email" value={form.email} onChange={set('email')} onBlur={() => handleBlur('email')} placeholder="name@company.com" className={getFieldClass(Boolean(errors.email), Boolean(touched.email))} />
+            <input id="field-email" name="email" autoComplete="email" autoCapitalize="none" spellCheck={false} autoCorrect="off" required type="email" value={form.email} onChange={set('email')} onBlur={() => handleBlur('email')} placeholder="name@company.com" className={getFieldClass(Boolean(errors.email), Boolean(touched.email))} />
             {touched.email && errors.email && (
               <p role="alert" className="mt-1.5 text-xs text-red-400 font-medium">{errors.email}</p>
             )}
           </div>
           <div>
             <label htmlFor="field-phone" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Contact / Phone Number <span className="text-accent">*</span></label>
-            <input id="field-phone" name="phone" required type="tel" value={form.phone} onChange={set('phone')} onBlur={() => handleBlur('phone')} placeholder="+1 (555) 000-0000" className={getFieldClass(Boolean(errors.phone), Boolean(touched.phone))} />
+            <input id="field-phone" name="phone" autoComplete="tel" spellCheck={false} autoCorrect="off" required type="tel" value={form.phone} onChange={set('phone')} onBlur={() => handleBlur('phone')} placeholder="+1 (555) 000-0000" className={getFieldClass(Boolean(errors.phone), Boolean(touched.phone))} />
             {touched.phone && errors.phone && (
               <p role="alert" className="mt-1.5 text-xs text-red-400 font-medium">{errors.phone}</p>
             )}
@@ -398,7 +404,7 @@ export default function OperavaIntakeForm({
 
         <div>
           <label htmlFor="field-country" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">{kind === 'CAREERS' ? 'Country / Current Location' : 'Country / Location'} <span className="text-accent">*</span></label>
-          <input id="field-country" name="country" required value={form.country} onChange={set('country')} onBlur={() => handleBlur('country')} placeholder="United States, Philippines, Canada, etc." className={getFieldClass(Boolean(errors.country), Boolean(touched.country))} />
+          <input id="field-country" name="country" autoComplete="country-name" autoCapitalize="words" spellCheck autoCorrect="on" required value={form.country} onChange={set('country')} onBlur={() => handleBlur('country')} placeholder="United States, Philippines, Canada, etc." className={getFieldClass(Boolean(errors.country), Boolean(touched.country))} />
           {touched.country && errors.country && (
             <p role="alert" className="mt-1.5 text-xs text-red-400 font-medium">{errors.country}</p>
           )}
@@ -443,7 +449,7 @@ export default function OperavaIntakeForm({
           </div>
           <div>
             <label htmlFor="field-description" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Project description <span className="text-accent">*</span></label>
-            <textarea id="field-description" rows={4} value={form.description} onChange={set('description')} onBlur={() => handleBlur('description')} className={getFieldClass(Boolean(errors.description), Boolean(touched.description))} />
+            <textarea id="field-description" spellCheck autoCorrect="on" autoCapitalize="sentences" rows={4} value={form.description} onChange={set('description')} onBlur={() => handleBlur('description')} className={getFieldClass(Boolean(errors.description), Boolean(touched.description))} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -463,6 +469,22 @@ export default function OperavaIntakeForm({
               <option>Either</option>
             </select>
           </div>
+        </div>
+      )}
+
+      {kind === 'SERVICES' && (
+        <div>
+          <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Supporting document (optional)</label>
+          <input type="file" accept={ATTACHMENT_ACCEPT}
+            onChange={(e) => {
+              const file = e.target.files?.[0] || null
+              const problem = file ? validateAttachment(file) : null
+              if (problem) { setAttachment(null); setError(problem); e.target.value = ''; return }
+              setAttachment(file); setError('')
+            }}
+            className="block w-full text-sm text-neutral-400"
+          />
+          <p className="text-xs text-neutral-500 mt-2">PDF, DOC, DOCX or TXT · strictly under 5 MB · emailed to our team after verification; not saved to R2.</p>
         </div>
       )}
 
@@ -508,13 +530,13 @@ export default function OperavaIntakeForm({
             <input value={form.portfolio} onChange={set('portfolio')} className={getFieldClass(false, false)} />
           </div>
           <div>
-            <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Resume (PDF / Word / TXT)</label>
+            <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Resume (PDF, DOC, DOCX, TXT — under 5 MB)</label>
             <input
               type="file"
-              accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+              accept={ATTACHMENT_ACCEPT}
               onChange={async (e) => {
                 const file = e.target.files?.[0]
-                if (!file) return
+                if (!file) { setAttachment(null); setResumeName(''); return }
                 setError('')
                 try {
                   await uploadResume(file)
@@ -525,12 +547,12 @@ export default function OperavaIntakeForm({
               className="block w-full text-sm text-neutral-400"
             />
             {resumeName && (
-              <p className="mt-2 text-xs text-emerald-400 font-medium">Attached: {resumeName}{resumeKey ? ' · converted to text for review' : ''}</p>
+              <p className="mt-2 text-xs text-emerald-400 font-medium">Selected: {resumeName} · emailed to our team after verification</p>
             )}
           </div>
           <div>
             <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Additional notes</label>
-            <textarea rows={3} value={form.additional} onChange={set('additional')} className={getFieldClass(false, false)} />
+            <textarea spellCheck autoCorrect="on" autoCapitalize="sentences" rows={3} value={form.additional} onChange={set('additional')} className={getFieldClass(false, false)} />
           </div>
         </div>
       )}

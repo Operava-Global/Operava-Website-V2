@@ -18,6 +18,8 @@ import {
   type FormType,
 } from '../../lib/formCore'
 
+import { checkAttachmentName, MAX_ATTACHMENT_BYTES } from '../../lib/emailAttachment'
+
 const TYPES = new Set(['SERVICES', 'CAREERS', 'CONTACT', 'ACADEMY'])
 
 function mailErrorResponse(msg: string) {
@@ -98,13 +100,24 @@ export const onRequestPost: PagesFunction<FormEnv> = async ({ request, env }) =>
       if (!clean(body.education, 300) || clean(body.experience, 4000).length < 15) {
         return json({ error: 'Education and work experience are required.' }, 400)
       }
-      const resumeKey = clean(body.resumeKey, 240)
       const portfolio = clean(body.portfolio, 500)
-      if (!resumeKey && !portfolio) return json({ error: 'Upload a resume or include a portfolio URL.' }, 400)
-      if (resumeKey) {
-        const resume = await db.prepare('SELECT resume_key FROM resumes WHERE resume_key = ? LIMIT 1')
-          .bind(resumeKey).first<{ resume_key: string }>()
-        if (!resume) return json({ error: 'Resume upload was not saved. Upload it again.' }, 400)
+      if (!String(body.attachmentName || '').trim() && !portfolio && !clean(body.resumeKey, 240)) {
+        return json({ error: 'Attach a resume or include a portfolio URL.' }, 400)
+      }
+    }
+
+    // Bind the selected file's SHA-256, filename, and size to the signed OTP draft.
+    // The bytes stay in the browser and will only arrive at /verify after OTP entry.
+    const hasAttachment = body.attachmentName != null || body.attachmentSha256 != null || body.attachmentSize != null
+    if (hasAttachment) {
+      const filename = String(body.attachmentName || '')
+      const size = Number(body.attachmentSize)
+      const hash = String(body.attachmentSha256 || '')
+      try { checkAttachmentName(filename) }
+      catch { return json({ error: 'Attach a PDF, DOC, DOCX, or TXT file.' }, 400) }
+      if (!Number.isSafeInteger(size) || size < 1 || size >= MAX_ATTACHMENT_BYTES ||
+          !/^[a-f0-9]{64}$/.test(hash)) {
+        return json({ error: 'Invalid attachment. File must be smaller than 5 MB.' }, 400)
       }
     }
 
@@ -118,12 +131,13 @@ export const onRequestPost: PagesFunction<FormEnv> = async ({ request, env }) =>
       description: 4000, message: 4000, budget: 160, websiteUrl: 500,
       contactMethod: 80, position: 180, specialization: 180,
       availability: 180, experience: 4000, education: 300, skills: 2000,
-      portfolio: 500, additional: 4000, resumeKey: 240,
+      portfolio: 500, additional: 4000, resumeKey: 240, attachmentName: 120, attachmentSha256: 64,
     }
     const safeFields: Record<string, string> = {}
     for (const [field, limit] of Object.entries(fieldLimits)) {
       if (Object.prototype.hasOwnProperty.call(body, field)) safeFields[field] = clean(body[field], limit)
     }
+    if (hasAttachment) safeFields.attachmentSize = String(body.attachmentSize)
     const payload = JSON.stringify({ ...safeFields, name, email, formType, accurate: true, privacy: true })
     const expiresAt = now + 10 * 60 * 1000
 

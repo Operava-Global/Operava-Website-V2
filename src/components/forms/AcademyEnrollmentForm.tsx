@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { AlertCircle, CheckCircle2 } from 'lucide-react'
 import OtpVerify from './OtpVerify'
 import FormSuccess from './FormSuccess'
+import { ATTACHMENT_ACCEPT, attachmentMetadata, validateAttachment } from '../../utils/attachments'
 
 const INQUIRY_TYPES = [
   'Course Enrollment',
@@ -27,9 +28,10 @@ export default function AcademyEnrollmentForm() {
   const [step, setStep] = useState<'form' | 'otp' | 'done'>('form')
   const [draftId, setDraftId] = useState('')
   const [maskedEmail, setMaskedEmail] = useState('')
-  const [result, setResult] = useState({ referenceId: '', name: '', formType: 'ACADEMY' })
+  const [result, setResult] = useState<{ referenceId: string; name: string; formType: string; emailWarning?: string }>({ referenceId: '', name: '', formType: 'ACADEMY' })
   const [error, setError] = useState('')
   const [sending, setSending] = useState(false)
+  const [attachment, setAttachment] = useState<File | null>(null)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
@@ -88,11 +90,13 @@ export default function AcademyEnrollmentForm() {
     }
     setSending(true)
     try {
+      const attachmentInfo = attachment ? await attachmentMetadata(attachment) : {}
       const res = await fetch('/api/forms/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           formType: 'ACADEMY',
+          ...attachmentInfo,
           name: form.name,
           company: form.company,
           email: form.email,
@@ -120,7 +124,7 @@ export default function AcademyEnrollmentForm() {
   }
 
   if (step === 'done') {
-    return <FormSuccess formType={result.formType} name={result.name} referenceId={result.referenceId} />
+    return <FormSuccess formType={result.formType} name={result.name} referenceId={result.referenceId} emailWarning={result.emailWarning} />
   }
 
   if (step === 'otp') {
@@ -128,6 +132,7 @@ export default function AcademyEnrollmentForm() {
       <OtpVerify
         maskedEmail={maskedEmail}
         draftId={draftId}
+        attachment={attachment}
         onDraftIdChange={setDraftId}
         onVerified={(value) => {
           setResult(value)
@@ -154,6 +159,7 @@ export default function AcademyEnrollmentForm() {
         </label>
         <input
           id="academy-name"
+          autoComplete="name" autoCapitalize="words" spellCheck autoCorrect="on"
           required
           value={form.name}
           onChange={set('name')}
@@ -174,6 +180,7 @@ export default function AcademyEnrollmentForm() {
         </label>
         <input
           id="academy-company"
+          autoComplete="organization" spellCheck autoCorrect="on"
           value={form.company}
           onChange={set('company')}
           placeholder="Acme Corp"
@@ -188,6 +195,7 @@ export default function AcademyEnrollmentForm() {
           </label>
           <input
             id="academy-email"
+            autoComplete="email" autoCapitalize="none" spellCheck={false} autoCorrect="off"
             type="email"
             required
             value={form.email}
@@ -208,6 +216,7 @@ export default function AcademyEnrollmentForm() {
           </label>
           <input
             id="academy-phone"
+            autoComplete="tel" spellCheck={false} autoCorrect="off"
             type="tel"
             required
             value={form.phone}
@@ -230,6 +239,7 @@ export default function AcademyEnrollmentForm() {
         </label>
         <input
           id="academy-country"
+          autoComplete="country-name" autoCapitalize="words" spellCheck autoCorrect="on"
           required
           value={form.country}
           onChange={set('country')}
@@ -277,6 +287,7 @@ export default function AcademyEnrollmentForm() {
         </label>
         <textarea
           id="academy-desc"
+          autoCapitalize="sentences" spellCheck autoCorrect="on"
           required
           rows={4}
           value={form.description}
@@ -290,6 +301,20 @@ export default function AcademyEnrollmentForm() {
             <AlertCircle className="w-3.5 h-3.5" /> {fieldErrors.description}
           </p>
         )}
+      </div>
+
+      <div>
+        <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Supporting document (optional)</label>
+        <input type="file" accept={ATTACHMENT_ACCEPT}
+          className="block w-full text-sm text-neutral-400"
+          onChange={(e) => {
+            const file = e.target.files?.[0] || null
+            const problem = file ? validateAttachment(file) : null
+            if (problem) { setAttachment(null); setError(problem); e.target.value = ''; return }
+            setAttachment(file); setError('')
+          }}
+        />
+        <p className="text-xs text-neutral-500 mt-2">PDF, DOC, DOCX or TXT · strictly under 5 MB · emailed only to our team after verification; not saved to R2.</p>
       </div>
 
       <div className="space-y-3 pt-6 border-t border-neutral-900">
