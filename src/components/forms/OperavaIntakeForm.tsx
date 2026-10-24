@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { AlertCircle, CheckCircle2 } from 'lucide-react'
 import OtpVerify from './OtpVerify'
 import FormSuccess from './FormSuccess'
-import { ATTACHMENT_ACCEPT, attachmentMetadata, validateAttachment } from '../../utils/attachments'
+import { ATTACHMENT_ACCEPT, attachmentMetadata, validateAttachment, CAREER_RESUME_ACCEPT, careerResumeMetadata, validateCareerResumePdf } from '../../utils/attachments'
 import {
   CAREER_POSITIONS,
   SKILLS_SPECIALIZATIONS,
@@ -117,6 +117,7 @@ export default function OperavaIntakeForm({
   const [sending, setSending] = useState(false)
   const [attachment, setAttachment] = useState<File | null>(null)
   const [resumeName, setResumeName] = useState('')
+  const [inspectingResume, setInspectingResume] = useState(false)
   const [errors, setErrors] = useState<FormValidationState>({})
   const [touched, setTouched] = useState<Partial<Record<keyof FormValidationState, boolean>>>({})
 
@@ -218,17 +219,20 @@ export default function OperavaIntakeForm({
     }
 
   const uploadResume = async (file: File) => {
-    const problem = validateAttachment(file)
+    const problem = validateCareerResumePdf(file)
     if (problem) throw new Error(problem)
+    await careerResumeMetadata(file)
     setAttachment(file)
     setResumeName(file.name)
+    setErrors(prev => ({ ...prev, resume: undefined }))
+    // Optional in-memory autofill: an unavailable parser does not reject a valid PDF.
     const data = new FormData()
     data.append('file', file)
-    const res = await fetch('/api/forms/upload', { method: 'POST', body: data })
-    const json = await res.json()
-    if (!res.ok) throw new Error('File attached. Autofill unavailable; complete the remaining fields manually.')
-
-
+    let json: { parsed?: Record<string, string> } = {}
+    try {
+      const res = await fetch('/api/forms/upload', { method: 'POST', body: data })
+      if (res.ok) json = await res.json()
+    } catch { /* autofill is optional */ }
     const p = json.parsed || {}
     setForm((prev) => {
       const next = { ...prev }
@@ -273,7 +277,7 @@ export default function OperavaIntakeForm({
         return next
       })
       const count = errorKeys.length
-      setError(`Please correct the ${count} highlighted ${count === 1 ? 'field' : 'fields'} below before continuing.`)
+      setError(kind === 'CAREERS' ? `Please correct the ${count} specific Careers issue${count === 1 ? '' : 's'} listed below before continuing.` : `Please correct the ${count} highlighted ${count === 1 ? 'field' : 'fields'} below before continuing.`)
       const firstKey = errorKeys[0]
       const firstElement = document.getElementById(`field-${firstKey}`)
       if (firstElement) {
@@ -285,7 +289,7 @@ export default function OperavaIntakeForm({
 
     setSending(true)
     try {
-      const attachmentInfo = attachment ? await attachmentMetadata(attachment) : {}
+      const attachmentInfo = attachment ? kind === 'CAREERS' ? await careerResumeMetadata(attachment) : await attachmentMetadata(attachment) : {}
       const res = await fetch('/api/forms/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -317,7 +321,13 @@ export default function OperavaIntakeForm({
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Unable to send verification code.')
+      if (!res.ok) {
+        if (kind === 'CAREERS' && data.fieldErrors && typeof data.fieldErrors === 'object') {
+          setErrors(prev => ({ ...prev, ...data.fieldErrors }))
+          setTouched(prev => ({ ...prev, ...Object.fromEntries(Object.keys(data.fieldErrors).map(key => [key, true])) }))
+        }
+        throw new Error(data.error || 'Unable to send verification code.')
+      }
       setDraftId(data.draftId)
       setMaskedEmail(data.maskedEmail)
       setStep('otp')
@@ -338,6 +348,7 @@ export default function OperavaIntakeForm({
         maskedEmail={maskedEmail}
         draftId={draftId}
         attachment={attachment}
+        careerMode={kind === 'CAREERS'}
         onDraftIdChange={setDraftId}
         onVerified={(value) => {
           setResult(value)
@@ -357,6 +368,17 @@ export default function OperavaIntakeForm({
   }
 
   const currentSpecializations = SKILLS_SPECIALIZATIONS[form.position as CareerPosition] || []
+  const careerErrorLabels: Partial<Record<keyof FormValidationState, string>> = {
+    name: 'Full name', email: 'Email address', phone: 'Phone',
+    country: 'Country / location', position: 'Position', specialization: 'Specialization',
+    availability: 'Availability', experience: 'Experience', education: 'Education',
+    portfolio: 'Portfolio / LinkedIn', resume: 'CV / résumé (PDF)',
+    accurate: 'Accuracy confirmation', privacy: 'Privacy consent',
+  }
+  const careerFieldError = (key: keyof FormValidationState) =>
+    kind === 'CAREERS' && errors[key]
+      ? <p id={`error-${key}`} role="alert" className="mt-1.5 text-xs text-red-400 font-medium">{errors[key]}</p>
+      : null
 
   return (
     <form noValidate onSubmit={submit} className="space-y-6 max-w-2xl">
