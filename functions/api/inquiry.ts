@@ -10,6 +10,7 @@ import {
 
 interface Env extends FormEnv {
   APPLICANT_CC?: string
+  LEGACY_UNVERIFIED_FORMS_ENABLED?: string
 }
 
 const CAREER_KINDS = new Set(['career', 'ai-career'])
@@ -54,6 +55,11 @@ function json(body: Record<string, unknown>, status = 200): Response {
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+  // This legacy direct-email endpoint is deliberately disabled for public submissions.
+  // The live website uses /api/forms/start -> /api/forms/verify with persisted OTP proof.
+  if (String(env.LEGACY_UNVERIFIED_FORMS_ENABLED || '').trim().toLowerCase() !== 'true') {
+    return json({ error: 'Email verification is required. Submit through the contact form.', code: 'OTP_REQUIRED' }, 410)
+  }
   try {
     const body = (await request.json()) as Record<string, unknown>
     if (clean(body.website, 80)) return json({ ok: true, referenceId: 'OPV-FILTERED' })
