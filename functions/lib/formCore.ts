@@ -5,6 +5,7 @@ import {
   staffNotificationTemplate,
 } from './emailTemplates'
 import { sendSesSmtp } from './sesSmtp'
+import type { EmailAttachment } from './emailAttachment'
 
 export type FormType = 'SERVICES' | 'CAREERS' | 'CONTACT' | 'ACADEMY'
 
@@ -382,6 +383,7 @@ export async function sendEmail(env: FormEnv, payload: Record<string, unknown>):
     subject: String(payload.subject || 'OPERAVA').slice(0, 200),
     html: typeof payload.html === 'string' ? payload.html : undefined,
     text: typeof payload.text === 'string' ? payload.text : undefined,
+    ...(Array.isArray(payload.attachments) ? { attachments: payload.attachments as EmailAttachment[] } : {}),
   })
 }
 
