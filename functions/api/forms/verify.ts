@@ -327,6 +327,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ' directly.\n'
 
     let emailWarning: string | undefined
+    const careerDeliveryWarnings: string[] = []
     const from = senderFor(formType, env)
 
     try {
@@ -341,6 +342,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     } catch (mailErr) {
       console.error('confirmation email failed', mailErr instanceof Error ? mailErr.message : 'unknown')
       emailWarning = 'Submission recorded; confirmation email could not be delivered right now.'
+      if (isCareer) careerDeliveryWarnings.push('Applicant confirmation email: SES rejected or could not accept the message. Your verified application is saved, but we cannot confirm that a confirmation email was sent.')
     }
 
     try {
@@ -360,7 +362,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       emailWarning = attachment
         ? 'Your form was recorded but the attachment email could not be sent. Please contact the team with your reference ID.'
         : 'Your form was recorded but the team notification email could not be sent. Please contact the team with your reference ID.'
+      if (isCareer) careerDeliveryWarnings.push('Talent Acquisition notification: SES could not accept the CV / résumé PDF attachment. Your application was recorded, but the file has not been confirmed sent. Contact Talent Acquisition and quote your reference ID.')
     }
+
+    if (isCareer && careerDeliveryWarnings.length) emailWarning = careerDeliveryWarnings.join(' ')
 
     return json({
       ok: true,
