@@ -323,29 +323,18 @@ export function getMetadataForPath(pathname: string): PageMetadata {
     }
   }
 
+  // Legacy Recruitment AVA URL redirects to the standard hiring-process page.
   if (cleanPath === '/ai-job-screening') {
     return {
-      title: 'Recruitment AVA | AI Job Screening | OPERAVA GLOBAL SOLUTIONS',
-      description:
-        'Start your OPERAVA application with Recruitment AVA — guided AI job screening for Technology, Business Operations, and Customer Experience executive tracks. Email verification required. Not a final hiring decision.',
-      keywords:
-        'Recruitment AVA, AI Job Screening, OPERAVA Careers, Technology Executive, Business Operations Executive, Customer Experience Executive',
-      canonicalUrl: `${BASE_URL}/ai-job-screening`,
+      title: 'Hiring Process | OPERAVA GLOBAL SOLUTIONS',
+      description: 'Learn about the OPERAVA hiring process and submit an application using the verified Careers form.',
+      keywords: 'OPERAVA hiring process, careers, job application, email verification',
+      canonicalUrl: `${BASE_URL}/careers/hiring-process`,
       ogType: 'website',
       breadcrumbs: [
         { name: 'Home', item: `${BASE_URL}/` },
         { name: 'Careers', item: `${BASE_URL}/careers` },
-        { name: 'Recruitment AVA', item: `${BASE_URL}/ai-job-screening` },
-      ],
-      faqs: [
-        {
-          q: 'What is OPERAVA Recruitment AVA?',
-          a: 'Recruitment AVA is OPERAVA’s guided AI job-screening assistant. It collects application information through conversation after email verification. It is not a final hiring decision.',
-        },
-        {
-          q: 'Do I still need to apply formally?',
-          a: 'Yes. Formal applications remain available at https://www.operavaglobal.com/apply. Recruitment AVA supports screening; Talent Acquisition makes final decisions.',
-        },
+        { name: 'Hiring Process', item: `${BASE_URL}/careers/hiring-process` },
       ],
     }
   }
