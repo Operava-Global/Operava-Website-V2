@@ -311,10 +311,13 @@ export function renderEmailTemplate(template: string, replacements: Record<strin
 
 export function otpEmailHtml(name: string, purpose: string, code: string) {
   const display = name && name.trim() ? name.trim() : 'there'
+  // The owner-supplied HTML uses lowercase {{otp_code}} and
+  // {{expiry_minutes}} placeholders; keep its structure and copy unchanged.
+  void display
+  void purpose
   return renderEmailTemplate(otpEmailTemplate, {
-    NAME: escapeHtml(display),
-    PURPOSE: escapeHtml(purpose),
-    OTP_CODE: escapeHtml(code),
+    otp_code: escapeHtml(code),
+    expiry_minutes: '10',
   })
 }
 
@@ -426,11 +429,11 @@ function submissionListHtml(
     ['Reference Number', referenceId],
   ]
   return (
-    '<ul style="margin:8px 0 0 0;padding-left:18px;font-size:11px;line-height:1.45;color:#111111;">' +
+    '<ul style="margin:8px 0 0 0;padding-left:18px;font-size:12px;line-height:1.7;color:#b9b5c7;">' +
     values
       .map(function (pair) {
         return (
-          '<li style="margin-bottom:6px;"><strong style="color:#111111;">' +
+          '<li style="margin-bottom:6px;"><strong style="color:#eee5ff;">' +
           escapeHtml(pair[0]) +
           ':</strong> ' +
           escapeHtml(pair[1]) +
@@ -512,15 +515,17 @@ export function staffNotificationEmail(opts: {
 }): string {
   return renderEmailTemplate(staffNotificationTemplate, {
     FORM_TYPE: escapeHtml(opts.formType),
+    TITLE: escapeHtml('New ' + opts.formType.toLowerCase() + ' submission'),
+    PARTY_LABEL: escapeHtml(opts.formType === 'CAREERS' ? 'applicant' : opts.formType === 'ACADEMY' ? 'learner' : 'customer'),
     REFERENCE_ID: escapeHtml(opts.referenceId),
     EMAIL: escapeHtml(opts.email),
     SUBMITTED_AT: escapeHtml(opts.submittedAt),
-    DETAILS_LIST:
-      '<ul style="margin:8px 0 0 0;padding-left:18px;font-size:11px;line-height:1.45;color:#111111;">' +
+    ROWS_HTML:
+      '<ul style="margin:8px 0 0 0;padding-left:18px;font-size:12px;line-height:1.7;color:#b9b5c7;">' +
       opts.rows
         .map(function (row) {
           return (
-            '<li style="margin-bottom:6px;"><strong style="color:#111111;">' +
+            '<li style="margin-bottom:6px;"><strong style="color:#eee5ff;">' +
             escapeHtml(row.label) +
             ':</strong> ' +
             escapeHtml(row.value) +
