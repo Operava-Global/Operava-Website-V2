@@ -316,7 +316,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     try {
-      if (staffInbox.toLowerCase() !== email.toLowerCase()) {
+      if (attachment || staffInbox.toLowerCase() !== email.toLowerCase()) {
         await sendEmail(env, {
           from,
           to: [staffInbox],
