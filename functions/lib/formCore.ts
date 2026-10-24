@@ -1,8 +1,10 @@
 import {
   otpEmailTemplate,
+  careersOtpEmailTemplate,
   servicesConfirmationTemplate,
   applicationConfirmationTemplate,
   staffNotificationTemplate,
+  careersStaffNotificationTemplate,
 } from './emailTemplates'
 import { sendSesSmtp } from './sesSmtp'
 import type { EmailAttachment } from './emailAttachment'
@@ -314,8 +316,9 @@ export function otpEmailHtml(name: string, purpose: string, code: string) {
   // The owner-supplied HTML uses lowercase {{otp_code}} and
   // {{expiry_minutes}} placeholders; keep its structure and copy unchanged.
   void display
-  void purpose
-  return renderEmailTemplate(otpEmailTemplate, {
+  // Careers uses the same master layout, with job-application wording only.
+  const template = purpose === 'JOB APPLICATION' ? careersOtpEmailTemplate : otpEmailTemplate
+  return renderEmailTemplate(template, {
     otp_code: escapeHtml(code),
     expiry_minutes: '10',
   })
@@ -513,9 +516,9 @@ export function staffNotificationEmail(opts: {
   submittedAt: string
   rows: Array<{ label: string; value: string }>
 }): string {
-  return renderEmailTemplate(staffNotificationTemplate, {
+  return renderEmailTemplate(opts.formType === 'CAREERS' ? careersStaffNotificationTemplate : staffNotificationTemplate, {
     FORM_TYPE: escapeHtml(opts.formType),
-    TITLE: escapeHtml('New ' + opts.formType.toLowerCase() + ' submission'),
+    TITLE: escapeHtml(opts.formType === 'CAREERS' ? 'New job application received' : 'New ' + opts.formType.toLowerCase() + ' submission'),
     PARTY_LABEL: escapeHtml(opts.formType === 'CAREERS' ? 'applicant' : opts.formType === 'ACADEMY' ? 'learner' : 'customer'),
     REFERENCE_ID: escapeHtml(opts.referenceId),
     EMAIL: escapeHtml(opts.email),

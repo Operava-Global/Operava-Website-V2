@@ -21,6 +21,13 @@
 - **Keep delivery unchanged:** existing SES SMTP in Sydney, verified six-digit email OTP, one-use/expiry limits, sender identity, submission reference numbers, inbox routing and optional under-5-MB direct-to-email attachments remain as implemented. Styling approval is **not** permission to change authentication, SMTP, D1/R2, attachments, unrelated website UI, or production configuration.
 - **Required tests before release:** `npm run lint`, `npm run build:pages`, and the email-template regression check confirming byte-for-byte OTP template parity with the reference HTML (except the authorized footer-label change). Verify HTML rendering and email inbox behavior with an owner-controlled test mailbox before asserting end-to-end delivery.
 
+### Careers-specific email copy and visible OTP fields
+
+- Treat Careers as a **job application**, never as a general services inquiry. Applicant success messages and confirmation emails must thank applicants for **submitting an application**, show an application reference, and explain Talent Acquisition review (without promising an interview).
+- Careers six-digit OTP email and any resend retain the exact owner-approved HTML design/structure and footer, but state that the code is for **verifying a job application**. The applicant confirmation and Talent Acquisition notification use the same master layout with their own application-specific content. All other forms keep their existing OTP and confirmation wording.
+- On the Careers OTP page, six clearly outlined, legible squares must remain visible in **dark and light** themes, including keyboard focus. Keep their original layout and OTP behavior; use the scoped `operava-careers-otp-digit` styling in `src/site/theme.css` and never apply these overrides globally or to unrelated utility pages.
+- Keep SMTP, the existing strict-under-5 MB PDF-only Careers attachment bridge, single-use/expiry security, and R2 prohibition unchanged.
+
 ### Careers CV / résumé — mandatory PDF and detailed validation
 
 - Careers application **requires exactly one CV / résumé in PDF (.pdf) format**, strictly smaller than **5,000,000 bytes (5 MB)**. DOC, DOCX, TXT, PNG/JPEG and missing or empty files must be rejected. Portfolio/LinkedIn links remain optional and do not substitute for the PDF. This restriction applies to Careers, **not** other inquiry/Academy attachments.
