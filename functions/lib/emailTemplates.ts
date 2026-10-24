@@ -101,6 +101,51 @@ export function buildMandatoryEmail(fullName: string, bodyHtml: string): string 
 /** OTP body text is managed by the attached canonical OTP HTML. */
 export const otpBodyTemplate = 'Use the one-time code below to verify your email address and continue with OPERAVA.'
 
+/**
+ * Careers OTP: same pixel/layout structure and same one-time-code placeholders
+ * as the owner's unchanged canonical OTP HTML. Only context-specific copy
+ * changes; all other form types continue to use the exact original template.
+ */
+export const careersOtpEmailTemplate = replaceRequired(
+  replaceRequired(
+    replaceRequired(
+      replaceRequired(
+        otpEmailTemplate,
+        '<title>Your OPERAVA verification code</title>',
+        '<title>Verify your OPERAVA job application</title>',
+      ),
+      'Your OPERAVA verification code is ready. Never share this code.',
+      'Verify your OPERAVA job application using the code below. Never share this code.',
+    ),
+    '>Your access, secured.</h1>',
+    '>Verify your job application.</h1>',
+  ),
+  '>Use the one-time code below to verify your email address and continue with OPERAVA.</p>',
+  '>Enter the one-time code below to verify your email address and complete your OPERAVA job application.</p>',
+)
+
+/** Apply Careers wording only; retain the same shared HTML email design. */
+function careersConfirmationCopy(html: string, staff = false): string {
+  let result = html
+  result = replaceRequired(result, '<title>Your OPERAVA submission confirmation</title>',
+    staff ? '<title>New OPERAVA job application</title>' : '<title>Your OPERAVA job application confirmation</title>')
+  result = replaceRequired(result, 'Your OPERAVA submission confirmation is ready.',
+    staff ? 'OPERAVA Talent Acquisition has received a new job application notification.'
+      : 'Thank you for submitting your application to OPERAVA Global Solutions.')
+  result = replaceRequired(result, '>SUBMISSION CONFIRMATION</p>',
+    staff ? '>NEW JOB APPLICATION</p>' : '>APPLICATION CONFIRMATION</p>')
+  result = replaceRequired(result, '>Your submission, confirmed.</h1>',
+    staff ? '>New application received.</h1>' : '>Application received.</h1>')
+  result = replaceRequired(
+    result,
+    '>Hi ' + (staff ? 'Team' : '{{NAME}}') + ', thank you for contacting OPERAVA. Please find your submission details below.</p>',
+    staff
+      ? '>Hello Talent Acquisition Team. A new job application has been submitted. The applicant details are below.</p>'
+      : '>Hi {{NAME}}, thank you for submitting your application to OPERAVA Global Solutions. Your application details are below.</p>',
+  )
+  return result
+}
+
 /** Services / contact confirmation body — DETAILS_LIST, REFERENCE_ID */
 export const servicesBodyTemplate =
   'Thank you for choosing OPERAVA. We are pleased to begin working with you and look forward to supporting your business requirements.<br><br>' +
@@ -114,16 +159,15 @@ export const servicesConfirmationTemplate = mandatoryEmailShell('{{NAME}}', serv
 
 /** Careers confirmation body */
 export const applicationBodyTemplate =
-  'Thank you for contacting OPERAVA and for your interest in our opportunities.<br><br>' +
-  'We confirm that we have received your application. Your submitted information has been recorded. Reference number: <strong>{{REFERENCE_ID}}</strong>.<br><br>' +
-  '<strong>Submitted details</strong><br>' +
+  'Thank you for submitting your application to OPERAVA Global Solutions.<br><br>' +
+  'Your job application has been received and recorded successfully after email verification. Application reference number: <strong>{{REFERENCE_ID}}</strong>.<br><br>' +
+  '<strong>Application details</strong><br>' +
   '{{DETAILS_LIST}}<br><br>' +
   'Your application will be reviewed by the appropriate team. If your qualifications match an available position or another suitable opportunity, a member of our Talent Acquisition Team may contact you through your preferred contact method.<br><br>' +
   'Please note that submitting an application does not guarantee employment or an interview. Your information may be considered for current and future opportunities within OPERAVA.'
 
-export const applicationConfirmationTemplate = mandatoryEmailShell(
-  '{{NAME}}',
-  applicationBodyTemplate,
+export const applicationConfirmationTemplate = careersConfirmationCopy(
+  mandatoryEmailShell('{{NAME}}', applicationBodyTemplate),
 )
 
 /** Staff notification body */
@@ -137,6 +181,12 @@ export const staffBodyTemplate =
   '{{ROWS_HTML}}'
 
 export const staffNotificationTemplate = mandatoryEmailShell('Team', staffBodyTemplate)
+
+/** Careers only: application-focused Talent Acquisition notification wording. */
+export const careersStaffNotificationTemplate = careersConfirmationCopy(
+  mandatoryEmailShell('Team', staffBodyTemplate),
+  true,
+)
 
 /** Recruitment pool pass confirmation body */
 export const recruitmentPoolBodyTemplate =
