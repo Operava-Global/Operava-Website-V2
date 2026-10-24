@@ -1,46 +1,41 @@
 import { useState } from 'react'
 
 /**
- * Complete brand artwork (wordmarks where provided) from the owners' press kits
- * and openly available logo assets, not icon-only substitutes.
- *
- * Locally hosted originals avoid third-party hotlinking; pale brand art is shown
- * on dark cards to maintain its intended contrast in light and dark themes.
- * Logo inclusion is informational and does not imply OPERAVA accepts all these
- * payment methods or has a partnership / merchant integration with any brand.
+ * Locally hosted, OPERAVA-supplied 2400x800 WebP logos. displayWidth compensates
+ * for generous white padding within the original artwork, avoiding distortion.
+ * Stripe remains an SVG because its replacement image was not supplied.
+ * Logo inclusion is informational; it does not imply a partnership.
  */
 type Brand = {
   name: string
   asset: string
-  darkBackground?: boolean
+  displayWidth?: number
 }
 
 const brands: Brand[] = [
-  { name: 'Visa', asset: '/assets/logos/visa.svg' },
-  { name: 'Mastercard', asset: '/assets/logos/mastercard.svg' },
-  { name: 'Apple Pay', asset: '/assets/logos/apple-pay.svg' },
-  { name: 'Meta', asset: '/assets/logos/meta.svg' },
-  { name: 'TikTok', asset: '/assets/logos/tiktok.svg' },
-  { name: 'Apple', asset: '/assets/logos/apple.svg' },
-  { name: 'Zoho', asset: '/assets/logos/zoho.svg' },
-  { name: 'Google', asset: '/assets/logos/google.svg' },
+  { name: 'Visa', asset: '/assets/logos/visa.webp', displayWidth: 442 },
+  { name: 'Mastercard', asset: '/assets/logos/mastercard.webp', displayWidth: 392 },
+  { name: 'Apple Pay', asset: '/assets/logos/apple-pay.webp', displayWidth: 239 },
+  { name: 'Meta', asset: '/assets/logos/meta.webp', displayWidth: 440 },
+  { name: 'TikTok', asset: '/assets/logos/tiktok.webp', displayWidth: 240 },
+  { name: 'Apple', asset: '/assets/logos/apple.webp', displayWidth: 147 },
+  { name: 'Zoho', asset: '/assets/logos/zoho.webp', displayWidth: 372 },
+  { name: 'Google', asset: '/assets/logos/google.webp', displayWidth: 177 },
   {
     name: 'Maya',
-    asset: '/assets/logos/maya.svg',
-    darkBackground: true,
+    asset: '/assets/logos/maya.webp', displayWidth: 440,
   },
   {
     name: 'PayMongo',
-    asset: '/assets/logos/paymongo.svg',
+    asset: '/assets/logos/paymongo.webp', displayWidth: 440,
   },
   {
     name: 'Wise Business',
-    asset: '/assets/logos/wise.svg',
-    darkBackground: true,
+    asset: '/assets/logos/wise.webp', displayWidth: 442,
   },
-  { name: 'GCash', asset: '/assets/logos/gcash.svg' },
-  { name: 'ShopeePay', asset: '/assets/logos/shopeepay.svg' },
-  { name: 'GrabPay', asset: '/assets/logos/grabpay.svg' },
+  { name: 'GCash', asset: '/assets/logos/gcash.webp', displayWidth: 504 },
+  { name: 'ShopeePay', asset: '/assets/logos/shopeepay.webp', displayWidth: 543 },
+  { name: 'GrabPay', asset: '/assets/logos/grabpay.webp', displayWidth: 481 },
   { name: 'Stripe', asset: '/assets/logos/stripe.svg' },
 ]
 
@@ -54,25 +49,26 @@ export default function EcosystemLogos() {
           Brands Thats Trusted Us
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 items-stretch gap-3 sm:gap-4">
-          {brands.map(({ name, asset, darkBackground }) => (
+          {brands.map(({ name, asset, displayWidth }) => (
             <button
               key={name}
               type="button"
               aria-label={`Highlight ${name} logo`}
               aria-pressed={activeBrand === name}
               onClick={() => setActiveBrand((current) => current === name ? null : name)}
-              className={`ecosystem-logo ecosystem-logo--interactive min-h-[112px] w-full rounded-xl border border-neutral-800/60 bg-white flex flex-col items-center justify-center p-3 sm:p-4 ${darkBackground ? "ecosystem-logo--contrast" : ""}`}
+              className="ecosystem-logo ecosystem-logo--interactive min-h-[112px] w-full rounded-xl border border-neutral-800/60 bg-white flex flex-col items-center justify-center p-3 sm:p-4"
               title={name}
             >
-              <div className="h-12 w-full flex items-center justify-center">
+              <div className="h-12 w-full flex items-center justify-center overflow-hidden">
                 <img
                   src={asset}
                   alt={name + ' logo'}
                   loading="eager"
                   decoding="async"
-                  width="160"
-                  height="48"
-                  className="block w-full max-w-[160px] h-11 object-contain"
+                  width={displayWidth ? 2400 : 160}
+                  height={displayWidth ? 800 : 48}
+                  className={displayWidth ? 'block h-auto max-w-none shrink-0 object-contain' : 'block w-full max-w-[160px] h-11 object-contain'}
+                  style={displayWidth ? { width: displayWidth } : undefined}
                 />
               </div>
             </button>
