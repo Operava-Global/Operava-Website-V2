@@ -173,110 +173,73 @@ button.op-note-result{display:block;width:100%;text-align:left;white-space:norma
 html[data-theme=light] .ref-card button.op-bookmark{background:#dfcef6!important;color:#35115e!important}
 .op-calc-history{border-top:1px solid var(--op-border,#555);margin-top:15px;padding-top:10px}
 @media(max-width:600px){.op-addon{padding:14px}.op-addon-row{display:grid}.op-addon-row>*{width:100%}}
-</style><script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebApplication","name":"Online PDF Viewer & Text-to-PDF Converter | OPERAVA","url":"https://www.operavaglobal.com/utilities/pdf-viewer/","description":"Open a local PDF in your browser for viewing and printing, or prepare text and use your browser's Print to PDF function. Files are processed locally.","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@id":"https://www.operavaglobal.com/#organization"}},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"OPERAVA","item":"https://www.operavaglobal.com/"},{"@type":"ListItem","position":2,"name":"Online PDF Viewer & Text-to-PDF Converter | OPERAVA","item":"https://www.operavaglobal.com/utilities/pdf-viewer/"}]},{"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Are my PDFs uploaded?","acceptedAnswer":{"@type":"Answer","text":"No. Selected PDFs are opened through a temporary browser-local URL, not a remote upload."}},{"@type":"Question","name":"Can I change text inside an existing PDF?","acceptedAnswer":{"@type":"Answer","text":"Not in this version. It provides browser viewing and text-to-PDF printing, not full document editing."}}]}]}</script><style data-operava-utility-visuals>/* OPERAVA Free Tools only — generated transparent WebP hero art.
-   Theme follows the same html[data-theme] preference as the website.
-   No selectors or assets are loaded by the main website. */
+</style><script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebApplication","name":"Online PDF Viewer & Text-to-PDF Converter | OPERAVA","url":"https://www.operavaglobal.com/utilities/pdf-viewer/","description":"Open a local PDF in your browser for viewing and printing, or prepare text and use your browser's Print to PDF function. Files are processed locally.","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@id":"https://www.operavaglobal.com/#organization"}},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"OPERAVA","item":"https://www.operavaglobal.com/"},{"@type":"ListItem","position":2,"name":"Online PDF Viewer & Text-to-PDF Converter | OPERAVA","item":"https://www.operavaglobal.com/utilities/pdf-viewer/"}]},{"@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Are my PDFs uploaded?","acceptedAnswer":{"@type":"Answer","text":"No. Selected PDFs are opened through a temporary browser-local URL, not a remote upload."}},{"@type":"Question","name":"Can I change text inside an existing PDF?","acceptedAnswer":{"@type":"Answer","text":"Not in this version. It provides browser viewing and text-to-PDF printing, not full document editing."}}]}]}</script><style data-operava-utility-visuals>/* OPERAVA Website V2 — utilities only.
+   The existing photographic .hero cover and page layout belong to toolkit.css / premium.css.
+   This file must not override .hero backgrounds, typography, cards or page layout.
+   Generated transparent WebPs replace only the former inline SVG hero elements.
+   Match the website's exact active light/dark palette from src/site/theme.css. */
 :root {
-  --ut-hero-bg:
-    radial-gradient(ellipse at 81% 17%,rgba(152,105,250,.24),transparent 46%),
-    linear-gradient(125deg,#14101e 0%,#22172f 55%,#21172e 100%);
-  --ut-hero-title:#fbfaff;
-  --ut-hero-copy:#ded4ed;
-  --ut-hero-eyebrow:#d2adff;
-  --ut-hero-glow:rgba(141,87,241,.25);
-  --ut-hero-ring:rgba(196,158,255,.18);
-  --ut-card-ring:rgba(204,171,255,.14);
-  --ut-card-shadow:0 18px 55px rgba(0,0,0,.20);
+  --op-canvas:#1b1b21;
+  --op-panel:#24242b;
+  --op-panel2:#2b2b33;
+  --op-border:#3b3b46;
+  --op-text:#ffffff;
+  --op-muted:#a3a3b0;
+  --op-violet:#9f67ff;
+  --op-violet-solid:#7c3aed;
+  --op-header:rgba(29,29,36,.95);
+  --op-footer:#1b1b21;
   color-scheme:dark;
 }
 html[data-theme="light"] {
-  --ut-hero-bg:
-    radial-gradient(ellipse at 80% 18%,rgba(191,158,255,.37),transparent 45%),
-    linear-gradient(122deg,#fff 0%,#f8f4ff 54%,#ede4fc 100%);
-  --ut-hero-title:#231234;
-  --ut-hero-copy:#5b4c6b;
-  --ut-hero-eyebrow:#7645aa;
-  --ut-hero-glow:rgba(149,92,239,.18);
-  --ut-hero-ring:rgba(118,74,169,.17);
-  --ut-card-ring:#e7ddf3;
-  --ut-card-shadow:0 17px 48px rgba(72,37,117,.09);
+  --op-canvas:#f7f5fb;
+  --op-panel:#ffffff;
+  --op-panel2:#f1ecf8;
+  --op-border:#dad4e6;
+  --op-text:#19132b;
+  --op-muted:#554d65;
+  --op-violet:#6c27bc;
+  --op-violet-solid:#6220ac;
+  --op-header:rgba(250,248,255,.94);
+  --op-footer:#f7f5fb;
   color-scheme:light;
 }
-.hero {
-  position:relative;
-  isolation:isolate;
-  color:var(--ut-hero-title)!important;
-  background:var(--ut-hero-bg)!important;
-  border-bottom:1px solid var(--ut-hero-ring);
+/* The utility static shell mirrors the same header and footer surfaces as V2. */
+.op-site-header {
+  background:var(--op-header)!important;
+  border-color:var(--op-border)!important;
 }
-html[data-theme="light"] .hero {
-  color:var(--ut-hero-title)!important;
-  background:var(--ut-hero-bg)!important;
+html[data-theme="light"] .op-site-header {border-color:#d9d2e4!important}
+.op-site-footer {
+  background:var(--op-footer)!important;
+  border-color:var(--op-border)!important;
 }
-.hero::after {
-  content:"";
-  pointer-events:none;
-  position:absolute;
-  inset:0;
-  z-index:-1;
-  background:radial-gradient(ellipse at 75% 100%,var(--ut-hero-glow),transparent 54%);
-}
-.hero .shell {position:relative;z-index:1}
-.hero h1,.hero .shell h1 {color:var(--ut-hero-title)!important;text-wrap:balance}
-.hero p,.hero .shell p {color:var(--ut-hero-copy)!important}
-.hero .eyebrow,.hero .shell .eyebrow {color:var(--ut-hero-eyebrow)!important}
+/* Match original SVG artwork placement; keep photograph behind the element. */
 .op-hero-visual {
-  width:min(100%,350px);
-  min-width:0;
-  aspect-ratio:1/1;
-  position:relative;
-  isolation:isolate;
-  display:grid;
-  place-items:center;
-  justify-self:center;
+  display:block;
+  width:100%;
+  max-width:300px;
   margin:0;
-  border-radius:32%;
-  background:radial-gradient(circle at 50% 54%,var(--ut-hero-glow) 0%,transparent 67%);
-}
-.op-hero-visual::before {
-  content:"";
-  position:absolute;
-  pointer-events:none;
-  inset:4%;
-  z-index:-1;
-  border:1px solid var(--ut-hero-ring);
-  border-radius:38%;
-  transform:rotate(-7deg);
-  opacity:.66;
+  padding:0;
+  justify-self:center;
+  background:none;
+  border:0;
 }
 .op-hero-webp {
-  width:100%;
-  max-width:350px;
-  height:auto;
   display:block;
-  aspect-ratio:1/1;
+  width:100%;
+  max-width:300px;
+  height:auto;
+  aspect-ratio:1;
   object-fit:contain;
-  transform:translateZ(0);
-  transition:transform .45s cubic-bezier(.2,.8,.2,1),filter .3s ease;
-  filter:drop-shadow(0 18px 22px rgba(0,0,0,.33)) saturate(1.02);
+  background:transparent;
+  filter:drop-shadow(0 16px 20px rgba(0,0,0,.22));
 }
 html[data-theme="light"] .op-hero-webp {
-  filter:drop-shadow(0 19px 25px rgba(57,27,99,.16)) saturate(.95) contrast(1.02);
+  filter:drop-shadow(0 16px 20px rgba(0,0,0,.18));
 }
-@media(hover:hover) and (prefers-reduced-motion:no-preference) {
-  .op-hero-visual:hover .op-hero-webp {transform:translate3d(0,-5px,0) scale(1.015)}
-}
-.tool-panel,.explainer,.faq {
-  border-color:var(--ut-card-ring)!important;
-  box-shadow:var(--ut-card-shadow)!important;
-}
-@media(max-width:760px){
-  .op-hero-visual {width:min(72vw,235px);margin:2px auto 0}
-  .op-hero-webp {max-width:235px}
-  .hero .shell {gap:12px!important}
-}
-@media(prefers-reduced-motion:reduce) {
-  .op-hero-webp {transition:none!important}
+@media(max-width:760px) {
+  .op-hero-visual,.op-hero-webp {max-width:175px}
 }
 @media print {
   .op-hero-visual {display:none!important}

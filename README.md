@@ -5,6 +5,12 @@
 
 ---
 
+## Website V2 — developer design and authorization notice (25 October 2026)
+
+**Current repository:** `Operava-Global/Operava-Website-V2` (`main`), deploying to Cloudflare Pages `operava-website-v2` for `operavaglobal.com` and `www.operavaglobal.com`. The older dated website-version inventory below is an **historical snapshot**, not an instruction to deploy to a different Cloudflare project.
+
+**MANDATORY:** [AGENTS.md](AGENTS.md) governs AI agent and developer changes. **Do not modify anything unless explicitly requested by the authorized owner or expressly included in an owner-approved plan.** Drafting your own plan does not authorize implementation. All unrelated components, routes, behavior, existing photos, fonts, headers, footers, themes and assets remain unchanged by default.
+
 ## 🔒 Confidentiality & License Notice
 
 **PROPRIETARY AND CONFIDENTIAL — STRICTLY PRIVATE & ONLY FOR OPERAVA GLOBAL SOLUTIONS.**
@@ -126,53 +132,62 @@ operava-website/
 
 ---
 
-## 🎨 AI Developer & Contributor Design System Guide
+## 🎨 Developer & AI agent design contract — exact active website theme
 
-> **MANDATORY INSTRUCTION FOR ALL AI AGENTS AND FUTURE DEVELOPERS:**
-> The site follows the dark editorial design introduced in `index.html` (October 2026): black canvas, Inter black uppercase display type, hairline neutral borders, 12px cards and a single violet accent. Reuse the building blocks in `src/site/ui.tsx` instead of inventing new styles.
+> Read [AGENTS.md](AGENTS.md) **before editing**. It includes binding authorization and no-unrequested-change rules. The current CSS/React components are authoritative; the values below reflect the actual V2 styles, not an obsolete black-only reference.
 
-### 1. Where things live
+### 1. Exact source files and responsibilities
 
-| Path | Purpose |
-| :--- | :--- |
-| `src/site/Layout.tsx`, `SiteHeader.tsx`, `SiteFooter.tsx` | Shell: sticky header with 5 mega-menu tabs, mobile drawer, search, footer quick links |
-| `src/site/nav.ts` | **Single source** for every mega-menu subtab and footer quick link |
-| `src/site/ui.tsx` | Primitives: `PageHero`, `SectionHead`, `NumberPanel`, `ListPanel`, `ImageCard`, `StoryCard`, `CtaBanner`, `Card`, `Faq`, `SplitText` |
-| `src/site/content/` | Page copy from `create/Business References` (`serviceReferences.ts` and `legal/*.ts` are generated — regenerate, don’t hand-edit) |
-| `src/site/media.ts` | Every image/video URL |
-| `public/brand/operava-mark.svg` | OPERAVA mark (white striped circle). Favicons: `public/favicon.svg`, `favicon-*.png`, `apple-touch-icon.png` |
+| File | Actual design responsibility |
+| --- | --- |
+| `src/index.css` | Google Inter font, base tokens and Tailwind CSS v4 `@theme` |
+| `src/site/theme.css` | Exact dark/light mode palettes and contrast rules |
+| `src/site/design-polish.css` | Header states, nav underline, motion and responsive refinements |
+| `src/site/SiteHeader.tsx`, `SiteFooter.tsx`, `Layout.tsx`, `nav.ts` | Official website shell, menu tabs, footer quick links, page structure |
+| `src/site/ui.tsx` | Reusable website UI primitives / patterns |
+| `public/utilities/toolkit.css`, `premium.css` | Original Free Tools website-matched HTML shells and photographic hero |
+| `public/utilities/visuals.css` | Transparent utility artwork placement and theme token parity **only** — never a photo replacement |
+| `public/utilities/media/*.webp` | Nine transparent foreground illustrations (hub, guide, seven tools) |
 
-### 2. Color tokens (`src/index.css` `@theme`)
+### 2. Website color palette (hex values currently used in source)
 
-| Role | Token / class | Hex |
-| :--- | :--- | :--- |
-| Canvas | `bg-black` | `#000000` |
-| Surfaces | `bg-[#0a0a0a]`, `bg-[#0f0f0f]` | `#0A0A0A` / `#0F0F0F` |
-| Hairlines | `border-neutral-900` | `#171717` |
-| Body / muted text | `text-neutral-300` / `-400` / `-500` | — |
-| Accent (text, borders, hover) | `text-accent`, `border-accent` | `#9F67FF` (5.9:1 on black) |
-| Accent fill (with white text) | `bg-accent-solid` | `#7C3AED` (5.7:1) |
+| Purpose | Dark — default | Light — selected |
+| --- | --- | --- |
+| Site canvas (`--bg`) | `#1b1b21` | `#f7f5fb` |
+| Primary surface (`--surface`) | `#24242b` | `#ffffff` |
+| Secondary surface (`--surface-2`) | `#2b2b33` | `#f1ecf8` |
+| Hairlines (`--border`) | `#3b3b46` | `#dad4e6` |
+| Text (`--text`) | `#ffffff` | `#19132b` |
+| Base muted text | `#888888` | `#554d65` |
+| Text/link accent | `#9f67ff` | `#6c27bc` |
+| Filled button accent | `#7c3aed` | `#6220ac` |
+| Header default | `rgba(29,29,36,.95)` | `rgba(250,248,255,.94)` |
+| Header scrolled | `rgba(33,33,41,.96)` | `rgba(251,249,255,.97)` |
 
-### 3. Typography
+Further Tailwind brand tokens: `--color-accent-deep: #5b21b6`, `--color-brand-blue: #3d4bff`, `--color-brand-violet: #9860ee`, `--color-brand-magenta: #c04cf0`. Token-specific contrast overrides in `src/site/theme.css` take precedence where applicable. Do **not** translate the historical black-only section into a new default: the shipped dark canvas is charcoal `#1b1b21`.
 
-- **Inter** only (400–900, Google Fonts).
-- Display: `font-black uppercase leading-[0.85]` with tight tracking (hero 84–108px, sections 34–64px).
-- Kickers: `text-[11px] tracking-[0.3em] uppercase text-accent font-bold`.
-- Nav / buttons: `text-[11px] tracking-widest uppercase font-semibold`.
+### 3. Fonts, shape, headers and spacing
 
-### 4. Motion (all disabled under `prefers-reduced-motion`)
+- **Typeface:** Google **Inter** only, weights 300/400/500/600/700/800/900, with system-ui fallback (see exact import in `src/index.css`).
+- Editorial text system: bold or black-weight uppercase hero/section displays where already used, tight title tracking, 11px letter-spaced uppercase nav/buttons and kickers. Preserve the existing component-specific font size and weight rather than uniformly replacing them.
+- Header: approximately 64px sticky bar, five mega-menu tabs (Insights, Services, Industries, Careers, About), search, theme switch and mobile drawer. Keep the original layout/interaction, padding and breakpoints.
+- Site panels: restrained 12px-radius cards where present, neutral hairline borders, violet accent, generous spacing. Match existing components, not a new invented design system.
+- Motion: current `.reveal`, `.spotlight`, `.btn-sweep`, `src/site/design-polish.css` transition rules; always respect `prefers-reduced-motion`.
 
-- Logo gaps cut in on load and the mark quarter-turns on hover (`OperavaMark.tsx`).
-- Route change: three accent lines sweep across at the mark’s 34° angle; content fades up.
-- Headlines rise line-by-line; hero copy blurs in; hero images settle from a slow zoom.
-- `.reveal` / `.reveal-child` stagger on scroll; `.spotlight` pointer glow on cards; `.btn-sweep` outline buttons.
-- Home carousel autoplay is driven by its progress bar (pauses on hover/focus).
+### 4. Theme behavior and approved photographic heroes
 
-### 5. Content rules
+- Shared preference: `localStorage['operava-theme']`, applied through `html[data-theme='light']` and default dark; `src/site/ThemeToggle.tsx` is the authority.
+- Both **Free Tools** static HTML editions (`public/utilities/<slug>/index.html` and `public/utilities/<slug>.html`) must use the **same exact site palette, font, header/footer visual language and selected theme**.
+- **Keep the original tool cover photo** `public/media/operava-scene-operava-team-collaboration-in-purple-glow.webp` and the existing dark/light photographic overlays. The transparent WebP icon/illustration sits **in front**; the icon is *not* permission to replace the cover with a gradient or modify the rest of the page.
+- Tool catalog and `/utilities/` footer link stay available; preserve tool scripts (`toolkit.js`, `premium.js`, `extras.js`) unless functionality is explicitly in scope.
 
-- Copy comes from `create/Business References`, `BUSINESSINFO.md` and `AVA-INSTRUCTIONS/`.
-- Do **not** publish unverified certifications (ISO, SOC 2, HIPAA, PCI), prices, client names, awards or performance guarantees.
+### 5. Required change discipline
 
+1. Obtain an **explicit user request or owner approval of a concrete plan** covering the specific change. A self-generated plan does **not** count.
+2. Inspect existing files/styles and identify all intended edits and elements that must remain unchanged. Limit edits to the authorized scope.
+3. **Never** redesign an unrelated section, replace approved photographs, alter theme tokens, substitute a different font, edit navigation, or modify other repositories without permission.
+4. Compare desktop/mobile, light/dark, and (for utilities) catalog, seven tool pages and standalone equivalents.
+5. Validate build/assets/routes as appropriate; confirm GitHub commit separately from Cloudflare Pages production success.
 ### 6. Authoritative Cloudinary Media URLs
 
 | Asset Description | Direct Cloudinary HTTPS URL |
