@@ -205,7 +205,7 @@ export const CAREER_PERKS = [
 
 /** Hiring process (Terms §, BUSINESSINFO §9, previous Careers page) */
 export const HIRING_STEPS = [
-  { n: 'Initial / AI-Assisted Evaluation', d: 'An interactive first evaluation of your background, technical literacy and communication profile — online, through Recruitment AVA or the application form.' },
+  { n: 'Initial / AI-Assisted Evaluation', d: 'Your application is reviewed for relevant background, professional skills, communication and role suitability after submission through the online form.' },
   { n: 'Skills & Specialization Assessment', d: 'Practical tests tailored to the track: software tasks, customer-support scenarios or operational accuracy exercises.' },
   { n: 'Talent Acquisition Interview', d: 'A conversation with OPERAVA talent specialists to align your goals, availability and specialization track.' },
   { n: 'Client Alignment Interview', d: 'For dedicated client engagements, a match and interview with the client team you would join.' },
@@ -264,7 +264,7 @@ export const FAQ_GROUPS: { group: string; items: { q: string; a: string }[] }[] 
   {
     group: 'Careers & contact',
     items: [
-      { q: 'How do I apply for a job?', a: 'Apply through the Careers page or the online application form, or start with Recruitment AVA for an AI-assisted first evaluation. Please do not send resumes by email only unless instructed.' },
+      { q: 'How do I apply for a job?', a: 'Apply through the Careers page using the online application form with email verification. Please do not send resumes by email only unless instructed.' },
       { q: 'Where does OPERAVA recruit talent?', a: 'The Philippines is the primary talent source, and OPERAVA recruits internationally when specialized skills are required.' },
       { q: 'How do I request a quote?', a: 'Submit the inquiry form on the Contact or Request a Quote page. Submissions are verified by email and receive a reference ID.' },
       { q: 'How can I verify an OPERAVA document?', a: 'Use the Document Verification portal with the reference ID printed on the document, or email verification@operavaglobal.com.' },
