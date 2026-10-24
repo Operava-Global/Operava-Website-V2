@@ -631,7 +631,7 @@ export default function OperavaIntakeForm({
             </ul>
           )}
         </div>
-      )
+      )}
 
       <button type="submit" disabled={sending || inspectingResume} className="w-full sm:w-auto h-12 px-8 bg-white text-black text-xs tracking-widest uppercase font-bold hover:bg-accent-solid hover:text-white transition-colors disabled:opacity-60">
         {inspectingResume ? 'Checking PDF…' : sending ? 'Sending verification…' : 'Continue to email verification'}
