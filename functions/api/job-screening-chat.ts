@@ -2,6 +2,7 @@ import { nextInterviewPrompt } from '../lib/recruitmentGuide'
 
 interface Env {
   AI: Ai
+  RECRUITMENT_AVA_ENABLED?: string
 }
 
 const SYSTEM = `You are OPERAVA Recruitment AVA — the official hiring conversation assistant for OPERAVA Global Solutions.
@@ -25,6 +26,11 @@ RULES
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context
+  if (String(env.RECRUITMENT_AVA_ENABLED || '').trim().toLowerCase() !== 'true') {
+    return new Response(JSON.stringify({ error: 'Recruitment AVA is unavailable.' }), {
+      status: 404, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }
   try {
     const body = (await request.json()) as {
       message?: string
