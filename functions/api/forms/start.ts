@@ -46,7 +46,11 @@ export const onRequestPost: PagesFunction<FormEnv> = async ({ request, env }) =>
 
     let body: Record<string, unknown>
     try {
-      body = (await request.json()) as Record<string, unknown>
+      const parsed = await request.json()
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return json({ error: 'Invalid request body.' }, 400)
+      }
+      body = parsed as Record<string, unknown>
     } catch {
       return json({ error: 'Invalid request body.' }, 400)
     }
@@ -60,35 +64,67 @@ export const onRequestPost: PagesFunction<FormEnv> = async ({ request, env }) =>
 
     const name = clean(body.name, 120)
     const email = clean(body.email, 180).toLowerCase()
+    const phone = clean(body.phone, 40)
+    const country = clean(body.country, 80)
+    const phoneDigits = phone.replace(/\D/g, '')
     if (name.length < 2) return json({ error: 'Full name is required.' }, 400)
     if (!EMAIL_RE.test(email)) return json({ error: 'A valid email is required.' }, 400)
+    if (phoneDigits.length < 7 || phoneDigits.length > 15 || !/^[+]?[\d\s().-]{7,40}$/.test(phone)) {
+      return json({ error: 'Enter a valid phone number (7–15 digits).' }, 400)
+    }
+    if (country.length < 2) return json({ error: 'Country / location is required.' }, 400)
     if (body.accurate !== true || body.privacy !== true) {
       return json({ error: 'Required confirmations are missing.' }, 400)
     }
-    if (formType === 'SERVICES' && clean(body.description, 4000).length < 15) {
-      return json({ error: 'Project description is required.' }, 400)
-    }
-    if (formType === 'CAREERS' && !clean(body.position, 180)) {
-      return json({ error: 'Position applying for is required.' }, 400)
-    }
-    if (formType === 'CONTACT' && clean(body.message || body.description, 4000).length < 10) {
-      return json({ error: 'Message is required.' }, 400)
+
+    if (formType === 'SERVICES' || formType === 'CONTACT') {
+      if (!clean(body.category, 180) || !clean(body.service, 180)) {
+        return json({ error: 'Select an inquiry category and service.' }, 400)
+      }
+      if (clean(body.description || body.message, 4000).length < 15) {
+        return json({ error: 'Please describe your requirements (at least 15 characters).' }, 400)
+      }
     }
     if (formType === 'ACADEMY') {
-      if (!clean(body.category, 180)) {
-        return json({ error: 'Inquiry type is required.' }, 400)
-      }
+      if (!clean(body.category, 180)) return json({ error: 'Inquiry type is required.' }, 400)
       if (clean(body.description || body.message, 4000).length < 10) {
         return json({ error: 'Please describe your enrollment or inquiry.' }, 400)
+      }
+    }
+    if (formType === 'CAREERS') {
+      if (!clean(body.position, 180) || !clean(body.specialization, 180) || !clean(body.availability, 180)) {
+        return json({ error: 'Position, specialization and availability are required.' }, 400)
+      }
+      if (!clean(body.education, 300) || clean(body.experience, 4000).length < 15) {
+        return json({ error: 'Education and work experience are required.' }, 400)
+      }
+      const resumeKey = clean(body.resumeKey, 240)
+      const portfolio = clean(body.portfolio, 500)
+      if (!resumeKey && !portfolio) return json({ error: 'Upload a resume or include a portfolio URL.' }, 400)
+      if (resumeKey) {
+        const resume = await db.prepare('SELECT resume_key FROM resumes WHERE resume_key = ? LIMIT 1')
+          .bind(resumeKey).first<{ resume_key: string }>()
+        if (!resume) return json({ error: 'Resume upload was not saved. Upload it again.' }, 400)
       }
     }
 
     const now = Date.now()
     const code = generateOtp()
     const codeHash = await hashOtp(secret, code)
-    // Anti-bot tokens must never be persisted, echoed, or included in confirmation email details.
-    const safeFields = Object.fromEntries(Object.entries(body).filter(([key]) => !/turnstile|captcha|token|secret/i.test(key)))
-    const payload = JSON.stringify({ ...safeFields, name, email, formType })
+    // Only approved, bounded fields may be signed, stored or emailed.
+    // Never persist anti-bot tokens, arbitrary nested objects or internal secrets.
+    const fieldLimits: Record<string, number> = {
+      company: 160, phone: 40, country: 80, category: 180, service: 180,
+      description: 4000, message: 4000, budget: 160, websiteUrl: 500,
+      contactMethod: 80, position: 180, specialization: 180,
+      availability: 180, experience: 4000, education: 300, skills: 2000,
+      portfolio: 500, additional: 4000, resumeKey: 240,
+    }
+    const safeFields: Record<string, string> = {}
+    for (const [field, limit] of Object.entries(fieldLimits)) {
+      if (Object.prototype.hasOwnProperty.call(body, field)) safeFields[field] = clean(body[field], limit)
+    }
+    const payload = JSON.stringify({ ...safeFields, name, email, formType, accurate: true, privacy: true })
     const expiresAt = now + 10 * 60 * 1000
 
     const draftId = await issueSignedDraft(secret, {
