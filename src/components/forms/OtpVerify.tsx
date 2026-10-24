@@ -130,8 +130,8 @@ export default function OtpVerify({
 
   return (
     <div className="max-w-md mx-auto text-center space-y-6 py-6">
-      <h2 className="text-[32px] font-black uppercase leading-[0.9]">Verify your email</h2>
-      <p className="text-sm text-neutral-400 leading-relaxed">We sent a 6-digit verification code to:<br /><strong className="text-white">{maskedEmail}</strong></p>
+      <h2 className="text-[32px] font-black uppercase leading-[0.9]">{careerMode ? "Verify your job application" : "Verify your email"}</h2>
+      <p className="text-sm text-neutral-400 leading-relaxed">{careerMode ? "To finish submitting your application, enter the 6-digit verification code sent to:" : "We sent a 6-digit verification code to:"}<br /><strong className="text-white">{maskedEmail}</strong></p>
       {careerMode && <p className="text-xs text-neutral-400">Careers application: your required PDF CV / résumé stays attached to this verification session. It will be emailed to Talent Acquisition only after successful verification; no R2 storage.</p>}
       <div className="flex justify-center gap-2" role="group" aria-label="Verification code">
         {digits.map((digit, index) => (
@@ -144,7 +144,9 @@ export default function OtpVerify({
             maxLength={1}
             value={digit}
             onChange={(e) => onChange(index, e.target.value)}
-            className="w-11 h-14 text-center text-xl font-black bg-black text-white border border-neutral-800 focus:border-accent outline-none"
+            className={careerMode
+              ? "operava-careers-otp-digit w-11 h-14 text-center text-xl font-black outline-none"
+              : "w-11 h-14 text-center text-xl font-black bg-black text-white border border-neutral-800 focus:border-accent outline-none"}
           />
         ))}
       </div>
@@ -159,7 +161,7 @@ export default function OtpVerify({
         </div>
       )}
       <button type="button" disabled={busy || code.length !== 6} onClick={() => verify()} className="w-full h-12 bg-white text-black text-xs tracking-widest uppercase font-bold hover:bg-accent-solid hover:text-white transition-colors disabled:opacity-50">
-        {busy ? 'Verifying…' : 'VERIFY EMAIL'}
+        {busy ? 'Verifying…' : careerMode ? 'VERIFY & SUBMIT APPLICATION' : 'VERIFY EMAIL'}
       </button>
       <p className="text-xs text-neutral-500">Didn't receive the code?</p>
       <button type="button" onClick={resend} disabled={seconds > 0 || busy} className="text-[11px] tracking-widest uppercase font-semibold text-accent disabled:text-neutral-600">
