@@ -1,128 +1,105 @@
 /**
- * OPERAVA mandatory email format — do not alter layout.
- * Structure (exact):
- *   Email_Header.png
- *   Hi {full_name},
- *   {body}
- *   Operava Team,
- *   Note: This is an email generated email, please do not reply.
- *   Emailfooterimage.jpg
- *   legal
- *   © 2026 OPERAVA GLOBAL SOLUTIONS. All rights reserved.
- *
- * Only full_name and body content change per message.
+ * OPERAVA transactional email visual contract.
+ * Source of truth: email/templates/operava-otp.html, supplied by the owner.
+ * The OTP design remains byte-for-byte the supplied HTML except the footer
+ * link text displays www.operavaglobal.com. Do not change layout, typography,
+ * color, gradient, spacing, content, or branding without explicit approval.
+ * Confirmation and staff messages reuse the exact same email shell.
  */
+export const otpEmailTemplate = `<!doctype html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>Your OPERAVA verification code</title>
+</head>
+<body style="margin:0;padding:0;background-color:#070710;color:#f6f4ff;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;">
+<div style="display:none;font-size:1px;line-height:1px;color:#070710;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">Your OPERAVA verification code is ready. Never share this code.</div>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#070710" style="background-color:#070710;">
+<tr><td align="center" style="padding:48px 16px;">
+<!--[if mso]><table role="presentation" width="560" align="center"><tr><td><![endif]-->
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;">
+<tr><td style="padding:0 8px 28px;text-align:center;">
+<a href="https://www.operavaglobal.com/" style="color:#ffffff;text-decoration:none;font-size:25px;font-weight:700;letter-spacing:6px;">OPERAVA</a>
+<p style="margin:10px 0 0;color:#aaa5bc;font-size:10px;letter-spacing:3px;">GLOBAL SOLUTIONS</p>
+</td></tr>
+<tr><td bgcolor="#101019" style="background-color:#101019;border:1px solid #2c253e;border-radius:20px;overflow:hidden;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+<tr><td style="padding:40px 32px 32px;">
+<p style="margin:0 0 20px;font-size:10px;font-weight:700;letter-spacing:2.5px;color:#c4afff;">EMAIL VERIFICATION</p>
+<h1 style="margin:0 0 16px;font-size:30px;line-height:38px;font-weight:600;letter-spacing:-0.7px;color:#ffffff;">Your access, secured.</h1>
+<p style="margin:0 0 28px;font-size:15px;line-height:25px;color:#b9b5c7;">Use the one-time code below to verify your email address and continue with OPERAVA.</p>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+<tr><td align="center" bgcolor="#211332" style="padding:25px 8px;background-color:#211332;border:1px solid #69429b;border-radius:12px;">
+<p style="margin:0;font-family:'Courier New',monospace;font-size:36px;line-height:44px;font-weight:700;letter-spacing:8px;color:#eee5ff;">{{otp_code}}</p>
+</td></tr></table>
+<p style="margin:18px 0 0;font-size:12px;line-height:20px;color:#aaa4ba;text-align:center;">Expires in {{expiry_minutes}} minutes. Do not share this code.</p>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td style="padding-top:28px;border-bottom:1px solid #2a2635;"></td></tr></table>
+<p style="margin:24px 0 0;font-size:12px;line-height:21px;color:#aaa4ba;">If you didn’t request this code, you can safely ignore this email.</p>
+</td></tr>
+<tr><td align="center" bgcolor="#6220ad" style="padding:42px 24px 30px;background-color:#6220ad;background-image:linear-gradient(180deg,#101019 0%,#310752 24%,#850bfa 58%,#c7c5fb 100%);border-radius:0 0 19px 19px;">
+<p style="margin:0 0 10px;font-size:12px;line-height:20px;font-weight:700;color:#ffffff;letter-spacing:1px;">A WORLD OF POSSIBILITIES.</p>
+<p style="margin:0;font-size:11px;line-height:18px;color:#ffffff;">Philippines, Remote Globally.</p>
+</td></tr>
+</table>
+</td></tr>
+<tr><td align="center" style="padding:24px 12px 0;">
+<p style="margin:0;font-size:10px;line-height:18px;color:#9690a6;">© OPERAVA GLOBAL SOLUTIONS</p>
+<p style="margin:8px 0 0;font-size:11px;line-height:18px;"><a href="https://www.operavaglobal.com/" style="color:#b9a4df;text-decoration:underline;">www.operavaglobal.com</a></p>
+</td></tr>
+</table>
+<!--[if mso]></td></tr></table><![endif]-->
+</td></tr></table>
+</body>
+</html>`
 
-const HEADER_IMG =
-  'https://res.cloudinary.com/b5i5bwwa/image/upload/Email_Header.png'
-const FOOTER_IMG =
-  'https://res.cloudinary.com/b5i5bwwa/image/upload/Emailfooterimage.jpg'
-
-const LEGAL_TEXT =
-  'This email and any attachments may contain confidential, proprietary, or privileged information intended solely for the recipient. If you are not the intended recipient, please do not copy, distribute, disclose, or use this communication. If you received this email in error, please notify the sender and delete it. OPERAVA processes personal information in accordance with applicable privacy and data-protection requirements. This communication may contain service-related, transactional, operational, or client information.'
-
-const COPYRIGHT_TEXT = '\u00A9 2026 OPERAVA GLOBAL SOLUTIONS. All rights reserved.'
-
-const AUTO_NOTE = 'Note: This is an email generated email, please do not reply.&nbsp;'
+function replaceRequired(source: string, needle: string, replacement: string): string {
+  if (!source.includes(needle)) throw new Error('OPERAVA_EMAIL_MASTER_TEMPLATE_MISMATCH')
+  return source.replace(needle, replacement)
+}
 
 /**
- * Mandatory shell. Placeholders:
- *   {{FULL_NAME}} — recipient display name (already escaped by caller helpers)
- *   {{BODY}} — message body HTML only
+ * Confirmation messages follow the same 560px dark, responsive, table-based
+ * design as the owner's OTP master; only the message-specific copy and
+ * reference number replace the OTP-specific copy.
+ * Do not modify the OTP master itself to create confirmation variants.
  */
-export function mandatoryEmailShell(fullNamePlaceholder: string, bodyPlaceholder: string): string {
-  return (
-    '<table width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#160a27" style="width: 100%; margin: 0; padding: 0; background: #160a27; background-color: #160a27; color: #f4eefe">' +
-    '<tbody>' +
-    '<tr>' +
-    '<td align="center" bgcolor="#160a27" style="margin: 0; padding: 0; background: #160a27; background-color: #160a27; color: #f4eefe">' +
-    '<table width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#160a27" style="width: 100%; max-width: 900px; margin: 0 auto; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.45; background: #160a27; background-color: #160a27; color: #f4eefe">' +
-    '<tbody>' +
-    /* Header image — do not change */
-    '<tr>' +
-    '<td width="100%" bgcolor="#160a27" style="padding: 0; margin: 0; font-size: 0; line-height: 0; color: #f4eefe; background: #160a27; background-color: #160a27">' +
-    '<img src="' +
-    HEADER_IMG +
-    '" width="900" alt="OPERAVA GLOBAL SOLUTIONS" style="display: block; width: 100%; max-width: 900px; height: auto; border: 0; margin: 0; padding: 0; background: #160a27; background-color: #160a27">' +
-    '</td>' +
-    '</tr>' +
-    /* Body: Hi {full_name}, then body, then Operava Team + note */
-    '<tr>' +
-    '<td bgcolor="#160a27" style="padding: 18px 0 14px 0; margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.45; background: #160a27; background-color: #160a27; color: #f4eefe">' +
-    '<p style="margin: 0px 0px 8px; padding: 0px; font-weight: normal;">' +
-    '<span style="color:rgb(17, 17, 17); font-family:Arial, Helvetica, sans-serif; font-size: 11px;">' +
-    'Hi ' +
-    fullNamePlaceholder +
-    ',' +
-    '</span><br>' +
-    '</p>' +
-    '<div><br></div>' +
-    '<div>' +
-    bodyPlaceholder +
-    '<br></div>' +
-    '<div><br></div>' +
-    '<div><br></div>' +
-    '<div><br></div>' +
-    '<div>Operava Team,<br></div>' +
-    '<div>' +
-    AUTO_NOTE +
-    '</div>' +
-    '</td>' +
-    '</tr>' +
-    /* Footer image — do not change */
-    '<tr>' +
-    '<td width="100%" bgcolor="#160a27" style="padding: 0; margin: 0; font-size: 0; line-height: 0; color: #f4eefe; background: #160a27; background-color: #160a27">' +
-    '<img src="' +
-    FOOTER_IMG +
-    '" width="900" alt="OPERAVA GLOBAL SOLUTIONS" style="display: block; width: 100%; max-width: 900px; height: auto; border: 0; margin: 0; padding: 0; background: #160a27; background-color: #160a27">' +
-    '</td>' +
-    '</tr>' +
-    /* Legal */
-    '<tr>' +
-    '<td bgcolor="#160a27" style="padding: 0; margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.45; text-align: left; background: #160a27; background-color: #160a27; color: rgb(85, 85, 85)" align="left">' +
-    '<p style="padding: 0px; margin: 0px; line-height: 1.45;">' +
-    '<span style="color:rgb(85, 85, 85); font-family:Arial, Helvetica, sans-serif; font-size: 11px;">' +
-    LEGAL_TEXT +
-    '<br></span></p>' +
-    '<div><br></div>' +
-    '</td>' +
-    '</tr>' +
-    /* Copyright */
-    '<tr>' +
-    '<td bgcolor="#160a27" style="padding: 0; margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.45; text-align: left; background: #160a27; background-color: #160a27; color: rgb(85, 85, 85)" align="left">' +
-    '<p style="padding: 0px; margin: 0px; line-height: 1.45;">' +
-    '<span style="color:rgb(85, 85, 85); font-family:Arial, Helvetica, sans-serif; font-size: 11px;">' +
-    COPYRIGHT_TEXT +
-    '<br></span></p>' +
-    '</td>' +
-    '</tr>' +
-    '</tbody>' +
-    '</table>' +
-    '</td>' +
-    '</tr>' +
-    '</tbody>' +
-    '</table>'
+export function mandatoryEmailShell(
+  fullNamePlaceholder: string,
+  bodyPlaceholder: string,
+  referencePlaceholder = '{{REFERENCE_ID}}',
+): string {
+  let html = otpEmailTemplate
+  html = replaceRequired(html, '<title>Your OPERAVA verification code</title>', '<title>Your OPERAVA submission confirmation</title>')
+  html = replaceRequired(html, 'Your OPERAVA verification code is ready. Never share this code.', 'Your OPERAVA submission confirmation is ready.')
+  html = replaceRequired(html, '>EMAIL VERIFICATION</p>', '>SUBMISSION CONFIRMATION</p>')
+  html = replaceRequired(html, '>Your access, secured.</h1>', '>Your submission, confirmed.</h1>')
+  html = replaceRequired(
+    html,
+    '>Use the one-time code below to verify your email address and continue with OPERAVA.</p>',
+    '>Hi ' + fullNamePlaceholder + ', thank you for contacting OPERAVA. Please find your submission details below.</p>',
   )
+  html = replaceRequired(html, 'font-size:36px;line-height:44px;font-weight:700;letter-spacing:8px;', 'font-size:23px;line-height:34px;font-weight:700;letter-spacing:1px;overflow-wrap:anywhere;')
+  html = replaceRequired(html, '{{otp_code}}', referencePlaceholder)
+  html = replaceRequired(html, 'Expires in {{expiry_minutes}} minutes. Do not share this code.', 'Please keep this reference number for future correspondence.')
+  html = replaceRequired(
+    html,
+    '<p style="margin:24px 0 0;font-size:12px;line-height:21px;color:#aaa4ba;">If you didn’t request this code, you can safely ignore this email.</p>',
+    '<div style="margin:24px 0 0;font-size:13px;line-height:22px;color:#b9b5c7;">' + bodyPlaceholder + '</div>',
+  )
+  return html
 }
 
-/** Build final HTML: only full name + body vary. */
+/** Kept as a compatibility export for existing integrations. */
 export function buildMandatoryEmail(fullName: string, bodyHtml: string): string {
-  const name = fullName && String(fullName).trim() ? String(fullName).trim() : 'there'
-  return mandatoryEmailShell(name, bodyHtml)
+  const safeName = String(fullName || '').trim() || 'there'
+  return mandatoryEmailShell(safeName, bodyHtml)
 }
 
-/** OTP body only — placeholders PURPOSE, OTP_CODE (filled by formCore). */
-export const otpBodyTemplate =
-  'Thank you for choosing OPERAVA. Please use the one-time verification code below to continue your <strong>{{PURPOSE}}</strong>.<br><br>' +
-  'Your verification code is: <strong style="letter-spacing: 0.12em;">{{OTP_CODE}}</strong><br><br>' +
-  'This code expires in <strong>10 minutes</strong>. For your security, do not share it with anyone.<br><br>' +
-  'If you did not request this code, you can safely ignore this email.'
-
-/** OTP full template — NAME + PURPOSE + OTP_CODE */
-export const otpEmailTemplate = mandatoryEmailShell(
-  '{{NAME}}',
-  otpBodyTemplate,
-)
+/** OTP body text is managed by the attached canonical OTP HTML. */
+export const otpBodyTemplate = 'Use the one-time code below to verify your email address and continue with OPERAVA.'
 
 /** Services / contact confirmation body — DETAILS_LIST, REFERENCE_ID */
 export const servicesBodyTemplate =
@@ -175,4 +152,5 @@ export const recruitmentPoolBodyTemplate =
 export const recruitmentPoolConfirmationTemplate = mandatoryEmailShell(
   '{{NAME}}',
   recruitmentPoolBodyTemplate,
+  '{{APPLICATION_ID}}',
 )

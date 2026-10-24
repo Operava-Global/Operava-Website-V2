@@ -11,6 +11,16 @@
 
 **MANDATORY:** [AGENTS.md](AGENTS.md) governs AI agent and developer changes. **Do not modify anything unless explicitly requested by the authorized owner or expressly included in an owner-approved plan.** Drafting your own plan does not authorize implementation. All unrelated components, routes, behavior, existing photos, fonts, headers, footers, themes and assets remain unchanged by default.
 
+## ✉️ Mandatory OPERAVA email design — OTP and confirmations
+
+**Authoritative reference:** [`email/templates/operava-otp.html`](email/templates/operava-otp.html) is the owner-provided HTML email design. Its structure, HTML table layout, inline styling, typography, sizes, colors, spacing, purple gradient panel, OPERAVA wordmark, and responsive/Outlook wrappers are **mandatory**. Do not redesign or substitute an older image-based template.
+
+- **OTP must exactly match the reference HTML.** The only owner-requested adjustment to that original HTML is the **visible footer link label**: `www.operavaglobal.com`, linking to `https://www.operavaglobal.com/`. Preserve the `{{otp_code}}` and `{{expiry_minutes}}` placeholders, the code's six-digit format, and the ten-minute expiry. Do not change this design or copy without explicit owner approval.
+- **Confirmation emails must use the same design and structure:** centered 560px table, dark `#070710` canvas, `#101019` card, purple code/reference panel, divider, 4-stop violet gradient banner, matching branding and website footer. Only confirmation-specific heading/body/reference text changes. The client/customer, Careers applicant, Academy, internal staff and recruiting-pool templates all follow this same shell.
+- **Runtime implementation:** `functions/lib/emailTemplates.ts` embeds the exact HTML from that reference and derives confirmation variants from it; `functions/lib/formCore.ts` substitutes escaped fields. The README rule governs all subsequent OTP/confirmation-template work; keep the HTML reference and its runtime copy in sync.
+- **Keep delivery unchanged:** existing SES SMTP in Sydney, verified six-digit email OTP, one-use/expiry limits, sender identity, submission reference numbers, inbox routing and optional under-5-MB direct-to-email attachments remain as implemented. Styling approval is **not** permission to change authentication, SMTP, D1/R2, attachments, unrelated website UI, or production configuration.
+- **Required tests before release:** `npm run lint`, `npm run build:pages`, and the email-template regression check confirming byte-for-byte OTP template parity with the reference HTML (except the authorized footer-label change). Verify HTML rendering and email inbox behavior with an owner-controlled test mailbox before asserting end-to-end delivery.
+
 ## 🔒 Confidentiality & License Notice
 
 **PROPRIETARY AND CONFIDENTIAL — STRICTLY PRIVATE & ONLY FOR OPERAVA GLOBAL SOLUTIONS.**
