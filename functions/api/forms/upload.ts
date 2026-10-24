@@ -18,7 +18,7 @@ export const onRequestPost: PagesFunction<FormEnv> = async ({ request }) => {
     catch (error) { return json({ error: error instanceof Error ? error.message : 'Unsupported file.' }, 400) }
     let parsed
     try {
-      parsed = await parseResumeFile(attachment.filename, attachment.contentType, attachment.bytes.slice().buffer)
+      parsed = await parseResumeFile(attachment.filename, attachment.contentType, attachment.bytes.slice().buffer as ArrayBuffer)
     } catch {
       // Scanned or image-only PDFs are still eligible attachments; parsing is best effort.
     }
