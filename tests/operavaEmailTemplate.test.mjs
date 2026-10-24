@@ -34,7 +34,7 @@ test('all confirmation variants keep the same visual shell and website footer', 
     assert.match(html, /background-color:#101019/)
     assert.match(html, /background-color:#211332/)
     assert.match(html, /linear-gradient\(180deg,#101019 0%,#310752 24%,#850bfa 58%,#c7c5fb 100%\)/)
-    assert.match(html, /SUBMISSION CONFIRMATION/)
+    assert.match(html, html === applicationConfirmationTemplate ? /APPLICATION CONFIRMATION/ : /SUBMISSION CONFIRMATION/)
     assert.match(html, /www\.operavaglobal\.com<\/a>/)
     assert.doesNotMatch(html, /{{otp_code}}|{{expiry_minutes}}|Email_Header\.png|Emailfooterimage\.jpg/)
   }
