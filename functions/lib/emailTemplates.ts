@@ -141,7 +141,7 @@ function careersConfirmationCopy(html: string, staff = false): string {
     '>Hi ' + (staff ? 'Team' : '{{NAME}}') + ', thank you for contacting OPERAVA. Please find your submission details below.</p>',
     staff
       ? '>Hello Talent Acquisition Team. A new job application has been submitted. The applicant details are below.</p>'
-      : '>Hi {{NAME}}, thank you for submitting your application to OPERAVA Global Solutions. Your application details are below.</p>',
+      : '>Hi {{NAME}}, your application has been submitted. Please find your application details below.</p>',
   )
   return result
 }
