@@ -29,7 +29,6 @@ const COOKIE_POLICY: LegalDoc = {
           t: 'defs',
           items: [
             { term: 'Consent preference', text: `Browser storage (${CONSENT_KEY}) that remembers whether you accepted all cookies or essential only.` },
-            { term: 'Recruitment session', text: 'Session storage used by Recruitment AVA to keep your screening session while the browser tab is open.' },
             { term: 'Security & delivery', text: 'Our hosting and security provider may set strictly necessary cookies to protect the site against abuse and deliver it reliably.' },
             { term: 'Form verification', text: 'Inquiry and application forms use one-time email codes held server-side; no tracking cookie is set for this.' },
           ],
