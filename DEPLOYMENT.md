@@ -43,3 +43,15 @@ The repository currently has no npm lockfile, so the workflow uses npm install r
 ## Verification
 Check /api/health for binding and email readiness. A successful site deployment alone does not prove email delivery.
 Do not send test submissions to customers. Validate OTP delivery with an authorised test address after SMTP secrets are configured.
+
+## Current form-submission rules
+All public Services, Contact, Careers and Academy forms use the same verified submission sequence:
+`POST /api/forms/start` → SES SMTP OTP → `POST /api/forms/verify` → atomic D1 submission and OTP consumption → confirmation and staff notifications. A resend uses `/api/forms/resend`.
+The server validates required form fields and persists only an allowlist of bounded text fields. Uploaded résumés must be written to D1 before an upload is acknowledged. R2 remains optional for original document binaries.
+
+The legacy unverified direct-email endpoints `/api/inquiry` and `/api/apply` are disabled by default (HTTP 410). To intentionally restore them, set `LEGACY_UNVERIFIED_FORMS_ENABLED=true`, but this bypasses the verified submission workflow and is **not recommended**.
+
+## Recruitment AVA retained but unavailable on the public website
+The Recruitment AVA source code, tests/reference assets, and Pages Functions are **preserved** in this repository. The old `/ai-job-screening` route redirects to `/careers/hiring-process`. Public hiring content directs applicants to `/apply`.
+
+The `/api/recruitment/*` and `/api/job-screening-chat` endpoints default to HTTP 404. Explicit `RECRUITMENT_AVA_ENABLED=true` in the Pages environment can restore those APIs if the feature is deliberately relaunched. The main-site business AVA is separate and unaffected.
