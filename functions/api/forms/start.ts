@@ -195,7 +195,7 @@ export const onRequestPost: PagesFunction<FormEnv> = async ({ request, env }) =>
       await sendEmail(env, {
         from: senderFor(formType, env),
         to: [email],
-        subject: 'Verification Code',
+        subject: formType === 'CAREERS' ? 'Verify your OPERAVA job application' : 'Verification Code',
         html: otpEmailHtml(name, purposeLabel(formType), code),
         text: otpEmailText(name, purposeLabel(formType), code),
       })
