@@ -1,21 +1,27 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "operava-website",
+  "name": "operava-website-v2",
   "compatibility_date": "2026-08-16",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "pages_build_output_dir": "dist",
-  "ai": { "binding": "AI" },
+  "ai": {
+    "binding": "AI"
+  },
   "d1_databases": [
     {
       "binding": "SUBMISSIONS_DB",
       "database_name": "operava-submissions",
-      "database_id": "249fe1d2-ce2c-4333-bd9c-1e0fa42ececa"
+      "database_id": "19f8a477-6369-49de-bb25-2c9358820757"
     }
   ],
   "vars": {
     "NODE_VERSION": "22",
     "SES_EMAIL_FROM": "OPERAVA <noreply@operavaglobal.com>",
     "CLIENT_INBOX": "hello@operavaglobal.com",
-    "TALENT_INBOX": "talents@operavaglobal.com"
+    "TALENT_INBOX": "talents@operavaglobal.com",
+    "SES_SMTP_HOST": "email-smtp.ap-southeast-2.amazonaws.com",
+    "ACADEMY_INBOX": "academy@operavaglobal.com"
   }
 }

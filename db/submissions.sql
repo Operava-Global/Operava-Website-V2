@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS form_submissions (
   verification_status TEXT NOT NULL DEFAULT 'PENDING',
   status TEXT NOT NULL DEFAULT 'NEW',
   resume_key TEXT,
+  resume_text TEXT,
+  resume_parsed TEXT,
   created_at TEXT NOT NULL,
   verified_at TEXT
 );
@@ -52,6 +54,11 @@ CREATE TABLE IF NOT EXISTS applicants (
   additional TEXT,
   status TEXT NOT NULL DEFAULT 'APPLICATION_IN_PROGRESS',
   source TEXT NOT NULL DEFAULT 'recruitment_ava',
+  application_txt TEXT,
+  application_txt_name TEXT,
+  terms_accepted INTEGER NOT NULL DEFAULT 0,
+  privacy_accepted INTEGER NOT NULL DEFAULT 0,
+  otp_confirmed INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -96,3 +103,23 @@ CREATE TABLE IF NOT EXISTS document_verifications (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS document_verifications_status_idx ON document_verifications(status);
+
+CREATE TABLE IF NOT EXISTS resumes (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ resume_key TEXT NOT NULL UNIQUE,
+ original_filename TEXT,
+ content_type TEXT,
+ text_content TEXT NOT NULL,
+ parsed_json TEXT,
+ full_name TEXT,
+ email TEXT,
+ phone TEXT,
+ location TEXT,
+ education TEXT,
+ experience TEXT,
+ skills TEXT,
+ summary TEXT,
+ created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_resumes_email ON resumes(email);
+CREATE INDEX IF NOT EXISTS idx_resumes_key ON resumes(resume_key);

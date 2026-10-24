@@ -1,99 +1,45 @@
-# OPERAVA form email routing
+# Website V2 deployment
 
-## Primary website forms (OTP path)
+Target: `Operava-Global/Operava-Website-V2`, branch `main`.
+Cloudflare account: **Jelvan - Business - Operava** (`d33b1b4666f334f763903c86728a3e74`).
+Pages project: `operava-website-v2`.
+URL: https://operava-website-v2.pages.dev
 
-Contact, Quote/Services, and Careers pages use `OperavaIntakeForm` → `/api/forms/start` (OTP) → `/api/forms/verify`.
+## Build
+- Node.js: 22
+- Build command: `npm run build:pages`
+- Output: `dist`; root: repository root.
+- Pages compiles the `functions/` directory automatically.
+- The optional Express build goes to `build/server.cjs`, outside public assets.
 
-After the applicant/client verifies their email:
+## Bindings
+| Binding | Resource |
+| --- | --- |
+| SUBMISSIONS_DB | D1 `operava-submissions`, ID `19f8a477-6369-49de-bb25-2c9358820757` |
+| AI | Workers AI |
+| OTP_SECRET | Cloudflare encrypted secret, minimum 32 characters |
+| SES_SMTP_USERNAME | Required encrypted SES SMTP credential |
+| SES_SMTP_PASSWORD | Required encrypted SES SMTP credential |
 
-1. **Confirmation email** is sent **to the submitter** from the client or talent inbox
-2. **Staff and the relevant inbox are CC’d** on that same confirmation, and replies route to the relevant client or talent inbox
-3. A second **staff-only** notification is also sent with the full payload
+`wrangler.jsonc` is the source of truth for bindings and plain variables.
+The D1 schema is in `db/submissions.sql`. The business database was initialised with forms, OTP, recruitment, assessment, document verification and resume-text tables.
 
-| Form type | Sent to | Reply-To | CC / staff |
-|---|---|---|---|
-| CONTACT | submitter | `hello@operavaglobal.com` | `CLIENT_INBOX` (default `hello@operavaglobal.com`, always CC'd) |
-| SERVICES | submitter | `hello@operavaglobal.com` | `CLIENT_INBOX` (default `hello@operavaglobal.com`, always CC'd) |
-| CAREERS | submitter | `talents@operavaglobal.com` | `TALENT_INBOX` (default `talents@operavaglobal.com`) + `hello@operavaglobal.com` |
+Email uses Amazon SES SMTP in Sydney on port 587 with STARTTLS. Resend keys are not used.
+Set SES credentials in Pages production secrets, then redeploy. Never commit credentials.
+Sender: `OPERAVA <noreply@operavaglobal.com>`; inboxes: `hello@`, `talents@`, `academy@operavaglobal.com`.
+The sending identity must be verified in SES.
 
-Ticket / reference IDs use `OPERAVA-SER-########`, `OPERAVA-CAR-########`, or `OPERAVA-CON-########`.
+## Optional services and current limitations
+R2 is not enabled in the target account as checked on 25 October 2026 (Malaysia).
+No RESUMES_BUCKET binding is declared. Extracted resume text and structured fields are stored in D1; original binaries are not retained.
+To retain originals, enable R2, create a private bucket, and add RESUMES_BUCKET to the Wrangler configuration.
+MEGA backup is optional and needs separate credentials. It is not configured by this deployment.
+AWS connection reauthentication is required before SES credentials can be provisioned through the connected app.
 
-## Legacy / AVA ticket path
+## Deployment
+Git-connected Pages deploys main automatically. The manual GitHub workflow is an alternative and requires the repository secret OPERAVA_BUSINESS_CF_API_TOKEN scoped to this business account. It no longer uses the old database ID or the other Pages project.
+The repository currently has no npm lockfile, so the workflow uses npm install rather than npm ci.
 
-`/api/inquiry` and `/api/apply` (used by AVA-style tickets and `submitInquiry`) send confirmation **to the submitter** from the relevant client or talent inbox with staff **CC**:
-
-| Source | Sent to | Reply-To | CC |
-|---|---|---|---|
-| Contact, services, AVA consultation | submitter | `hello@operavaglobal.com` | `CLIENT_INBOX` (default `hello@operavaglobal.com`, always CC'd) |
-| Careers apply, AVA career interest | submitter | `talents@operavaglobal.com` | `TALENT_INBOX` (talents@operavaglobal.com) + `hello@operavaglobal.com`, optional `APPLICANT_CC` |
-
-Ticket IDs: `OPV-######`.
-
-OTP and staff notification emails do not set a Reply-To address. Client confirmations reply to `hello@operavaglobal.com`; applicant confirmations reply to `talents@operavaglobal.com`.
-
-## Cloudflare Pages secrets & bindings
-
-Set these on the production Pages project:
-
-**Secrets / vars**
-- `RESEND_API_KEY` (required for all email)
-- `OTP_SECRET` (**required** for forms + recruitment OTP). Generate with `openssl rand -hex 32` (64 hex chars). Minimum length **32**. There is **no** fallback to `RESEND_API_KEY` or a hardcoded default — missing/short secret returns HTTP 503 `OTP_SECRET_MISSING`.
-- `RESEND_FROM` = `OPERAVA <notification@operavaglobal.com>` (or `RESEND_EMAIL_FROM`)
-- `CLIENT_INBOX` = `hello@operavaglobal.com`
-- `TALENT_INBOX` = `talents@operavaglobal.com`
-- `APPLICANT_CC` (optional, comma-separated extra CCs for career tickets)
-- `NODE_VERSION` = `22` (Vite 8 requires modern Node.js)
-
-**How to set `OTP_SECRET`**
-
-1. Generate locally: `openssl rand -hex 32`
-2. Cloudflare Dashboard → **Workers & Pages** → your Pages project → **Settings** → **Environment variables** (Production)
-3. Add secret: name `OTP_SECRET`, value = the generated string, type **Secret**
-4. **Redeploy** (Retry deployment or push to `main`). Secrets apply at deploy time.
-5. Confirm: `GET /api/health` → `bindings.otpSecretConfigured: true`
-
-**Bindings**
-- `AI` — Workers AI (AVA chat → `@cf/meta/llama-3.3-70b-instruct-fp8-fast`)
-- `SUBMISSIONS_DB` — D1 (`operava-submissions`) optional; OTP works via signed drafts without D1
-- `RESUMES_BUCKET` — R2 (`operava-resumes`) optional; applications proceed with `pending:` key if unbound
-
-**Important:** After adding or changing secrets in the Cloudflare dashboard, trigger a **new deployment** (push to `main` or Retry deployment). Secrets are injected only at deploy time.
-
-Verify `notification@operavaglobal.com` (or the RESEND_FROM domain) in Resend before going live.
-
-### Troubleshooting: `R2 bucket 'operava-resumes' not found`
-
-If a deployment fails during Function publish with:
-
-```
-Error: Failed to publish your Function. Got error: R2 bucket 'operava-resumes' not found.
-Verify the bucket exists in your account and that the bucket_name in your configuration is correct.
-```
-
-This is a **Cloudflare account/dashboard configuration issue, not a code issue** — `wrangler.jsonc` in this repo does not declare an `r2_buckets` binding, so `RESUMES_BUCKET` is bound entirely from the Pages project's dashboard settings.
-
-To fix:
-
-1. In the Cloudflare dashboard, go to **R2** and confirm a bucket named exactly `operava-resumes` (case-sensitive) exists in the **same account** the Pages project deploys to.
-2. If it doesn't exist, create it, or if it exists under a different name, either rename it to match or update the binding.
-3. Go to the Pages project → **Settings → Functions → R2 bucket bindings** and confirm `RESUMES_BUCKET` points at the correct bucket.
-4. Retry the deployment (or push a new commit) after correcting the binding.
-
-Since the application already treats `RESUMES_BUCKET` as optional at runtime (falling back to a `pending:` resume key, see `functions/lib/formCore.ts`), the binding can also be **removed** from the Pages project's Functions settings if resume storage isn't needed yet — deployments will then succeed without it.
-
-## AVA chat
-
-Production `/api/chat` uses the Workers AI binding. No Gemini key is required. Client-side `avaConversationEngine` is the offline fallback.
-
-## Website build on Cloudflare Pages (`ax-website`)
-
-The live `ax-website-c4y.pages.dev` project is Git-connected to `jelvan-operava/Operava-Website` on the `main` branch. Use the **repository build**, not the legacy static snapshot reconstruction:
-
-- **Build command:** `npx vite build`
-- **Build output directory:** `dist`
-- **Root directory:** repository root
-- **Node.js version:** `22` (also set in `wrangler.jsonc`)
-- **Dependency install:** Cloudflare auto-installs with npm before the build command (Node 22).
-- **Build environment:** Do not set `SKIP_DEPENDENCY_INSTALL`.
-
-The seven original branded website photos are committed as `public/media/operava-*.webp` and copied into `dist/media` by Vite. A successful deployment should serve paths such as `/media/operava-customer-support.webp` directly. Do not set `SKIP_DEPENDENCY_INSTALL` in the build environment.
+## Verification
+Check /api/health for binding and email readiness. A successful site deployment alone does not prove email delivery.
+Do not send test submissions to customers. Validate OTP delivery with an authorised test address after SMTP secrets are configured.

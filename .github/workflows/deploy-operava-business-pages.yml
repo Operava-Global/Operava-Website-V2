@@ -1,57 +1,35 @@
-name: Deploy OPERAVA Website (Business Cloudflare only)
-run-name: Manual OPERAVA Business Pages deployment
-
+name: Deploy OPERAVA Website V2 (Business Cloudflare only)
 on:
   workflow_dispatch:
-
 permissions:
   contents: read
-
 concurrency:
-  group: operava-business-pages
+  group: operava-business-pages-v2
   cancel-in-progress: false
-
 jobs:
   deploy:
-    name: Build and deploy to OPERAVA Business account
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
       CLOUDFLARE_ACCOUNT_ID: d33b1b4666f334f763903c86728a3e74
       CLOUDFLARE_API_TOKEN: ${{ secrets.OPERAVA_BUSINESS_CF_API_TOKEN }}
-      BUSINESS_SUBMISSIONS_DB_ID: ${{ secrets.OPERAVA_BUSINESS_SUBMISSIONS_DB_ID }}
     steps:
-      - name: Checkout official OPERAVA business repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Verify business-only deploy prerequisites
-        shell: bash
-        run: |
-          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::OPERAVA_BUSINESS_CF_API_TOKEN is missing"; exit 1; }
-          test -n "$BUSINESS_SUBMISSIONS_DB_ID" || { echo "::error::OPERAVA_BUSINESS_SUBMISSIONS_DB_ID is missing"; exit 1; }
-          [[ "$BUSINESS_SUBMISSIONS_DB_ID" =~ ^[0-9a-fA-F-]{36}$ ]] || { echo "::error::Invalid business D1 database ID"; exit 1; }
-          test "$CLOUDFLARE_ACCOUNT_ID" = "d33b1b4666f334f763903c86728a3e74" || exit 1
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-      - name: Install dependencies
-        run: npm ci
-      - name: Build official website
-        run: npx vite build
-      - name: Bind business-owned submissions database for Pages deployment
-        shell: bash
+      - name: Verify deployment target
         run: |
-          node - <<'NODE'
-          const fs=require('fs');
-          const file='wrangler.jsonc';
-          const src=fs.readFileSync(file,'utf8');
-          const old='249fe1d2-ce2c-4333-bd9c-1e0fa42ececa';
-          if(!src.includes(old))throw Error('Expected legacy submissions database binding was not found');
-          const updated=src.replace(old,process.env.BUSINESS_SUBMISSIONS_DB_ID);
-          fs.writeFileSync(file,updated);
-          NODE
-      - name: Deploy only to Business Cloudflare Pages
-        run: npx wrangler pages deploy dist --project-name=operava-website --branch=main
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::OPERAVA_BUSINESS_CF_API_TOKEN is missing"; exit 1; }
+          test "$CLOUDFLARE_ACCOUNT_ID" = "d33b1b4666f334f763903c86728a3e74"
+          node -e 'const c=JSON.parse(require("fs").readFileSync("wrangler.jsonc","utf8"));if(c.name!=="operava-website-v2"||c.d1_databases[0].database_id!=="19f8a477-6369-49de-bb25-2c9358820757")process.exit(1)'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Build Pages assets
+        run: npm run build:pages
+      - name: Apply idempotent database schema
+        run: npx wrangler@4 d1 execute operava-submissions --remote --file=db/submissions.sql
+      - name: Deploy Website V2
+        run: npx wrangler@4 pages deploy dist --project-name=operava-website-v2 --branch=main
