@@ -9,6 +9,7 @@ import {
 
 interface Env extends FormEnv {
   APPLICANT_CC?: string
+  LEGACY_UNVERIFIED_FORMS_ENABLED?: string
 }
 
 const EMAIL_RE =
@@ -46,6 +47,10 @@ function json(body: Record<string, unknown>, status = 200): Response {
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+  // The legacy unverified email-only endpoint must not bypass OTP or D1 persistence.
+  if (String(env.LEGACY_UNVERIFIED_FORMS_ENABLED || '').trim().toLowerCase() !== 'true') {
+    return json({ error: 'Email verification is required. Submit through the Careers application form.', code: 'OTP_REQUIRED' }, 410)
+  }
   try {
     const body = (await request.json()) as Record<string, unknown>
     if (clean(body.website, 80)) return json({ ok: true, referenceId: 'OPV-FILTERED' })
