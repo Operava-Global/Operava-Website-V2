@@ -11,11 +11,15 @@ export const onRequestPost: PagesFunction<FormEnv> = async ({ request }) => {
     const form = await request.formData()
     const files = [...form.values()].filter((part): part is File => part instanceof File)
     if (files.length !== 1 || !(form.get('file') instanceof File)) {
-      return json({ error: 'Choose one PDF, DOC, DOCX, or TXT file.' }, 400)
+      return json({ error: 'CV / résumé must be one PDF (.pdf) file. Select exactly one non-editable PDF smaller than 5 MB.', code: 'CAREER_RESUME_PDF_REQUIRED' }, 400)
+    }
+    const resume = files[0]
+    if (!resume.name.toLowerCase().endsWith('.pdf')) {
+      return json({ error: 'Incorrect CV / résumé file format: this Careers upload accepts .pdf only. Export Word or other documents as PDF first.', code: 'CAREER_RESUME_PDF_ONLY' }, 400)
     }
     let attachment
     try { attachment = await readEmailAttachment(files[0]) }
-    catch (error) { return json({ error: error instanceof Error ? error.message : 'Unsupported file.' }, 400) }
+    catch (error) { return json({ error: 'CV / résumé rejected: ' + (error instanceof Error ? error.message : 'Invalid file.'), code: 'CAREER_RESUME_INVALID' }, 400) }
     let parsed
     try {
       parsed = await parseResumeFile(attachment.filename, attachment.contentType, attachment.bytes.slice().buffer as ArrayBuffer)
