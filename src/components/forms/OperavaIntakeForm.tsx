@@ -514,34 +514,39 @@ export default function OperavaIntakeForm({
         <div className="space-y-4 pt-6 border-t border-neutral-900">
           <div>
             <label htmlFor="field-position" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Position <span className="text-accent">*</span></label>
-            <select id="field-position" value={form.position} onChange={set('position')} onBlur={() => handleBlur('position')} className={getFieldClass(Boolean(errors.position), Boolean(touched.position))}>
+            <select id="field-position" aria-invalid={Boolean(errors.position)} value={form.position} onChange={set('position')} onBlur={() => handleBlur('position')} className={getFieldClass(Boolean(errors.position), Boolean(touched.position))}>
               {CAREER_POSITIONS.map((p) => (
                 <option key={p} value={p}>{p}</option>
               ))}
             </select>
+            {careerFieldError('position')}
           </div>
           <div>
-            <label htmlFor="field-specialization" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Specialization / Skills track</label>
-            <select id="field-specialization" value={form.specialization} onChange={set('specialization')} className={getFieldClass(false, false)}>
+            <label htmlFor="field-specialization" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Specialization / Skills track <span className="text-accent">*</span></label>
+            <select id="field-specialization" aria-invalid={Boolean(errors.specialization)} value={form.specialization} onChange={set('specialization')} onBlur={() => handleBlur('specialization')} className={getFieldClass(Boolean(errors.specialization), Boolean(touched.specialization))}>
               <option value="">Select specialization</option>
               {currentSpecializations.map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
+            {careerFieldError('specialization')}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Availability</label>
-              <input value={form.availability} onChange={set('availability')} className={getFieldClass(false, false)} />
+              <input id="field-availability" aria-invalid={Boolean(errors.availability)} value={form.availability} onChange={set('availability')} onBlur={() => handleBlur('availability')} className={getFieldClass(Boolean(errors.availability), Boolean(touched.availability))} />
+                {careerFieldError('availability')}
             </div>
             <div>
               <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Experience</label>
-              <input value={form.experience} onChange={set('experience')} className={getFieldClass(false, false)} />
+              <input id="field-experience" aria-invalid={Boolean(errors.experience)} value={form.experience} onChange={set('experience')} onBlur={() => handleBlur('experience')} className={getFieldClass(Boolean(errors.experience), Boolean(touched.experience))} />
+                {careerFieldError('experience')}
             </div>
           </div>
           <div>
             <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Education</label>
-            <input value={form.education} onChange={set('education')} className={getFieldClass(false, false)} />
+            <input id="field-education" aria-invalid={Boolean(errors.education)} value={form.education} onChange={set('education')} onBlur={() => handleBlur('education')} className={getFieldClass(Boolean(errors.education), Boolean(touched.education))} />
+              {careerFieldError('education')}
           </div>
           <div>
             <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Additional skills</label>
@@ -549,27 +554,46 @@ export default function OperavaIntakeForm({
           </div>
           <div>
             <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Portfolio / LinkedIn (optional)</label>
-            <input value={form.portfolio} onChange={set('portfolio')} className={getFieldClass(false, false)} />
+            <input id="field-portfolio" aria-invalid={Boolean(errors.portfolio)} value={form.portfolio} onChange={set('portfolio')} onBlur={() => handleBlur('portfolio')} className={getFieldClass(Boolean(errors.portfolio), Boolean(touched.portfolio))} />
+              {careerFieldError('portfolio')}
           </div>
           <div>
-            <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Resume (PDF, DOC, DOCX, TXT — under 5 MB)</label>
+            <label htmlFor="field-resume" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">CV / Résumé — non-editable PDF only, under 5 MB <span className="text-accent">*</span></label>
             <input
+              id="field-resume"
               type="file"
-              accept={ATTACHMENT_ACCEPT}
+              accept={CAREER_RESUME_ACCEPT}
+              required
+              aria-invalid={Boolean(errors.resume)}
+              aria-describedby="resume-guidance"
               onChange={async (e) => {
-                const file = e.target.files?.[0]
-                if (!file) { setAttachment(null); setResumeName(''); return }
+                const file = e.target.files?.[0] || null
+                setAttachment(null)
+                setResumeName('')
+                setTouched(prev => ({ ...prev, resume: true }))
+                if (!file) {
+                  setErrors(prev => ({ ...prev, resume: 'CV / résumé missing: select one PDF file smaller than 5 MB.' }))
+                  return
+                }
+                setInspectingResume(true)
                 setError('')
                 try {
                   await uploadResume(file)
                 } catch (err) {
-                  setError(err instanceof Error ? err.message : 'Resume upload failed.')
+                  const message = err instanceof Error ? err.message : 'Unable to inspect the PDF CV / résumé.'
+                  setErrors(prev => ({ ...prev, resume: message }))
+                  setError('CV / résumé: ' + message)
+                  e.target.value = ''
+                } finally {
+                  setInspectingResume(false)
                 }
               }}
               className="block w-full text-sm text-neutral-400"
             />
-            {resumeName && (
-              <p className="mt-2 text-xs text-emerald-400 font-medium">Selected: {resumeName} · emailed to our team after verification</p>
+            <p id="resume-guidance" className="mt-2 text-xs text-neutral-500">Required: genuine non-editable-format PDF (.pdf), strictly less than 5 MB (5,000,000 bytes). Export your CV from Word as PDF; DOC, DOCX, TXT, JPEG and PNG are rejected. The file is sent directly to Talent Acquisition by email after OTP verification; it is not stored in R2.</p>
+            {careerFieldError('resume')}
+            {resumeName && attachment && !errors.resume && (
+              <p className="mt-2 text-xs text-emerald-400 font-medium">PDF verified: {resumeName} ({(attachment.size / 1_000_000).toFixed(2)} MB). Ready for email submission.</p>
             )}
           </div>
           <div>
@@ -590,15 +614,25 @@ export default function OperavaIntakeForm({
         </label>
       </div>
 
-      {error && (
-        <div className="border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300 flex items-start gap-2">
-          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-          <span>{error}</span>
+      {(error || (kind === 'CAREERS' && Object.values(errors).some(Boolean))) && (
+        <div role="alert" className="border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          {error && <p className="flex items-start gap-2"><AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />{error}</p>}
+          {kind === 'CAREERS' && Object.values(errors).some(Boolean) && (
+            <ul className="mt-2 list-disc pl-5 space-y-1" aria-label="Specific Careers application errors">
+              {(Object.entries(errors) as Array<[keyof FormValidationState, string | undefined]>)
+                .filter(([, message]) => Boolean(message))
+                .map(([key, message]) => (
+                  <li key={key}>
+                    <a href={`#field-${key}`} className="underline underline-offset-2 font-semibold">{careerErrorLabels[key] || key}</a>: {message}
+                  </li>
+                ))}
+            </ul>
+          )}
         </div>
-      )}
+      )
 
-      <button type="submit" disabled={sending} className="w-full sm:w-auto h-12 px-8 bg-white text-black text-xs tracking-widest uppercase font-bold hover:bg-accent-solid hover:text-white transition-colors disabled:opacity-60">
-        {sending ? 'Sending verification…' : 'Continue to email verification'}
+      <button type="submit" disabled={sending || inspectingResume} className="w-full sm:w-auto h-12 px-8 bg-white text-black text-xs tracking-widest uppercase font-bold hover:bg-accent-solid hover:text-white transition-colors disabled:opacity-60">
+        {inspectingResume ? 'Checking PDF…' : sending ? 'Sending verification…' : 'Continue to email verification'}
       </button>
 
 
