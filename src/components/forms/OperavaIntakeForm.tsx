@@ -605,13 +605,15 @@ export default function OperavaIntakeForm({
 
       <div className="space-y-3 pt-6 border-t border-neutral-900">
         <label className="flex items-start gap-3 text-xs text-neutral-300 leading-relaxed">
-          <input type="checkbox" checked={form.accurate} onChange={set('accurate')} className="mt-0.5 w-4 h-4 shrink-0" />
+          <input id="field-accurate" type="checkbox" aria-invalid={Boolean(errors.accurate)} checked={form.accurate} onChange={set('accurate')} className="mt-0.5 w-4 h-4 shrink-0" />
           <span>I confirm the information provided is accurate. <span className="text-accent">*</span></span>
         </label>
+        {careerFieldError('accurate')}
         <label className="flex items-start gap-3 text-xs text-neutral-300 leading-relaxed">
-          <input type="checkbox" checked={form.privacy} onChange={set('privacy')} className="mt-0.5 w-4 h-4 shrink-0" />
+          <input id="field-privacy" type="checkbox" aria-invalid={Boolean(errors.privacy)} checked={form.privacy} onChange={set('privacy')} className="mt-0.5 w-4 h-4 shrink-0" />
           <span>I agree to the processing of my data as described in the <Link to="/privacy" className="underline underline-offset-4 hover:text-accent">Privacy Policy</Link>. <span className="text-accent">*</span></span>
         </label>
+        {careerFieldError('privacy')}
       </div>
 
       {(error || (kind === 'CAREERS' && Object.values(errors).some(Boolean))) && (
