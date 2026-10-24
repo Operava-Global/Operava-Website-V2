@@ -1,0 +1,20 @@
+/* Tool-specific enhancements. Works with OPERAVA dark and light theme. */
+.op-addon{border:1px solid var(--op-border,#514b58);border-radius:12px;padding:20px;margin:20px 0;background:var(--op-panel2,#2b2b33)}
+.op-addon h3{font-size:16px!important;color:var(--op-text,#fff)!important;font-weight:800;margin:0 0 10px}
+.op-addon p,.op-addon small{font-size:13px;color:var(--op-muted,#bbb)}
+.op-addon-row{display:flex;flex-wrap:wrap;align-items:end;gap:10px}
+.op-addon label{display:grid;gap:6px;flex:1 1 160px;font-size:13px;color:var(--op-text,#fff)}
+.op-addon input,.op-addon select{min-height:41px;font:inherit;padding:8px;border-radius:8px;background:var(--op-panel,#24242b)!important;color:var(--op-text,#fff)!important;border:1px solid var(--op-border,#555)!important;min-width:0}
+.op-addon button{min-height:40px;padding:8px 13px;cursor:pointer}
+.op-addon [role=status],.op-addon output{font-size:13px;display:block;margin-top:10px;color:var(--op-muted,#bbb)}
+.op-note-results{max-height:210px;overflow:auto;display:grid;gap:6px;margin-top:12px}
+button.op-note-result{display:block;width:100%;text-align:left;white-space:normal;background:var(--op-panel,#24242b)!important;color:var(--op-text,#fff)!important;border:1px solid var(--op-border,#555)!important}
+.op-doc-drop{border:2px dashed var(--op-violet,#9f67ff);border-radius:10px;padding:16px;margin-top:14px;text-align:center;color:var(--op-muted,#aaa)}
+.op-doc-drop.is-over{background:#9f67ff20}
+.op-pdf-preview{background:#fff;border:1px solid #ccc;border-radius:9px;color:#161616;padding:15px;max-height:250px;overflow:auto}
+.op-pdf-preview h2{color:#151515!important}
+.op-pdf-preview pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#151515;font:14px/1.5 Georgia,serif}
+.ref-card button.op-bookmark{margin-top:12px;font-size:12px;padding:7px 11px;background:#543b71!important}
+html[data-theme=light] .ref-card button.op-bookmark{background:#dfcef6!important;color:#35115e!important}
+.op-calc-history{border-top:1px solid var(--op-border,#555);margin-top:15px;padding-top:10px}
+@media(max-width:600px){.op-addon{padding:14px}.op-addon-row{display:grid}.op-addon-row>*{width:100%}}

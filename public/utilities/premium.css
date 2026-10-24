@@ -1,0 +1,54 @@
+
+/* OPERAVA root-site parity: Inter, dark charcoal, violet, fixed-height navigation, content and footer.
+   Light mode honours main-site localStorage key 'operava-theme'. */
+:root{--op-canvas:#1b1b21;--op-panel:#24242b;--op-panel2:#2b2b33;--op-border:#3b3b46;--op-text:#fff;--op-muted:#aaa5b4;--op-violet:#9f67ff;--op-violet-solid:#7c3aed;--op-header:#080809f0;--op-footer:#111114;color-scheme:dark}
+html[data-theme=light]{--op-canvas:#f7f7fa;--op-panel:#fff;--op-panel2:#f3eef9;--op-border:#d7d3df;--op-text:#17121d;--op-muted:#605969;--op-violet:#742db7;--op-violet-solid:#6c2db2;--op-header:#fffffff5;--op-footer:#f2eff7;color-scheme:light}
+html[data-theme=light],html[data-theme=light] body{background:var(--op-canvas)!important;color:var(--op-text)!important}
+.op-site-header{background:var(--op-header)!important}
+html[data-theme=light] .op-wordmark,html[data-theme=light] .op-desktop-nav a,html[data-theme=light] .op-theme-toggle,html[data-theme=light] .op-search-toggle,html[data-theme=light] .op-mobile summary{color:var(--op-text)!important}
+html[data-theme=light] .op-contact{color:var(--op-text)!important;border-color:var(--op-text)}
+html[data-theme=light] .op-site-footer{background:var(--op-footer)!important;border-color:var(--op-border)!important;color:var(--op-text)!important}
+html[data-theme=light] .op-foot-wordmark,html[data-theme=light] .op-foot-col h3,html[data-theme=light] .op-foot-utils-heading h3{color:var(--op-text)!important}
+html[data-theme=light] .op-foot-col a,html[data-theme=light] .op-footer-brand p,html[data-theme=light] .op-mail,html[data-theme=light] .op-foot-legal,html[data-theme=light] .op-foot-legal a,html[data-theme=light] .op-foot-utils-heading p{color:var(--op-muted)!important}
+html[data-theme=light] .op-foot-utils,html[data-theme=light] .op-foot-legal{border-color:var(--op-border)!important}
+html[data-theme=light] .op-foot-utils nav a{background:#efe3ff!important;color:#58228f!important;border:1px solid #b7a2d4!important}
+html[data-theme=light] .tool-panel,html[data-theme=light] .explainer,html[data-theme=light] .faq,html[data-theme=light] .ref-card,html[data-theme=light] .op-case-feature,html[data-theme=light] .op-scenario-card,html[data-theme=light] .article .step,html[data-theme=light] .article .more{background:var(--op-panel)!important;color:var(--op-text)!important;border-color:var(--op-border)!important}
+html[data-theme=light] .tool-panel h2,html[data-theme=light] .explainer h2,html[data-theme=light] .faq h2,html[data-theme=light] .ref-card h2,html[data-theme=light] .article h2,html[data-theme=light] .article h3{color:var(--op-text)!important}
+html[data-theme=light] .tool-panel label,html[data-theme=light] .faq summary{color:var(--op-text)!important}
+html[data-theme=light] .muted,html[data-theme=light] .small,html[data-theme=light] .explainer p,html[data-theme=light] .faq p,html[data-theme=light] .ref-card p,html[data-theme=light] .article p,html[data-theme=light] .article li,html[data-theme=light] .op-case-intro p,html[data-theme=light] .op-case-feature-body p,html[data-theme=light] .op-scenario-card p{color:var(--op-muted)!important}
+html[data-theme=light] .tool-panel input:not([type=file]),html[data-theme=light] .tool-panel select,html[data-theme=light] .tool-panel textarea{background:#fff!important;color:var(--op-text)!important;border-color:var(--op-border)!important}
+html[data-theme=light] .op-case-cta{background:var(--op-panel2)!important;border-color:var(--op-border)!important}
+html[data-theme=light] .op-case-cta h2,html[data-theme=light] .op-case-cta p{color:var(--op-text)!important}
+html[data-theme=light] .op-case-cta a{color:var(--op-text)!important;border-color:var(--op-text)!important}
+html[data-theme=light] .calendar-grid button,html[data-theme=light] .calc-keys button{background:#f0eafa!important;color:#2c163d!important;border-color:#c9b5df!important}
+html[data-theme=light] .op-case-filters button{background:#f3edfa!important;color:#32223c!important;border-color:#cdb7db!important}
+html[data-theme=light] .op-case-filters button[aria-pressed=true]{background:#6d28b5!important;color:#fff!important}
+html[data-theme=light] .article{background:var(--op-canvas)!important}
+html[data-theme=light] .article .disclaimer{background:#f1e8fb!important;color:#3a1b55!important}
+html[data-theme=light] .hero{background:linear-gradient(90deg,#141021f0,#2d1c4acb),url('/media/operava-scene-operava-team-collaboration-in-purple-glow.webp') center/cover!important}
+html[data-theme=light] .hero h1,html[data-theme=light] .hero p{color:#fff!important}
+.op-header-inner{position:relative}
+.op-header-actions button.op-theme-toggle,.op-header-actions button.op-search-toggle{display:grid;place-items:center;background:transparent!important;border:1px solid #514b5d!important;color:var(--op-text)!important;width:36px;height:36px;min-width:36px;padding:0;border-radius:50%!important;font-size:18px}
+.op-header-actions button:hover{border-color:var(--op-violet)!important}
+.op-site-search[hidden]{display:none!important}
+.op-site-search{position:absolute;z-index:110;right:15px;top:64px;display:flex;gap:8px;width:min(490px,calc(100vw - 30px));padding:14px;background:var(--op-header);border:1px solid var(--op-border);box-shadow:0 16px 45px #0007}
+.op-site-search input{min-width:0;flex:1;padding:11px 13px;background:var(--op-panel);border:1px solid var(--op-border);color:var(--op-text)}
+.op-site-search button{padding:10px 15px;font-size:11px}
+.op-mobile nav{background:var(--op-header)!important}.op-mobile nav a{color:var(--op-text)!important}
+.op-social a{padding:8px}.op-social img{width:20px;height:20px;display:block;object-fit:contain}
+.op-notice{margin:20px 0 0;padding:16px 20px;background:var(--op-panel);border:1px solid var(--op-border);border-left:3px solid var(--op-violet);border-radius:10px;font-size:13px;color:var(--op-muted);line-height:1.65}
+.op-notice strong{color:var(--op-text)}
+.op-notice a{color:var(--op-violet)}
+.op-feature-row{display:flex;flex-wrap:wrap;gap:10px;margin:15px 0}
+.op-feature-row button,.op-feature-row a{display:inline-flex;align-items:center;border:1px solid var(--op-border);border-radius:9px;padding:10px 14px;text-decoration:none;background:var(--op-panel);color:var(--op-text);font-size:12px;font-weight:700;cursor:pointer}
+.op-feature-row :is(a,button):hover{border-color:var(--op-violet)}
+.op-doc-preview{background:#fff;color:#161616;min-height:250px;max-height:560px;overflow:auto;border-radius:8px;padding:30px 35px;font:16px/1.65 Georgia,serif}
+.op-doc-preview *{max-width:100%;overflow-wrap:anywhere}.op-doc-preview img{max-width:100%;height:auto}
+.op-doc-preview table{border-collapse:collapse;width:100%}.op-doc-preview td,.op-doc-preview th{border:1px solid #aaa;padding:7px}
+.op-doc-preview h1,.op-doc-preview h2,.op-doc-preview h3{color:#171717}
+.op-doc-preview a{color:#164eab}
+.op-card-metadata{display:flex;flex-wrap:wrap;gap:8px;margin:15px 0}
+.op-card-metadata span{padding:7px 10px;background:var(--op-panel2);border:1px solid var(--op-border);border-radius:30px;font-size:12px}
+.op-scenario-card[hidden],.ref-card[hidden]{display:none!important}
+@media(max-width:700px){.op-header-inner{padding:0 14px;gap:8px}.op-header-actions{gap:6px}.op-contact{display:none!important}.op-header-actions button.op-theme-toggle,.op-header-actions button.op-search-toggle{min-width:32px;width:32px;height:32px}}
+@media print{.op-site-header,.op-site-footer,.hero,.op-notice{display:none!important}.op-doc-preview{max-height:none;overflow:visible;padding:0}}

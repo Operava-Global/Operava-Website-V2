@@ -279,6 +279,7 @@ export const FOOTER_COLUMNS: { heading: string; links: NavLink[] }[] = [
       { label: 'Global Operations', to: insightHref('global-operations') },
       { label: 'All Insights', to: '/insights' },
       { label: 'Free Learning Hub', to: '/learning' },
+      { label: 'Free Tools', to: '/utilities/', external: true },
     ],
   },
   {
