@@ -126,6 +126,36 @@ export const otpEmailTemplate = `<!doctype html>
 </body>
 </html>`
 
+
+/**
+ * Customer-facing confirmations use the unchanged OPERAVA header, footer,
+ * fonts and color palette, but display the message as a left-aligned letter.
+ * The OTP verification master and internal notifications are unaffected.
+ */
+export const professionalConfirmationTemplate = (() => {
+  const startMarker = '        <!-- OTP information -->'
+  const endMarker = '        <!-- Matching purple-to-lavender smoky footer -->'
+  const start = otpEmailTemplate.indexOf(startMarker)
+  const end = otpEmailTemplate.indexOf(endMarker)
+  if (start === -1 || end === -1 || end <= start) throw new Error('OPERAVA_EMAIL_MASTER_TEMPLATE_MISMATCH')
+  const content = [
+    '        <!-- Left-aligned professional confirmation body -->',
+    '        <tr><td class="body-atmosphere main-pad" align="left" bgcolor="#000000"',
+    '          style="padding:55px 62px 48px;background-color:#000000;background-image:none;text-align:left;">',
+    '          <div class="body-copy" style="margin:0;color:#f4f0fa;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:26px;text-align:left;">',
+    '            {{EMAIL_BODY}}',
+    '          </div>',
+    '        </td></tr>',
+    '',
+  ].join('\n')
+  return otpEmailTemplate
+    .slice(0, start)
+    .replace('<title>Your OPERAVA verification code</title>', '<title>Your OPERAVA submission confirmation</title>')
+    .replace('Your OPERAVA one-time verification code. Valid for 10 minutes.', 'Your OPERAVA submission confirmation is ready.')
+    + content
+    + otpEmailTemplate.slice(end)
+})()
+
 function replaceRequired(source: string, needle: string, replacement: string): string {
   if (!source.includes(needle)) throw new Error('OPERAVA_EMAIL_MASTER_TEMPLATE_MISMATCH')
   return source.replace(needle, replacement)
