@@ -1,8 +1,7 @@
 import {
   careersOtpEmailTemplate,
   formsOtpEmailTemplate,
-  servicesConfirmationTemplate,
-  applicationConfirmationTemplate,
+  professionalConfirmationTemplate,
   staffNotificationTemplate,
   careersStaffNotificationTemplate,
 } from './emailTemplates'
@@ -420,95 +419,129 @@ function submissionValue(rows: Array<{ label: string; value: string }>, ...label
   return rows.find((row) => wanted.includes(row.label.toLowerCase()))?.value || ''
 }
 
-function submissionListHtml(
-  name: string,
-  rows: Array<{ label: string; value: string }>,
-  fields: Array<{ label: string; keys: string[] }>,
-  referenceId: string,
-) {
+
+type ConfirmationInput = {
+  name: string
+  email: string
+  referenceId: string
+  sourceLabel: string
+  rows: Array<{ label: string; value: string }>
+}
+
+const confirmationFields: Array<{ label: string; keys: string[] }> = [
+  { label: 'Email', keys: ['Email'] },
+  { label: 'Phone', keys: ['Phone'] },
+  { label: 'Country / Location', keys: ['Country / Location', 'Country'] },
+  { label: 'Company / Organization', keys: ['Company / Organization', 'Company'] },
+  { label: 'Inquiry Category', keys: ['Inquiry Type', 'Inquiry Category', 'Category'] },
+  { label: 'Service / Program', keys: ['Service', 'Program', 'Track', 'Program / Track'] },
+  { label: 'Project Requirements', keys: ['Description', 'Message', 'Requirements', 'Details'] },
+  { label: 'Position Applied For', keys: ['Position', 'Role'] },
+  { label: 'Availability', keys: ['Availability'] },
+  { label: 'Education Level', keys: ['Education'] },
+  { label: 'Skills & Specialization', keys: ['Skills'] },
+  { label: 'Work Experience', keys: ['Experience'] },
+  { label: 'Portfolio / Profile', keys: ['Portfolio', 'Resume / Portfolio', 'Website'] },
+  { label: 'Estimated Budget', keys: ['Budget'] },
+  { label: 'Website / System URL', keys: ['Website / System URL', 'WebsiteUrl'] },
+  { label: 'Preferred Contact Method', keys: ['Preferred contact', 'Preferred Contact Method'] },
+  { label: 'Additional Information', keys: ['Additional notes', 'Additional', 'Notes'] },
+]
+
+type ConfirmationKind = 'operavian' | 'partner' | 'application' | 'general'
+
+/** Only Future Operavian and Future Business Partner categories get their specialized response copy. */
+function confirmationKind(opts: ConfirmationInput, career = false): ConfirmationKind {
+  if (career) return 'application'
+  const category = submissionValue(opts.rows, 'Inquiry Category', 'Inquiry Type', 'Category')
+  if (/future\s+operavian/i.test(category)) return 'operavian'
+  if (/future\s+business\s+partner|business\s+partnership/i.test(category)) return 'partner'
+  return 'general'
+}
+
+function confirmationCopy(kind: ConfirmationKind) {
+  if (kind === 'operavian' || kind === 'application') return {
+    received: 'We have received your application to become a Future Operavian. Your submission has been recorded and is now under review.',
+    next: 'Our team will review your application and contact you within 2-3 business days.',
+    thankYou: 'Thank you for choosing OPERAVA. We are pleased to begin working with you.',
+    team: 'OPERAVA Recruitment Team',
+  }
+  if (kind === 'partner') return {
+    received: 'We have received your inquiry for a future business partnership. Your submission has been recorded and forwarded to our Business Partnership team.',
+    next: 'We will review your partnership inquiry and get back to you within 1-2 business days to discuss the next steps.',
+    thankYou: 'Thank you for choosing OPERAVA. We look forward to partnering with you.',
+    team: 'OPERAVA Support Team',
+  }
+  return {
+    received: 'We have received your inquiry. Your submission has been recorded and is under review.',
+    next: 'Our team will review your inquiry and contact you regarding the next steps.',
+    thankYou: 'Thank you for choosing OPERAVA. We look forward to assisting you.',
+    team: 'OPERAVA Support Team',
+  }
+}
+
+function confirmationDetails(opts: ConfirmationInput): Array<[string, string]> {
   const values: Array<[string, string]> = [
-    ['Name', name],
-    ...fields
-      .map(({ label, keys }) => [label, submissionValue(rows, ...keys)] as [string, string])
-      .filter(([_, value]) => Boolean(value && value.trim() && value !== 'undefined')),
-    ['Reference Number', referenceId],
+    ['Name', opts.name],
+    ...confirmationFields
+      .map(({ label, keys }) => [label, submissionValue(opts.rows, ...keys)] as [string, string])
+      .filter(([, value]) => Boolean(value && value.trim() && value !== 'undefined')),
   ]
-  return (
-    '<ul style="margin:8px 0 0 0;padding-left:18px;font-size:12px;line-height:1.7;color:#b9b5c7;">' +
-    values
-      .map(function (pair) {
-        return (
-          '<li style="margin-bottom:6px;"><strong style="color:#eee5ff;">' +
-          escapeHtml(pair[0]) +
-          ':</strong> ' +
-          escapeHtml(pair[1]) +
-          '</li>'
-        )
-      })
-      .join('') +
-    '</ul>'
-  )
+  // Omit empty rows and avoid repeating the reference number in the detail listing.
+  return values.filter(([, value]) => Boolean(value && value.trim()))
 }
 
-export function clientConfirmationEmail(opts: {
-  name: string
-  email: string
-  referenceId: string
-  sourceLabel: string
-  rows: Array<{ label: string; value: string }>
-}): string {
-  return renderEmailTemplate(servicesConfirmationTemplate, {
-    NAME: escapeHtml(opts.name),
-    DETAILS_LIST: submissionListHtml(
-      opts.name,
-      opts.rows,
-      [
-        { label: 'Email', keys: ['Email'] },
-        { label: 'Phone', keys: ['Phone'] },
-        { label: 'Country / Location', keys: ['Country / Location', 'Country'] },
-        { label: 'Company / Organization', keys: ['Company'] },
-        { label: 'Inquiry Category', keys: ['Inquiry Type', 'Category'] },
-        { label: 'Service / Program', keys: ['Service', 'Program', 'Track'] },
-        { label: 'Project Requirements', keys: ['Description', 'Message', 'Requirements'] },
-        { label: 'Estimated Budget', keys: ['Budget'] },
-        { label: 'Website / System URL', keys: ['Website / System URL', 'WebsiteUrl', 'Website'] },
-        { label: 'Preferred Contact Method', keys: ['Preferred contact', 'Preferred Contact Method'] },
-      ],
-      opts.referenceId,
-    ),
-    REFERENCE_ID: escapeHtml(opts.referenceId),
-  })
+function confirmationMessage(opts: ConfirmationInput, career = false): {
+  html: string
+  text: string
+} {
+  const kind = confirmationKind(opts, career)
+  const copy = confirmationCopy(kind)
+  const name = String(opts.name || '').trim() || 'there'
+  const details = confirmationDetails(opts)
+  const p = (value: string) => '<p style="margin:0 0 20px;">' + value + '</p>'
+  const safeReference = escapeHtml(opts.referenceId)
+  const html =
+    p('Hi ' + escapeHtml(name) + ',') +
+    p('Thank you for contacting OPERAVA.') +
+    p(copy.received) +
+    p('Please keep this reference number for future correspondence: <strong style="color:#ffffff;">' + safeReference + '</strong>') +
+    p('<strong style="color:#ffffff;">Submitted Details</strong>') +
+    p(details.map(([label, value]) =>
+      '<strong style="color:#f4f0fa;">' + escapeHtml(label) + ':</strong> ' + escapeHtml(value)
+    ).join('<br>')) +
+    p('Please use your verified email address when communicating with OPERAVA regarding your account, service, request, documentation, or engagement.') +
+    p(copy.next) +
+    p(copy.thankYou) +
+    '<p style="margin:0;">Best regards,<br>' + copy.team + '</p>'
+  const text = [
+    'Hi ' + name + ',',
+    'Thank you for contacting OPERAVA.',
+    copy.received,
+    'Please keep this reference number for future correspondence: ' + opts.referenceId,
+    'Submitted Details\n' + details.map(([label, value]) => label + ': ' + value).join('\n'),
+    'Please use your verified email address when communicating with OPERAVA regarding your account, service, request, documentation, or engagement.',
+    copy.next,
+    copy.thankYou,
+    'Best regards,\n' + copy.team,
+  ].join('\n\n')
+  return { html: renderEmailTemplate(professionalConfirmationTemplate, { EMAIL_BODY: html }), text }
 }
 
-export function applicantConfirmationEmail(opts: {
-  name: string
-  email: string
-  referenceId: string
-  sourceLabel: string
-  rows: Array<{ label: string; value: string }>
-}): string {
-  return renderEmailTemplate(applicationConfirmationTemplate, {
-    NAME: escapeHtml(opts.name),
-    DETAILS_LIST: submissionListHtml(
-      opts.name,
-      opts.rows,
-      [
-        { label: 'Email', keys: ['Email'] },
-        { label: 'Phone', keys: ['Phone'] },
-        { label: 'Country / Location', keys: ['Country / Location', 'Country'] },
-        { label: 'Position Applied For', keys: ['Position', 'Role'] },
-        { label: 'Availability', keys: ['Availability'] },
-        { label: 'Education Level', keys: ['Education'] },
-        { label: 'Skills & Specialization', keys: ['Skills'] },
-        { label: 'Work Experience', keys: ['Experience'] },
-        { label: 'Portfolio / Profile', keys: ['Portfolio', 'Resume / Portfolio', 'Website'] },
-        { label: 'Preferred Contact Method', keys: ['Preferred contact', 'Preferred Contact Method'] },
-        { label: 'Additional Information', keys: ['Additional notes', 'Additional', 'Notes'] },
-      ],
-      opts.referenceId,
-    ),
-    REFERENCE_ID: escapeHtml(opts.referenceId),
-  })
+export function clientConfirmationEmail(opts: ConfirmationInput): string {
+  return confirmationMessage(opts).html
+}
+
+export function applicantConfirmationEmail(opts: ConfirmationInput): string {
+  return confirmationMessage(opts, true).html
+}
+
+export function clientConfirmationText(opts: ConfirmationInput): string {
+  return confirmationMessage(opts).text
+}
+
+export function applicantConfirmationText(opts: ConfirmationInput): string {
+  return confirmationMessage(opts, true).text
 }
 
 export function staffNotificationEmail(opts: {
