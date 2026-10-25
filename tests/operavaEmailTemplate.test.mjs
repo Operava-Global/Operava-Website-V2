@@ -18,25 +18,22 @@ test('OTP runtime template exactly equals owner HTML, footer correction included
   assert.match(otpEmailTemplate, /href="https:\/\/www\.operavaglobal\.com\/"/)
   assert.match(otpEmailTemplate, /{{otp_code}}/)
   assert.match(otpEmailTemplate, /{{expiry_minutes}}/)
-  assert.match(otpEmailTemplate, /Your access, secured\./)
-  assert.match(otpEmailTemplate, /Expires in {{expiry_minutes}} minutes/)
+  assert.match(otpEmailTemplate, /YOUR VERIFICATION CODE/)
+  assert.match(otpEmailTemplate, /{{expiry_minutes}} minutes/)
 })
 
-test('all confirmation variants keep the same visual shell and website footer', () => {
+test('all confirmation variants keep the same owner-approved 640px rounded black/violet shell', () => {
   for (const html of [
-    servicesConfirmationTemplate,
-    applicationConfirmationTemplate,
-    staffNotificationTemplate,
-    recruitmentPoolConfirmationTemplate,
+    servicesConfirmationTemplate, applicationConfirmationTemplate,
+    staffNotificationTemplate, recruitmentPoolConfirmationTemplate,
   ]) {
-    assert.match(html, /max-width:560px/)
-    assert.match(html, /background-color:#070710/)
-    assert.match(html, /background-color:#101019/)
-    assert.match(html, /background-color:#211332/)
-    assert.match(html, /linear-gradient\(180deg,#101019 0%,#310752 24%,#850bfa 58%,#c7c5fb 100%\)/)
+    assert.match(html, /max-width:640px/)
+    assert.match(html, /background-color:#000000/)
+    assert.match(html, /border-radius:16px/)
+    assert.match(html, /linear-gradient\(180deg,#000000 0%,#190b30 31%,#5e1cb0 70%,#bc9af4 100%\)/)
     assert.match(html, html === applicationConfirmationTemplate ? /APPLICATION CONFIRMATION/ : /SUBMISSION CONFIRMATION/)
     assert.match(html, /www\.operavaglobal\.com<\/a>/)
-    assert.doesNotMatch(html, /{{otp_code}}|{{expiry_minutes}}|Email_Header\.png|Emailfooterimage\.jpg/)
+    assert.doesNotMatch(html, /{{otp_code}}|{{expiry_minutes}}|482 931|Email_Header\.png/)
   }
   assert.match(servicesConfirmationTemplate, /{{REFERENCE_ID}}/)
   assert.match(servicesConfirmationTemplate, /{{DETAILS_LIST}}/)
