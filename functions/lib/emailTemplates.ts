@@ -155,8 +155,8 @@ export function mandatoryEmailShell(
   html = replaceRequired(html, 'This code expires in <strong style="color:#fff;">{{expiry_minutes}} minutes.</strong>',
     'Please keep this reference number for future correspondence.')
   html = replaceRequired(html,
-    'If you didn\'t request this code, you can safely ignore this email.<br>\n                Never share it with anyone, including OPERAVA support.',
-    bodyPlaceholder)
+    '<p style="margin:0;color:#a9a1b8;font-size:13px;line-height:22px;">\n                If you didn\'t request this code, you can safely ignore this email.<br>\n                Never share it with anyone, including OPERAVA support.\n              </p>',
+    '<div style="margin:0;color:#a9a1b8;font-size:13px;line-height:22px;">' + bodyPlaceholder + '</div>')
   return html
 }
 
