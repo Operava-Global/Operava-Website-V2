@@ -448,11 +448,12 @@ const confirmationFields: Array<{ label: string; keys: string[] }> = [
   { label: 'Additional Information', keys: ['Additional notes', 'Additional', 'Notes'] },
 ]
 
-type ConfirmationKind = 'operavian' | 'partner' | 'application' | 'general'
+type ConfirmationKind = 'operavian' | 'partner' | 'application' | 'academy' | 'general'
 
 /** Only Future Operavian and Future Business Partner categories get their specialized response copy. */
 function confirmationKind(opts: ConfirmationInput, career = false): ConfirmationKind {
   if (career) return 'application'
+  if (/academy/i.test(opts.sourceLabel)) return 'academy'
   const category = submissionValue(opts.rows, 'Inquiry Category', 'Inquiry Type', 'Category')
   if (/future\s+operavian/i.test(category)) return 'operavian'
   if (/future\s+business\s+partner|business\s+partnership/i.test(category)) return 'partner'
@@ -471,6 +472,12 @@ function confirmationCopy(kind: ConfirmationKind) {
     next: 'We will review your partnership inquiry and get back to you within 1-2 business days to discuss the next steps.',
     thankYou: 'Thank you for choosing OPERAVA. We look forward to partnering with you.',
     team: 'OPERAVA Support Team',
+  }
+  if (kind === 'academy') return {
+    received: 'We have received your OPERAVA Academy enrollment or information inquiry. Your submission has been recorded.',
+    next: 'Our Academy team will review your inquiry and contact you regarding the next steps.',
+    thankYou: 'Thank you for choosing OPERAVA Academy.',
+    team: 'OPERAVA Academy Team',
   }
   return {
     received: 'We have received your inquiry. Your submission has been recorded and is under review.',
