@@ -1,6 +1,8 @@
 import {
   applicantConfirmationEmail,
+  applicantConfirmationText,
   clientConfirmationEmail,
+  clientConfirmationText,
   ensureTables,
   otpCodeMatches,
   json,
@@ -256,43 +258,21 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         ? 'WE RECEIVED YOUR ACADEMY INQUIRY'
         : 'WE RECEIVED YOUR INQUIRY'
 
-    const html = isCareer
-      ? applicantConfirmationEmail({
-          name,
-          email,
-          referenceId,
-          sourceLabel: 'Careers application form',
-          rows,
-        })
-      : clientConfirmationEmail({
-          name,
-          email,
-          referenceId,
-          sourceLabel: isAcademy
-            ? 'OPERAVA Academy enrollment / inquiry form'
-            : formType === 'SERVICES'
-              ? 'Services / Request a Quote form'
-              : 'Contact form',
-          rows,
-        })
-
-    const text = isCareer
-      ? 'JOB APPLICATION CONFIRMATION\n\nHi ' +
-        name +
-        ',\n\nThank you for submitting your application to OPERAVA Global Solutions.\n\nWe have received your job application following email verification. Application reference: ' +
-        referenceId +
-        '.\n\nOur Talent Acquisition Team will review your application and may contact you if your qualifications match an available opportunity.\n\nRegards,\nTalent Acquisition Team\nOPERAVA Global Solutions\n\nwww.operavaglobal.com'
-      : isAcademy
-        ? 'CONFIRMATION\n\nHi ' +
-          name +
-          ',\n\nThank you for contacting OPERAVA Academy.\n\nWe confirm that we have received your course/training enrollment or details inquiry. Reference: ' +
-          referenceId +
-          '.\n\nThe Academy team will review your request. Learning Management System: https://academy.operavaglobal.com\n\nRegards,\nOPERAVA Academy\nOPERAVA Global Solutions\n\nwww.operavaglobal.com'
-        : 'CONFIRMATION\n\nHi ' +
-          name +
-          ',\n\nThank you for contacting OPERAVA and for your interest in our services and business solutions.\n\nWe confirm that we have received your service inquiry. Reference: ' +
-          referenceId +
-          '.\n\nYour service inquiry will be reviewed by the appropriate OPERAVA team.\n\nRegards,\nClient Support Team\nOPERAVA Global Solutions\n\nwww.operavaglobal.com'
+    const confirmation = {
+      name,
+      email,
+      referenceId,
+      sourceLabel: isCareer
+        ? 'Careers application form'
+        : isAcademy
+          ? 'OPERAVA Academy enrollment / inquiry form'
+          : formType === 'SERVICES'
+            ? 'Services / Request a Quote form'
+            : 'Contact form',
+      rows,
+    }
+    const html = isCareer ? applicantConfirmationEmail(confirmation) : clientConfirmationEmail(confirmation)
+    const text = isCareer ? applicantConfirmationText(confirmation) : clientConfirmationText(confirmation)
 
     const staffInbox = isCareer
       ? env.TALENT_INBOX || 'talents@operavaglobal.com'
