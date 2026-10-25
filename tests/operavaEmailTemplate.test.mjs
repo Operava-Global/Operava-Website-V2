@@ -7,6 +7,7 @@ import {
   applicationConfirmationTemplate,
   staffNotificationTemplate,
   recruitmentPoolConfirmationTemplate,
+  professionalConfirmationTemplate,
 } from '../functions/lib/emailTemplates.ts'
 
 const ownerMaster = readFileSync(new URL('../email/templates/operava-otp.html', import.meta.url), 'utf8')
@@ -41,4 +42,13 @@ test('all confirmation variants keep the same owner-approved 640px rounded black
   assert.match(staffNotificationTemplate, /{{TITLE}}/)
   assert.match(staffNotificationTemplate, /{{ROWS_HTML}}/)
   assert.match(recruitmentPoolConfirmationTemplate, /{{APPLICATION_ID}}/)
+})
+
+
+test('customer-facing confirmations use the same colors and gradient but left-aligned letter content', () => {
+  assert.match(professionalConfirmationTemplate, /max-width:640px/)
+  assert.match(professionalConfirmationTemplate, /linear-gradient\(180deg,#000000 0%,#190b30 31%,#5e1cb0 70%,#bc9af4 100%\)/)
+  assert.match(professionalConfirmationTemplate, /align="left"/)
+  assert.match(professionalConfirmationTemplate, /{{EMAIL_BODY}}/)
+  assert.doesNotMatch(professionalConfirmationTemplate, /{{otp_code}}|YOUR VERIFICATION CODE|align="center" bgcolor="#000000"/)
 })
