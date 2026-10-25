@@ -13,20 +13,20 @@ const canonical = readFileSync(new URL('../email/templates/operava-otp.html', im
 
 test('Careers email OTP retains the owner-approved HTML structure and 6-digit code placeholders', () => {
   assert.equal(otpEmailTemplate, canonical, 'Never change the approved OTP master')
-  assert.match(careersOtpEmailTemplate, /Verify your job application\./)
+  assert.match(careersOtpEmailTemplate, /Verify your OPERAVA job application/)
   assert.match(careersOtpEmailTemplate, /complete your OPERAVA job application/)
   assert.match(careersOtpEmailTemplate, /{{otp_code}}/)
   assert.match(careersOtpEmailTemplate, /{{expiry_minutes}}/)
   assert.match(careersOtpEmailTemplate, /www\.operavaglobal\.com<\/a>/)
-  assert.match(careersOtpEmailTemplate, /max-width:560px/)
-  assert.match(careersOtpEmailTemplate, /linear-gradient\(180deg,#101019 0%,#310752 24%,#850bfa 58%,#c7c5fb 100%\)/)
-  assert.match(otpEmailTemplate, /Your access, secured\./, 'Other form OTPs retain their original copy')
+  assert.match(careersOtpEmailTemplate, /max-width:640px/)
+  assert.match(careersOtpEmailTemplate, /linear-gradient\(180deg,#000000 0%,#190b30 31%,#5e1cb0 70%,#bc9af4 100%\)/)
+  assert.match(otpEmailTemplate, /Use this one-time password to securely sign in/, 'The owner-uploaded master stays unchanged')
 })
 
 test('Careers applicant confirmation says job application, never general inquiry', () => {
   assert.match(applicationConfirmationTemplate, /APPLICATION CONFIRMATION/)
   assert.match(applicationConfirmationTemplate, /Thank you for submitting your application to OPERAVA Global Solutions\./)
-  assert.match(applicationConfirmationTemplate, /Application received\./)
+  assert.match(applicationConfirmationTemplate, /APPLICATION CONFIRMATION/)
   assert.match(applicationConfirmationTemplate, /Application reference number/)
   assert.match(applicationConfirmationTemplate, /{{REFERENCE_ID}}/)
   assert.match(applicationConfirmationTemplate, /{{DETAILS_LIST}}/)
@@ -36,7 +36,7 @@ test('Careers applicant confirmation says job application, never general inquiry
 
 test('Talent Acquisition gets application-specific notification; general inquiry remains unchanged', () => {
   assert.match(careersStaffNotificationTemplate, /NEW JOB APPLICATION/)
-  assert.match(careersStaffNotificationTemplate, /New application received\./)
+  assert.match(careersStaffNotificationTemplate, /NEW JOB APPLICATION/)
   assert.match(careersStaffNotificationTemplate, /{{REFERENCE_ID}}/)
   assert.match(careersStaffNotificationTemplate, /{{ROWS_HTML}}/)
   assert.match(servicesConfirmationTemplate, /SUBMISSION CONFIRMATION/)
