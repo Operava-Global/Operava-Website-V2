@@ -50,5 +50,47 @@ test('customer-facing confirmations use the same colors and gradient but left-al
   assert.match(professionalConfirmationTemplate, /linear-gradient\(180deg,#000000 0%,#190b30 31%,#5e1cb0 70%,#bc9af4 100%\)/)
   assert.match(professionalConfirmationTemplate, /align="left"/)
   assert.match(professionalConfirmationTemplate, /{{EMAIL_BODY}}/)
-  assert.doesNotMatch(professionalConfirmationTemplate, /{{otp_code}}|YOUR VERIFICATION CODE|align="center" bgcolor="#000000"/)
+  assert.doesNotMatch(professionalConfirmationTemplate, /{{otp_code}}|YOUR VERIFICATION CODE|class="otp-panel"/)
+})
+
+
+test('Future Operavian and Future Business Partner messages are left-aligned professional letters with dynamic references', async () => {
+  const {clientConfirmationEmail,clientConfirmationText,applicantConfirmationEmail}=await import('../functions/lib/formCore.ts')
+  const example={
+    name:'Js',
+    email:'example@example.com',
+    referenceId:'OPERAVA-SER-74036461',
+    sourceLabel:'Services / Request a Quote form',
+    rows:[
+      {label:'Email',value:'example@example.com'},
+      {label:'Phone',value:'0954875848'},
+      {label:'Country / Location',value:'Bajak'},
+      {label:'Company',value:'K'},
+      {label:'Inquiry Type',value:'Application - Future Operavian'},
+      {label:'Description',value:'Example project requirements'},
+      {label:'Preferred contact',value:'Email'},
+    ]
+  }
+  const application=clientConfirmationEmail(example)
+  assert.match(application,/align="left"/)
+  assert.match(application,/Thank you for contacting OPERAVA/)
+  assert.match(application,/application to become a Future Operavian/)
+  assert.match(application,/2-3 business days/)
+  assert.match(application,/OPERAVA Recruitment Team/)
+  assert.match(application,/Submitted Details/)
+  assert.match(application,/Company \/ Organization/)
+  assert.match(application,/OPERAVA-SER-74036461/)
+  assert.doesNotMatch(application,/{{EMAIL_BODY}}|class="otp-panel"/)
+  assert.match(clientConfirmationText(example),/Best regards,\nOPERAVA Recruitment Team/)
+  const partnership = clientConfirmationEmail({
+    ...example,
+    rows: example.rows.map(row => row.label === 'Inquiry Type' ? {...row,value:'Services Inquiry - Future Business Partner'} : row)
+  })
+  assert.match(partnership,/future business partnership/)
+  assert.match(partnership,/1-2 business days/)
+  assert.match(partnership,/OPERAVA Support Team/)
+  const generic = clientConfirmationEmail({...example,rows:example.rows.map(row=>row.label==='Inquiry Type'?{...row,value:'General Inquiry'}:row)})
+  assert.doesNotMatch(generic,/future business partnership|Future Operavian|1-2 business days/)
+  const career = applicantConfirmationEmail(example)
+  assert.match(career,/OPERAVA Recruitment Team/)
 })
