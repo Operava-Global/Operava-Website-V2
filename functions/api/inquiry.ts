@@ -1,6 +1,8 @@
 import {
   applicantConfirmationEmail,
+  applicantConfirmationText,
   clientConfirmationEmail,
+  clientConfirmationText,
   CLIENT_RESEND_FROM,
   sendEmail,
   staffNotificationEmail,
@@ -119,13 +121,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       { label: 'Details', value: fields.notes },
     ]
 
-    const html = isCareer
-      ? applicantConfirmationEmail({ name, email, referenceId: ticketId, sourceLabel, rows })
-      : clientConfirmationEmail({ name, email, referenceId: ticketId, sourceLabel, rows })
-
-    const text = isCareer
-      ? `CONFIRMATION\n\nHi ${name},\n\nThank you for submitting your application. Our team will review your profile and get in touch with you as soon as possible.\n\nTalent Acquisition Team,\nOperava Global Solutions`
-      : `CONFIRMATION\n\nHi ${name},\n\nThank you for submitting your inquiry. The team will get in touch with you as soon as possible.\n\nClient Support Team,\nOperava Global Solutions`
+    const confirmation = { name, email, referenceId: ticketId, sourceLabel, rows }
+    const html = isCareer ? applicantConfirmationEmail(confirmation) : clientConfirmationEmail(confirmation)
+    const text = isCareer ? applicantConfirmationText(confirmation) : clientConfirmationText(confirmation)
 
     if (!smtpReady) {
       console.error('SES_SMTP credentials are not configured')
