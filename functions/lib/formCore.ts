@@ -1,5 +1,4 @@
 import {
-  otpEmailTemplate,
   careersOtpEmailTemplate,
   formsOtpEmailTemplate,
   servicesConfirmationTemplate,
