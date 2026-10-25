@@ -55,7 +55,20 @@ test('customer-facing confirmations use the same colors and gradient but left-al
 
 
 test('Future Operavian and Future Business Partner messages are left-aligned professional letters with dynamic references', async () => {
-  const {clientConfirmationEmail,clientConfirmationText,applicantConfirmationEmail}=await import('../functions/lib/formCore.ts')
+  // Bundle the Cloudflare TypeScript module so Node's test runner can resolve
+  // its existing extensionless imports without altering production import paths.
+  const { build } = await import('esbuild')
+  const bundled = await build({
+    entryPoints: ['functions/lib/formCore.ts'],
+    absWorkingDir: process.cwd(),
+    bundle: true,
+    write: false,
+    format: 'esm',
+    platform: 'node',
+    logLevel: 'silent',
+  })
+  const url = 'data:text/javascript;base64,' + Buffer.from(bundled.outputFiles[0].contents).toString('base64')
+  const { clientConfirmationEmail, clientConfirmationText, applicantConfirmationEmail } = await import(url)
   const example={
     name:'Js',
     email:'example@example.com',
