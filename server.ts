@@ -2,7 +2,7 @@ import express, { type Request as ExpressRequest, type Response as ExpressRespon
 import path from 'path'
 import { createServer as createViteServer } from 'vite'
 import { GoogleGenAI } from '@google/genai'
-import { clientConfirmationEmail, applicantConfirmationEmail, type FormEnv } from './functions/lib/formCore.ts'
+import { clientConfirmationEmail, clientConfirmationText, applicantConfirmationEmail, applicantConfirmationText, type FormEnv } from './functions/lib/formCore.ts'
 import { onRequestPost as formsStartHandler } from './functions/api/forms/start.ts'
 import { onRequestPost as formsVerifyHandler } from './functions/api/forms/verify.ts'
 import { onRequestPost as formsResendHandler } from './functions/api/forms/resend.ts'
@@ -181,28 +181,6 @@ async function startServer() {
       const subject = isCareer
         ? `Ticket #${ticketId} — career application received`
         : `Ticket #${ticketId} — consultation request received`
-      const text = [
-        isCareer
-          ? `Thank you, ${name}. Your career application is registered under reference #${ticketId}.`
-          : `Thank you, ${name}. Your project consultation request is registered under reference #${ticketId}.`,
-        `Our team received your information (${email}).`,
-        isCareer
-          ? 'Talent review typically starts within 24-48 hours.'
-          : 'We will review your requirements and connect within 2 business hours.',
-        `Kind: ${kind}`,
-        clean(body.company, 160) && `Company: ${clean(body.company, 160)}`,
-        clean(body.phone, 40) && `Phone: ${clean(body.phone, 40)}`,
-        clean(body.country, 80) && `Country: ${clean(body.country, 80)}`,
-        service && `Service: ${service}`,
-        clean(body.teamModel, 80) && `Model: ${clean(body.teamModel, 80)}`,
-        clean(body.timeline, 80) && `Timeline: ${clean(body.timeline, 80)}`,
-        role && `Role: ${role}`,
-        notes && `Details:\n${notes}`,
-        '\nPlease do not reply directly to this automated confirmation. A separate update will be sent by the relevant team for further assistance.\nwww.operavaglobal.com',
-      ]
-        .filter(Boolean)
-        .join('\n')
-
       const rows = [
         { label: 'Email', value: email },
         { label: 'Phone', value: clean(body.phone, 40) },
@@ -216,21 +194,9 @@ async function startServer() {
         { label: 'Timeline', value: clean(body.timeline, 80) },
       ].filter((r) => Boolean(r.value))
 
-      const html = isCareer
-        ? applicantConfirmationEmail({
-            name,
-            email,
-            referenceId: ticketId,
-            sourceLabel: 'Application',
-            rows,
-          })
-        : clientConfirmationEmail({
-            name,
-            email,
-            referenceId: ticketId,
-            sourceLabel: 'Service Inquiry',
-            rows,
-          })
+      const confirmation = { name, email, referenceId: ticketId, sourceLabel: isCareer ? 'Application' : 'Service Inquiry', rows }
+      const html = isCareer ? applicantConfirmationEmail(confirmation) : clientConfirmationEmail(confirmation)
+      const text = isCareer ? applicantConfirmationText(confirmation) : clientConfirmationText(confirmation)
 
       const payload: Record<string, unknown> = {
         from,
