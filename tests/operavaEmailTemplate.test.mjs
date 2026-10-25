@@ -66,6 +66,16 @@ test('Future Operavian and Future Business Partner messages are left-aligned pro
     format: 'esm',
     platform: 'node',
     logLevel: 'silent',
+    plugins: [{
+      name: 'cloudflare-sockets-test-stub',
+      setup(build) {
+        build.onResolve({filter: /^cloudflare:sockets$/}, () => ({path: 'cloudflare:sockets', namespace: 'test-stub'}))
+        build.onLoad({filter: /.*/, namespace: 'test-stub'}, () => ({
+          contents: 'export const connect = () => { throw new Error("Cloudflare transport unavailable in unit tests") }',
+          loader: 'js',
+        }))
+      },
+    }],
   })
   const url = 'data:text/javascript;base64,' + Buffer.from(bundled.outputFiles[0].contents).toString('base64')
   const { clientConfirmationEmail, clientConfirmationText, applicantConfirmationEmail } = await import(url)
