@@ -21,6 +21,8 @@
 - **Keep delivery unchanged:** existing SES SMTP in Sydney, verified six-digit email OTP, one-use/expiry limits, sender identity, submission reference numbers, inbox routing and optional under-5-MB direct-to-email attachments remain as implemented. Styling approval is **not** permission to change authentication, SMTP, D1/R2, attachments, unrelated website UI, or production configuration.
 - **Required tests before release:** `npm run lint`, `npm run build:pages`, and the email-template regression check confirming byte-for-byte OTP template parity with the reference HTML (except the authorized footer-label change). Verify HTML rendering and email inbox behavior with an owner-controlled test mailbox before asserting end-to-end delivery.
 
+**Professional confirmation message bodies (25 October 2026):** Customer-facing Future Operavian applications and Future Business Partner inquiries retain the approved OPERAVA wordmark, 640px rounded card, colors, fonts, black/violet gradients and footer. Only the confirmation body is left-aligned, showing a greeting, category-specific acknowledgement, inline dynamic reference, unbulleted submitted details, expected response time and appropriate team signature. The six-digit OTP template and internal notifications are unchanged.
+
 ### Careers-specific email copy and visible OTP fields
 
 - Treat Careers as a **job application**, never as a general services inquiry. Applicant success messages and confirmation emails must thank applicants for **submitting an application**, show an application reference, and explain Talent Acquisition review (without promising an interview).
