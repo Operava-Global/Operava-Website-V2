@@ -123,3 +123,57 @@ CREATE TABLE IF NOT EXISTS resumes (
 );
 CREATE INDEX IF NOT EXISTS idx_resumes_email ON resumes(email);
 CREATE INDEX IF NOT EXISTS idx_resumes_key ON resumes(resume_key);
+
+-- Ava Screening: invitation-only, manual identity review, and monitored assessment.
+-- Keep these tables separate from the disabled legacy Recruitment AVA tables.
+CREATE TABLE IF NOT EXISTS ava_screening_sessions (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('tech','ops','cx')),
+  invite_exp INTEGER NOT NULL,
+  otp_hash TEXT,
+  otp_expires INTEGER NOT NULL DEFAULT 0,
+  otp_attempts INTEGER NOT NULL DEFAULT 0,
+  otp_sent INTEGER NOT NULL DEFAULT 0,
+  otp_count INTEGER NOT NULL DEFAULT 0,
+  verified_at INTEGER,
+  session_hash TEXT,
+  session_expires INTEGER,
+  identity_status TEXT NOT NULL DEFAULT 'not_submitted',
+  identity_key TEXT,
+  identity_kind TEXT,
+  identity_submitted INTEGER,
+  identity_reviewed INTEGER,
+  profile TEXT,
+  consent_at INTEGER,
+  monitor_consent_at INTEGER,
+  ai_consent_at INTEGER,
+  assessment_status TEXT NOT NULL DEFAULT 'not_started',
+  assessment_started INTEGER,
+  deadline INTEGER,
+  completed INTEGER,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ava_screening_review_idx ON ava_screening_sessions(identity_status, identity_submitted);
+CREATE INDEX IF NOT EXISTS ava_screening_email_idx ON ava_screening_sessions(email, created_at);
+
+CREATE TABLE IF NOT EXISTS ava_screening_answers (
+  session_id TEXT NOT NULL,
+  question_id TEXT NOT NULL,
+  answer TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT 'typed',
+  review_status TEXT NOT NULL DEFAULT 'pending',
+  review_json TEXT,
+  submitted_at INTEGER NOT NULL,
+  PRIMARY KEY(session_id, question_id),
+  FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS ava_screening_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  session_id TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  occurred_at INTEGER NOT NULL,
+  FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS ava_screening_event_idx ON ava_screening_events(session_id, occurred_at);
