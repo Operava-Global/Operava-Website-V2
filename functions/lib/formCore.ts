@@ -1,6 +1,6 @@
 import {
-  otpEmailTemplate,
   careersOtpEmailTemplate,
+  formsOtpEmailTemplate,
   servicesConfirmationTemplate,
   applicationConfirmationTemplate,
   staffNotificationTemplate,
@@ -317,9 +317,11 @@ export function otpEmailHtml(name: string, purpose: string, code: string) {
   // {{expiry_minutes}} placeholders; keep its structure and copy unchanged.
   void display
   // Careers uses the same master layout, with job-application wording only.
-  const template = purpose === 'JOB APPLICATION' ? careersOtpEmailTemplate : otpEmailTemplate
+  const template = purpose === 'JOB APPLICATION' ? careersOtpEmailTemplate : formsOtpEmailTemplate
+  // Match the approved 3+3 appearance in email only; verification remains six numeric digits.
+  const formattedCode = String(code).replace(/^(\d{3})(\d{3})$/, '$1 $2')
   return renderEmailTemplate(template, {
-    otp_code: escapeHtml(code),
+    otp_code: escapeHtml(formattedCode),
     expiry_minutes: '10',
   })
 }
