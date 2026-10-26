@@ -14,6 +14,7 @@ type AvaEnv = FormEnv & {
   AVA_SCREENING_ENABLED?: string
   AVA_SCREENING_SECRET?: string
   AVA_REVIEWER_SECRET?: string
+  AVA_DELETION_SECRET?: string
   AVA_ID_BUCKET?: R2Bucket
   AI?: Ai
 }
@@ -93,6 +94,13 @@ async function ensure(db: D1Database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL,
       event_type TEXT NOT NULL, occurred_at INTEGER NOT NULL,
       FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_manual_reviews (
+      session_id TEXT PRIMARY KEY, review_status TEXT NOT NULL,
+      reviewer_note TEXT NOT NULL DEFAULT '', reviewed_at INTEGER NOT NULL,
+      FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_review_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL,
+      action TEXT NOT NULL, detail TEXT NOT NULL DEFAULT '', recorded_at INTEGER NOT NULL)`),
   ])
 }
 async function get(db: D1Database, id: string): Promise<Applicant | null> {
@@ -133,6 +141,12 @@ function applicantState(row: Applicant, answers: AnswerRow[]) {
   }
 }
 async function state(db: D1Database, row: Applicant) {
+  // Finalize expired assessments even when candidates close the browser before submitting.
+  if (row.assessment_status === 'in_progress' && row.deadline && Date.now() >= row.deadline) {
+    await db.prepare("UPDATE ava_screening_sessions SET assessment_status='time_expired', completed=? WHERE id=? AND assessment_status='in_progress' AND deadline<=?")
+      .bind(Date.now(), row.id, Date.now()).run()
+    row = (await get(db, row.id)) || row
+  }
   const answers = (await db.prepare('SELECT question_id, answer, source, review_status, review_json, submitted_at FROM ava_screening_answers WHERE session_id = ? ORDER BY submitted_at ASC, question_id ASC').bind(row.id).all<AnswerRow>()).results || []
   return applicantState(row, answers)
 }
@@ -165,10 +179,30 @@ async function maybeReview(env: AvaEnv, db: D1Database, session: Applicant, ques
       .bind(JSON.stringify(rubric), session.id, questionId).run()
   } catch (e) { console.error('ava review unavailable', e instanceof Error ? e.message : 'unknown') }
 }
+// Enforce request limits while streaming, even when Content-Length is omitted.
+async function readLimitedBody(request: Request, limit: number): Promise<Uint8Array> {
+  if (Number(request.headers.get('Content-Length') || 0) > limit) throw new Error('REQUEST_TOO_LARGE')
+  const reader = request.body?.getReader()
+  if (!reader) return new Uint8Array()
+  const chunks: Uint8Array[] = []
+  let total = 0
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    total += value.byteLength
+    if (total > limit) {
+      await reader.cancel().catch(() => {})
+      throw new Error('REQUEST_TOO_LARGE')
+    }
+    chunks.push(value)
+  }
+  const bytes = new Uint8Array(total)
+  let offset = 0
+  for (const part of chunks) { bytes.set(part, offset); offset += part.byteLength }
+  return bytes
+}
 async function requestData(request: Request): Promise<Record<string, unknown>> {
-  if (Number(request.headers.get('Content-Length') || 0) > 15_000) throw new Error('REQUEST_TOO_LARGE')
-  const text = await request.text()
-  if (text.length > 15_000) throw new Error('REQUEST_TOO_LARGE')
+  const text = new TextDecoder().decode(await readLimitedBody(request, 15_000))
   const parsed: unknown = JSON.parse(text)
   if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') throw new Error('INVALID_JSON')
   return parsed as Record<string, unknown>
@@ -183,9 +217,9 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
     const data = type.includes('multipart/form-data') ? null : await requestData(request)
     const action = String(data?.action || (type.includes('multipart/form-data') ? 'identity' : ''))
     // The reviewer key is NEVER accepted as an applicant session and is not present in frontend code.
-    if (action === 'invite' || action === 'reviewIdentity' || action === 'pendingReviews' || action === 'identityDocument') {
+    if (['invite', 'reviewIdentity', 'pendingReviews', 'identityDocument', 'screeningResults', 'screeningDetail', 'reviewScreening', 'deleteScreening'].includes(action)) {
       const reviewerKey = env.AVA_REVIEWER_SECRET || ''
-      if (reviewerKey.length < REQUIRED_SECRET_LENGTH || !timingSafeEqualStr(request.headers.get('X-AVA-Reviewer-Key') || '', reviewerKey)) {
+      if (reviewerKey.length < REQUIRED_SECRET_LENGTH || reviewerKey === secret(env) || !timingSafeEqualStr(request.headers.get('X-AVA-Reviewer-Key') || '', reviewerKey)) {
         return error('Reviewer authorization required.', 403)
       }
       await ensure(db)
@@ -201,6 +235,99 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         const headers = new Headers({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Disposition': 'attachment; filename="identity-evidence"' })
         object.writeHttpMetadata(headers)
         return new Response(object.body, { headers })
+      }
+
+      // Reviewer-only endpoints return human-readable candidate responses, not just AI feedback.
+      if (action === 'screeningResults') {
+        const offset = Math.min(10000, Math.max(0, Math.floor(Number(data?.offset) || 0)))
+        const now = Date.now()
+        const result = await db.prepare(`
+          SELECT s.id, s.name, s.email, s.role, s.identity_status, s.assessment_started,
+            s.completed, s.deadline,
+            CASE WHEN s.assessment_status='in_progress' AND s.deadline<=?
+              THEN 'time_expired' ELSE s.assessment_status END AS assessment_status,
+            (SELECT COUNT(*) FROM ava_screening_answers a WHERE a.session_id=s.id) AS answers_received,
+            COALESCE(r.review_status, 'awaiting_human_review') AS review_status, r.reviewed_at
+          FROM ava_screening_sessions s
+          LEFT JOIN ava_screening_manual_reviews r ON r.session_id=s.id
+          WHERE s.assessment_status IN ('submitted','time_expired')
+            OR (s.assessment_status='in_progress' AND s.deadline<=?)
+          ORDER BY COALESCE(s.completed, s.deadline) DESC LIMIT 100 OFFSET ?`)
+          .bind(now, now, offset).all()
+        return json({ ok: true, results: result.results || [], offset })
+      }
+      if (action === 'screeningDetail') {
+        const id = clean(data?.id, 80)
+        const applicant = await get(db, id)
+        if (!applicant) return error('Candidate not found.', 404)
+        const found = (await db.prepare('SELECT * FROM ava_screening_answers WHERE session_id=?').bind(id).all<AnswerRow>()).results || []
+        const byId = new Map(found.map(a => [a.question_id, a]))
+        const answers = questions(applicant.role).map(q => {
+          const a = byId.get(q.id)
+          let advisoryReview: unknown = null
+          if (a?.review_json && applicant.ai_consent_at) {
+            try { advisoryReview = JSON.parse(a.review_json) } catch { /* invalid feedback ignored */ }
+          }
+          return { id: q.id, section: q.section, topic: q.topic, prompt: q.prompt,
+            answer: a?.answer || null, source: a?.source || null,
+            submittedAt: a?.submitted_at || null, advisoryReview }
+        })
+        const events = (await db.prepare('SELECT event_type, COUNT(*) AS count FROM ava_screening_events WHERE session_id=? GROUP BY event_type').bind(id).all()).results || []
+        const manualReview = await db.prepare('SELECT review_status, reviewer_note, reviewed_at FROM ava_screening_manual_reviews WHERE session_id=?').bind(id).first()
+        let profile: Record<string, unknown> = {}
+        try { profile = JSON.parse(applicant.profile || '{}') as Record<string, unknown> } catch { /* empty profile */ }
+        return json({ ok: true, applicant: { id, name: applicant.name, email: applicant.email, role: applicant.role,
+          profile, identityStatus: applicant.identity_status, identityKind: applicant.identity_kind,
+          verifiedAt: applicant.verified_at, privacyConsentAt: applicant.consent_at,
+          monitoringConsentAt: applicant.monitor_consent_at, aiConsentAt: applicant.ai_consent_at,
+          assessmentStatus: applicant.assessment_status === 'in_progress' && applicant.deadline && Date.now() >= applicant.deadline
+            ? 'time_expired' : applicant.assessment_status,
+          startedAt: applicant.assessment_started, deadline: applicant.deadline, completedAt: applicant.completed },
+          answers, monitoringEventCounts: events, manualReview })
+      }
+      if (action === 'reviewScreening') {
+        const id = clean(data?.id, 80), note = clean(data?.note, 1500), status = data?.status
+        if (!id || (status !== 'reviewed' && status !== 'follow_up_required')) return error('Provide a candidate ID and human review status.')
+        if (status === 'follow_up_required' && note.length < 10) return error('A meaningful follow-up note is required.')
+        const applicant = await get(db, id)
+        if (!applicant || !(['submitted', 'time_expired'].includes(applicant.assessment_status) ||
+          (applicant.assessment_status === 'in_progress' && applicant.deadline && Date.now() >= applicant.deadline))) {
+          return error('The assessment has not finished.', 409)
+        }
+        const now = Date.now()
+        await db.batch([
+          db.prepare(`INSERT INTO ava_screening_manual_reviews(session_id,review_status,reviewer_note,reviewed_at)
+            VALUES(?,?,?,?) ON CONFLICT(session_id) DO UPDATE SET
+            review_status=excluded.review_status, reviewer_note=excluded.reviewer_note, reviewed_at=excluded.reviewed_at`)
+            .bind(id, status, note, now),
+          db.prepare('INSERT INTO ava_screening_review_events(session_id,action,detail,recorded_at) VALUES (?,?,?,?)')
+            .bind(id, 'screening_review', String(status), now),
+        ])
+        return json({ ok: true, reviewStatus: status, reviewedAt: now })
+      }
+      if (action === 'deleteScreening') {
+        // Bulk reviewer credentials are insufficient for irreversible identity-data deletion.
+        const deleteKey = env.AVA_DELETION_SECRET?.trim() || ''
+        if (deleteKey.length < REQUIRED_SECRET_LENGTH || deleteKey === env.AVA_REVIEWER_SECRET || deleteKey === secret(env) ||
+          !timingSafeEqualStr(request.headers.get('X-AVA-Deletion-Key') || '', deleteKey)) {
+          return error('Independent deletion authorization required.', 403)
+        }
+        const id = clean(data?.id, 80)
+        if (!id || data?.confirm !== 'DELETE') return error('A candidate ID and explicit DELETE confirmation are required.')
+        const applicant = await get(db, id)
+        if (!applicant) return error('Candidate not found.', 404)
+        if (applicant.identity_key) {
+          if (!env.AVA_ID_BUCKET) return error('Private ID storage unavailable; cannot safely finish deletion.', 503)
+          await env.AVA_ID_BUCKET.delete(applicant.identity_key)
+        }
+        await db.batch([
+          db.prepare('DELETE FROM ava_screening_answers WHERE session_id=?').bind(id),
+          db.prepare('DELETE FROM ava_screening_events WHERE session_id=?').bind(id),
+          db.prepare('DELETE FROM ava_screening_manual_reviews WHERE session_id=?').bind(id),
+          db.prepare('DELETE FROM ava_screening_review_events WHERE session_id=?').bind(id),
+          db.prepare('DELETE FROM ava_screening_sessions WHERE id=?').bind(id),
+        ])
+        return json({ ok: true, deleted: true })
       }
       if (action === 'invite') {
         const email = clean(data?.email, 180).toLowerCase()
@@ -222,8 +349,14 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (!id || (decision !== 'approved' && decision !== 'needs_resubmission')) return error('Provide a session ID and a valid review decision.')
       const row = await get(db, id)
       if (!row || row.identity_status !== 'pending_review' || !row.identity_key) return error('Pending identity submission not found.', 404)
-      await db.prepare('UPDATE ava_screening_sessions SET identity_status=?, identity_reviewed=? WHERE id=? AND identity_status=?')
-        .bind(decision, Date.now(), id, 'pending_review').run()
+      const now = Date.now()
+      const results = await db.batch([
+        db.prepare('UPDATE ava_screening_sessions SET identity_status=?, identity_reviewed=? WHERE id=? AND identity_status=?')
+          .bind(decision, now, id, 'pending_review'),
+        db.prepare('INSERT INTO ava_screening_review_events(session_id,action,detail,recorded_at) VALUES (?,?,?,?)')
+          .bind(id, 'identity_review', String(decision), now),
+      ])
+      if (!results[0].meta.changes) return error('Identity status changed. Refresh the queue.', 409)
       return json({ ok: true, identityStatus: decision })
     }
     if (action === 'requestCode') {
@@ -259,15 +392,17 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (!invite || invite.v !== 1 || invite.exp <= Date.now() || !/^\d{6}$/.test(code)) return error('Enter a valid, current six-digit code.', 400)
       const row = await get(db, invite.id)
       if (!row || row.verified_at || !row.otp_hash || row.otp_expires <= Date.now() || row.otp_attempts >= 5) return error('Code expired or attempts exhausted. Request a new invitation if needed.', 401)
+      // Reserve an OTP attempt atomically so parallel guesses cannot bypass the limit.
+      const attempt = await db.prepare(`UPDATE ava_screening_sessions SET otp_attempts=otp_attempts+1
+        WHERE id=? AND verified_at IS NULL AND otp_hash=? AND otp_expires>? AND otp_attempts<5`)
+        .bind(invite.id, row.otp_hash, Date.now()).run()
+      if (!attempt.meta.changes) return error('Verification attempts exhausted or code expired.', 429)
       const actual = await hashOtp(secret(env)!, `${invite.id}:${code}`)
-      if (!timingSafeEqualStr(row.otp_hash, actual)) {
-        await db.prepare('UPDATE ava_screening_sessions SET otp_attempts=otp_attempts+1 WHERE id=? AND verified_at IS NULL AND otp_attempts<5').bind(invite.id).run()
-        return error('Incorrect verification code.', 401)
-      }
+      if (!timingSafeEqualStr(row.otp_hash, actual)) return error('Incorrect verification code.', 401)
       const now = Date.now()
       const sessionToken = await sign(env, 'as1', { v: 1, id: invite.id, exp: now + SESSION_MS })
       const update = await db.prepare(`UPDATE ava_screening_sessions SET verified_at=?, otp_hash=NULL, session_hash=?,
-        session_expires=?, otp_expires=0 WHERE id=? AND verified_at IS NULL AND otp_hash=? AND otp_expires>? AND otp_attempts<5`)
+        session_expires=?, otp_expires=0 WHERE id=? AND verified_at IS NULL AND otp_hash=? AND otp_expires>? AND otp_attempts<=5`)
         .bind(now, await digest(sessionToken), now + SESSION_MS, invite.id, actual, now).run()
       if (!update.meta.changes) return error('Code already used or expired.', 409)
       const saved = await get(db, invite.id)
@@ -294,7 +429,8 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (row.assessment_status !== 'not_started') return error('Identity submission is closed after the assessment begins.', 409)
       if (!env.AVA_ID_BUCKET) return error('Secure identity document storage is not yet configured. Please contact Talent Acquisition.', 503)
       if (row.identity_status === 'approved' || row.identity_status === 'pending_review') return error('Identity evidence is already submitted for review.', 409)
-      const form = await request.formData()
+      const body = await readLimitedBody(request, LIMIT_BYTES + 100_000)
+      const form = await new Response(body.buffer as ArrayBuffer, { headers: { 'Content-Type': type } }).formData()
       const file = form.get('document')
       const kind = form.get('kind')
       if (!(file instanceof File) || (kind !== 'passport' && kind !== 'national_id')) return error('Select an ID/passport image or PDF and document type.')
@@ -337,8 +473,10 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (index >= bank.length) return error('All questions are already answered.', 409)
       const current = bank[index]
       const update = await db.prepare(`INSERT OR IGNORE INTO ava_screening_answers
-        (session_id, question_id, answer, source, submitted_at) VALUES (?,?,?,?,?)`)
-        .bind(row.id, current.id, answer, source, Date.now()).run()
+        (session_id, question_id, answer, source, submitted_at)
+        SELECT ?,?,?,?,? WHERE EXISTS (
+          SELECT 1 FROM ava_screening_sessions WHERE id=? AND assessment_status='in_progress' AND deadline>?)`)
+        .bind(row.id, current.id, answer, source, Date.now(), row.id, Date.now()).run()
       if (!update.meta.changes) return error('This question has already been submitted. Refresh to continue.', 409)
       if (index + 1 >= bank.length) await db.prepare("UPDATE ava_screening_sessions SET assessment_status='submitted', completed=? WHERE id=? AND assessment_status='in_progress'")
         .bind(Date.now(), row.id).run()
@@ -357,6 +495,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
     }
     return error('Unsupported Ava Screening action.', 404)
   } catch (err) {
+    if (err instanceof Error && err.message === 'REQUEST_TOO_LARGE') return error('Request exceeds the maximum allowed size.', 413)
     console.error('ava-screening failure', err instanceof Error ? err.message : 'unknown')
     return error('Screening could not process this request. Please retry or contact Talent Acquisition.', 500)
   }
