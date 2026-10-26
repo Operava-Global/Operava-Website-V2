@@ -156,7 +156,7 @@ export default function RecruitmentAdmin() {
       {tab==='invitations'&&<><div className="ra-section-title"><div><p className="ava-label">INVITATION LOG</p><h2>Sent invitations</h2></div><span>Latest 100 invitations</span></div>
         <label className="ra-search"><Search size={18}/><input aria-label="Search invitations" placeholder="Search name or email" value={filter} onChange={e=>setFilter(e.target.value)}/></label>
         {invitations.filter(matches).length ? <div className="ra-table-scroll"><table className="ra-table"><thead><tr><th>Applicant</th><th>Position</th><th>Sent</th><th>Expires</th><th>Status</th></tr></thead>
-        <tbody>{invitations.filter(matches).map(item=><tr key={item.id}><td><strong>{item.name}</strong><small>{item.email}</small></td><td>{ROLES[item.role]}</td><td>{date(item.sent_at)}</td><td>{date(item.expires_at)}</td><td><span className="ra-status">{item.status.replaceAll('_',' ')}</span></td></tr>)}</tbody></table></div>:<Empty>No invitations found. Use “Send invitation” to start a candidate screening.</Empty>}</>}
+        <tbody>{invitations.filter(matches).map(item=><tr key={item.id}><td><strong>{item.name}</strong><small>{item.email}</small></td><td>{ROLES[item.role]}</td><td>{date(item.sent_at)}</td><td>{date(item.expires_at)}</td><td><span className="ra-status">{item.status.replace(/_/g,' ')}</span></td></tr>)}</tbody></table></div>:<Empty>No invitations found. Use “Send invitation” to start a candidate screening.</Empty>}</>}
       {tab==='identity'&&<><div className="ra-section-title"><div><p className="ava-label">HUMAN VERIFICATION REQUIRED</p><h2>Identity review</h2></div><span>{pending.length} awaiting review</span></div>
         {pending.length? <div className="ra-list">{pending.map(item=><article className="ra-record" key={item.id}>
           <div className="ra-record-header"><img src="/media/ava-assessment-identity.svg" alt="" width={62} height={62}/><div><h3>{item.name}</h3><p>{item.email} · {ROLES[item.role]}</p><small>{item.identity_kind} · Submitted {date(item.identity_submitted)}</small></div></div>
@@ -170,9 +170,9 @@ export default function RecruitmentAdmin() {
           {results.filter(matches).length?results.filter(matches).map(item=><button className={'ra-report'+(selected===item.id?' is-active':'')}
             type="button" key={item.id} onClick={()=>void openDetail(item.id)}>
               <strong>{item.name}</strong><small>{item.email}</small><span>{ROLES[item.role]} · {item.answers_received} answers</span>
-              <span className="ra-status">{item.review_status.replaceAll('_',' ')}</span></button>):<Empty>No completed screening reports yet.</Empty>}</div>
+              <span className="ra-status">{item.review_status.replace(/_/g,' ')}</span></button>):<Empty>No completed screening reports yet.</Empty>}</div>
           <div className="ra-report-detail">{detail?<><div className="ra-section-title"><div><p className="ava-label">CANDIDATE REPORT</p><h3>{detail.applicant.name}</h3></div><img src="/media/ava-assessment-complete.svg" alt="" width={64} height={64}/></div>
-            <p className="ra-intro">{detail.applicant.email} · {ROLES[detail.applicant.role]} · {detail.applicant.assessmentStatus.replaceAll('_',' ')}</p>
+            <p className="ra-intro">{detail.applicant.email} · {ROLES[detail.applicant.role]} · {detail.applicant.assessmentStatus.replace(/_/g,' ')}</p>
             <div className="ra-detail-profile"><strong>Background</strong>{Object.entries(detail.applicant.profile).filter(([key])=>key!=='fullName').map(([key,value])=><div key={key}><span>{key}</span><p>{String(value||'—')}</p></div>)}</div>
             <h4>Candidate responses</h4>{detail.answers.map((item,index)=><article className="ra-answer" key={item.id}>
               <span>QUESTION {index+1} · {item.section.toUpperCase()}</span><h5>{item.prompt}</h5>
