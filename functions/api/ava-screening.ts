@@ -623,6 +623,68 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
     const row = await authorized(request, env, db)
     if (!row) return error('Your secure screening session is missing or expired.', 401)
     if (action === 'state') return json(await state(db, env, row))
+    if (action === 'applications') {
+      // The session is tied to an email confirmed through one-time code.
+      // Return only verified Careers submissions under that email; never accept
+      // an email address supplied by the browser for this query.
+      const found=await db.prepare(`SELECT f.reference_id,f.status,f.payload,f.created_at,
+        l.session_id,s.profile,s.assessment_status,s.deadline,r.review_status
+        FROM form_submissions f
+        LEFT JOIN ava_screening_application_links l ON l.reference_id=f.reference_id AND l.email=?
+        LEFT JOIN ava_screening_sessions s ON s.id=l.session_id
+        LEFT JOIN ava_screening_manual_reviews r ON r.session_id=s.id
+        WHERE lower(f.email)=? AND f.form_type='CAREERS' AND f.verification_status='VERIFIED'
+        ORDER BY f.id DESC LIMIT 100`).bind(row.email,row.email).all<{
+          reference_id:string;status:string;payload:string;created_at:string;
+          session_id:string|null;profile:string|null;assessment_status:string|null;
+          deadline:number|null;review_status:string|null
+        }>()
+      const applications=(found.results||[]).map(item=>{
+        let data:Record<string,unknown>={}
+        try { data=JSON.parse(item.payload||'{}') } catch { /* older forms */ }
+        const position=String(data.position||data.positionTitle||data.Position||data.role||data.jobTitle||'Careers application').slice(0,140)
+        const assessmentStatus=item.assessment_status==='in_progress'&&item.deadline&&item.deadline<=Date.now()
+          ? 'time_expired' : item.assessment_status||'not_started'
+        const requiredAction=assessmentStatus==='not_started'
+          ? item.profile?'Complete Assessment':'Complete Profile & Assessment'
+          : assessmentStatus==='in_progress'?'Continue Assessment':null
+        return {referenceId:item.reference_id,position,submittedAt:item.created_at,
+          applicationStatus:item.status||'VERIFIED',assessmentStatus,
+          reviewStatus:item.review_status||'awaiting_human_review',
+          requiredAction,profileComplete:Boolean(item.profile),isSelected:item.session_id===row.id}
+      })
+      return json({ok:true,applications})
+    }
+    if (action === 'selectApplication') {
+      const referenceId=clean(data?.referenceId,100)
+      const application=await db.prepare(`SELECT reference_id,name,payload FROM form_submissions
+        WHERE reference_id=? AND lower(email)=? AND form_type='CAREERS' AND verification_status='VERIFIED'`)
+        .bind(referenceId,row.email).first<{reference_id:string;name:string;payload:string}>()
+      if(!application) return error('Verified Careers application not found for this account.',404)
+      let linked=await db.prepare('SELECT session_id FROM ava_screening_application_links WHERE reference_id=? AND email=?')
+        .bind(referenceId,row.email).first<{session_id:string}>()
+      if(!linked) {
+        let fields:Record<string,unknown>={}
+        try {fields=JSON.parse(application.payload||'{}')} catch { /* legacy form */ }
+        const position=String(fields.position||fields.positionTitle||fields.Position||fields.role||fields.jobTitle||'')
+        const id=crypto.randomUUID(),now=Date.now()
+        await db.prepare(`INSERT INTO ava_screening_sessions
+          (id,email,name,role,invite_exp,verified_at,created_at) VALUES (?,?,?,?,?,?,?)`)
+          .bind(id,row.email,application.name||row.name,roleForApplication(position,row.role),
+            now+365*24*60*60_000,now,now).run()
+        await db.prepare('INSERT OR IGNORE INTO ava_screening_application_links(reference_id,session_id,email,created_at) VALUES (?,?,?,?)')
+          .bind(referenceId,id,row.email,now).run()
+        linked=await db.prepare('SELECT session_id FROM ava_screening_application_links WHERE reference_id=? AND email=?')
+          .bind(referenceId,row.email).first<{session_id:string}>()
+      }
+      if(!linked) return error('Application could not be opened.',503)
+      const selected=await get(db,linked.session_id)
+      if(!selected||selected.email!==row.email||!selected.verified_at) return error('Application authorization failed.',403)
+      const now=Date.now(),sessionToken=await sign(env,'as1',{v:1,id:selected.id,exp:now+SESSION_MS})
+      await db.prepare('UPDATE ava_screening_sessions SET session_hash=?,session_expires=? WHERE id=?')
+        .bind(await digest(sessionToken),now+SESSION_MS,selected.id).run()
+      return json({...await state(db,env,(await get(db,selected.id))!),sessionToken})
+    }
     if (action === 'logout') {
       await db.prepare('UPDATE ava_screening_sessions SET session_hash=NULL,session_expires=NULL WHERE id=? AND session_hash=?')
         .bind(row.id,await digest(request.headers.get('Authorization')?.replace(/^Bearer\s+/i,'') || '')).run()
