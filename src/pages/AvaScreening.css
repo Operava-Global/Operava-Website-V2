@@ -144,6 +144,10 @@ html[data-theme="light"] .ava-primary:hover:not(:disabled) {background:#7200b0!i
 .ava-app-support {display:flex;align-items:center;justify-content:center;gap:8px;padding:25px 12px 8px;font-size:10px;color:var(--ava-muted);line-height:1.8;flex-wrap:wrap}
 .ava-app-support a {color:var(--ava-ink);text-decoration:underline;text-underline-offset:3px}
 .ava-app-support a:hover {color:#A000F0}
+.ava-human-check {min-height:67px;display:flex;flex-direction:column;justify-content:center;gap:8px}
+.ava-signout {display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--ava-ink);border:1px solid var(--ava-line);border-radius:8px;padding:6px 11px;font-size:11px}
+.ava-signout:hover {border-color:#A000F0;color:#A000F0}
+.ava-screening .ava-form {max-width:690px}
 html[data-theme="light"] #site-shell.ava-app-host {color:var(--text);background:var(--bg)!important}
 html[data-theme="light"] .ava-screening {--ava-ink:#19132b;--ava-bg:#fff;--ava-card:#f1ecf8;--ava-line:#dad4e6;--ava-muted:#554d65}
 html[data-theme="light"] .ava-screening .ava-team-art {background:radial-gradient(circle at center,rgba(160,0,240,.08),transparent 72%),var(--ava-card)}
