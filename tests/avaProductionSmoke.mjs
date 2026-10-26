@@ -14,7 +14,16 @@ async function post(action, data = {}, extra = {}) {
   const json = await response.json().catch(()=>({}))
   return { status:response.status, data:json }
 }
-const config=await post('publicConfig')
+// Cloudflare Pages deploys asynchronously after GitHub merges. On push events,
+ // give the production deployment a bounded window to become active.
+let config
+for (let attempt=0;attempt<16;attempt++){
+  config=await post('publicConfig')
+  if (config.status===200) break
+  if (attempt===15) break
+  console.log('Waiting for production Ava deployment to become active...')
+  await new Promise(resolve=>setTimeout(resolve,15000))
+}
 assert.equal(config.status,200,'Public registration API must be enabled')
 assert.equal(config.data.ok,true)
 assert.equal(config.data.emailOtpOnly,true)
