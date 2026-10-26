@@ -7,6 +7,7 @@ New, separate **invitation-only** route: `/ava-screening/`. The original `/ai-jo
 - `AVA_SCREENING_ENABLED=true` — intentionally off by default. Do not enable before verifying the bindings and retention policy.
 - `AVA_SCREENING_SECRET` — random secret of at least 32 characters used for signed invitations, sessions, and OTP HMAC; set as encrypted secret. Do not recycle `OTP_SECRET` or store in Git.
 - `AVA_REVIEWER_SECRET` — *different* random secret (32+ characters), accessible only to authorized Talent Acquisition reviewers; set as encrypted secret.
+- `AVA_DELETION_SECRET` — a third, independent encrypted secret (32+ characters), required in the additional `X-AVA-Deletion-Key` header for irreversible `deleteScreening` operations. Keep it exclusively with the privacy/data administrator.
 - `SUBMISSIONS_DB` — existing D1 database binding; API creates isolated `ava_screening_*` tables if needed. Schema is also documented in `db/submissions.sql` for repeatable provisioning.
 - `AVA_ID_BUCKET` — private R2 bucket binding for original ID/passport media; bucket must not have a public domain. **Without this binding, identity upload returns HTTP 503 and assessment cannot start.**
 - `SES_SMTP_USERNAME`, `SES_SMTP_PASSWORD`, `SES_EMAIL_FROM` — existing AWS SES SMTP delivery from Sydney; verified domain must allow outgoing messages.
@@ -24,7 +25,7 @@ The reviewer API is `POST https://www.operavaglobal.com/api/ava-screening` with 
 - List completed / time-expired assessments (100/page): `{ "action":"screeningResults", "offset":0 }`.
 - Review original candidate answers, profile, optional AI writing suggestions and consented event totals: `{ "action":"screeningDetail", "id":"<session_id>" }`. This data is reviewer-only and includes sensitive personal information.
 - Record manual reviewer disposition: `{ "action":"reviewScreening", "id":"<session_id>", "status":"reviewed", "note":"Human review summary" }`. Use `status:"follow_up_required"` with a meaningful note when additional human follow-up is necessary. This does **not** hire, reject, score, or automatically notify candidates.
-- Delete one candidate record and its private identity file (irreversible): `{ "action":"deleteScreening", "id":"<session_id>", "confirm":"DELETE" }`. Confirm retention requirements and backups first.
+- Delete one candidate record and its private identity file (irreversible): `{ "action":"deleteScreening", "id":"<session_id>", "confirm":"DELETE" }`. Requires both reviewer authorization and an independent `X-AVA-Deletion-Key` header. Confirm retention requirements and backups first.
 - `ava_screening_review_events` stores manual identity/review actions for audit. A shared reviewer secret does not identify individual reviewers. **Before live use, require Cloudflare Access with individual authenticated accounts, review access logs, and implement organization-specific attribution for each reviewer.**
 
 
