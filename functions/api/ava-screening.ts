@@ -245,12 +245,26 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
     const data = type.includes('multipart/form-data') ? null : await requestData(request)
     const action = String(data?.action || (type.includes('multipart/form-data') ? 'identity' : ''))
     // The reviewer key is NEVER accepted as an applicant session and is not present in frontend code.
-    if (['invite', 'invitations', 'reviewIdentity', 'pendingReviews', 'identityDocument', 'screeningResults', 'screeningDetail', 'reviewScreening', 'deleteScreening'].includes(action)) {
+    if (['invite', 'invitations', 'publicApplicants', 'reviewIdentity', 'pendingReviews', 'identityDocument', 'screeningResults', 'screeningDetail', 'reviewScreening', 'deleteScreening'].includes(action)) {
       const reviewerKey = env.AVA_REVIEWER_SECRET || ''
       if (reviewerKey.length < REQUIRED_SECRET_LENGTH || reviewerKey === secret(env) || !timingSafeEqualStr(request.headers.get('X-AVA-Reviewer-Key') || '', reviewerKey)) {
         return error('Reviewer authorization required.', 403)
       }
       await ensure(db)
+      if (action === 'publicApplicants') {
+        const offset=Math.min(10000,Math.max(0,Math.floor(Number(data?.offset)||0)))
+        const result=await db.prepare(`SELECT s.id,s.name,s.email,s.role,s.created_at,s.verified_at,
+          s.assessment_status,s.assessment_started,s.completed,
+          CASE WHEN s.assessment_status='in_progress' AND s.deadline<=? THEN 'time_expired'
+            ELSE s.assessment_status END AS current_status,
+          CASE WHEN s.profile IS NOT NULL THEN 1 ELSE 0 END AS has_profile,
+          COALESCE(r.review_status,'awaiting_human_review') AS review_status
+          FROM ava_screening_public_accounts a JOIN ava_screening_sessions s ON s.id=a.session_id
+          LEFT JOIN ava_screening_manual_reviews r ON r.session_id=s.id
+          ORDER BY s.created_at DESC LIMIT 100 OFFSET ?`)
+          .bind(Date.now(),offset).all()
+        return json({ok:true,applicants:result.results||[],offset})
+      }
       if (action === 'invitations') {
         const records = await db.prepare(`
           SELECT i.id,i.name,i.email,i.role,i.sent_at,i.expires_at,i.invited_by,
