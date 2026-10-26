@@ -1,0 +1,36 @@
+name: Validate Ava Screening app
+
+on:
+  pull_request:
+    paths:
+      - 'src/pages/AvaScreening.*'
+      - 'src/pages/RecruitmentAdmin.*'
+      - 'src/site/Layout.tsx'
+      - 'src/site/CookieNotice.tsx'
+      - 'src/App.tsx'
+      - 'functions/api/ava-screening.ts'
+      - 'functions/lib/avaAccess.ts'
+      - 'functions/recruitment-admin/**'
+      - 'public/media/ava-assessment-*.svg'
+      - 'db/submissions.sql'
+      - '.github/workflows/validate-ava-screening.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - name: TypeScript check
+        run: npm run lint
+      - name: Build Cloudflare Pages frontend
+        run: npm run build:pages
