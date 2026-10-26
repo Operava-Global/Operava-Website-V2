@@ -576,7 +576,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const update = await db.prepare(`UPDATE ava_screening_sessions SET
         verified_at=COALESCE(verified_at,?),otp_hash=NULL,otp_expires=0,
         session_hash=?,session_expires=?,
-        name=CASE WHEN assessment_status='not_started' THEN ? ELSE name END,
+        name=CASE WHEN assessment_status='not_started' AND identity_status!='approved' THEN ? ELSE name END,
         role=CASE WHEN assessment_status='not_started' THEN ? ELSE role END
         WHERE id=? AND otp_hash=? AND otp_expires>? AND otp_attempts<=5`)
         .bind(now,await digest(sessionToken),now+SESSION_MS,confirmedName,confirmedRole,row.id,supplied,now).run()
@@ -714,6 +714,12 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         motivation: clean(data?.motivation, 1600),
       }
       if (profile.fullName.length < 2 || profile.education.length < 10 || profile.experience.length < 10 || profile.motivation.length < 10) return error('Full name, education, experience, and motivation are required.')
+      if(row.identity_status==='approved'&&row.profile) {
+        let previous:Record<string,unknown>={}
+        try {previous=JSON.parse(row.profile) as Record<string,unknown>} catch {/* unavailable */}
+        if(typeof previous.fullName==='string'&&previous.fullName.trim()!==profile.fullName)
+          return error('Your verified legal name cannot be changed without a new identity review. Contact Talent Acquisition.',409)
+      }
       if (data?.privacyConsent !== true || data?.monitorConsent !== true) return error('Review and accept privacy and session-event monitoring terms.')
       const now = Date.now()
       await db.prepare('UPDATE ava_screening_sessions SET profile=?, consent_at=?, monitor_consent_at=?, ai_consent_at=? WHERE id=?')
