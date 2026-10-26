@@ -584,8 +584,8 @@ export default function AvaScreening() {
               <p className="ava-label">{item.referenceId}</p>
               <h3>{item.position}</h3>
               <p>Application: <strong>{item.applicationStatus}</strong></p>
-              <p>Assessment: <strong>{item.assessmentStatus.replaceAll('_',' ')}</strong></p>
-              <p>Recruitment: <strong>{item.reviewStatus.replaceAll('_',' ')}</strong></p>
+              <p>Assessment: <strong>{item.assessmentStatus.replace(/_/g,' ')}</strong></p>
+              <p>Recruitment: <strong>{item.reviewStatus.replace(/_/g,' ')}</strong></p>
               {item.requiredAction && <p className="ava-required-action">Required action: {item.requiredAction}</p>}
               {item.isSelected
                 ? <span className="ava-current-label">Current application</span>
