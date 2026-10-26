@@ -207,3 +207,13 @@ CREATE TABLE IF NOT EXISTS ava_screening_invitations (
 CREATE INDEX IF NOT EXISTS ava_screening_invitation_sent_idx
   ON ava_screening_invitations(sent_at DESC);
 
+-- Public self-registration maps one normalized email to one resumable assessment.
+CREATE TABLE IF NOT EXISTS ava_screening_public_accounts (
+  email TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL UNIQUE,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS ava_screening_public_account_session_idx
+  ON ava_screening_public_accounts(session_id);
+
