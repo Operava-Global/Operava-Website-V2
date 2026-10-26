@@ -14,6 +14,7 @@ type AvaEnv = FormEnv & {
   AVA_SCREENING_ENABLED?: string
   AVA_SCREENING_SECRET?: string
   AVA_REVIEWER_SECRET?: string
+  AVA_DELETION_SECRET?: string
   AVA_ID_BUCKET?: R2Bucket
   AI?: Ai
 }
@@ -198,7 +199,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
     // The reviewer key is NEVER accepted as an applicant session and is not present in frontend code.
     if (['invite', 'reviewIdentity', 'pendingReviews', 'identityDocument', 'screeningResults', 'screeningDetail', 'reviewScreening', 'deleteScreening'].includes(action)) {
       const reviewerKey = env.AVA_REVIEWER_SECRET || ''
-      if (reviewerKey.length < REQUIRED_SECRET_LENGTH || !timingSafeEqualStr(request.headers.get('X-AVA-Reviewer-Key') || '', reviewerKey)) {
+      if (reviewerKey.length < REQUIRED_SECRET_LENGTH || reviewerKey === secret(env) || !timingSafeEqualStr(request.headers.get('X-AVA-Reviewer-Key') || '', reviewerKey)) {
         return error('Reviewer authorization required.', 403)
       }
       await ensure(db)
@@ -285,6 +286,12 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         return json({ ok: true, reviewStatus: status, reviewedAt: now })
       }
       if (action === 'deleteScreening') {
+        // Bulk reviewer credentials are insufficient for irreversible identity-data deletion.
+        const deleteKey = env.AVA_DELETION_SECRET?.trim() || ''
+        if (deleteKey.length < REQUIRED_SECRET_LENGTH || deleteKey === env.AVA_REVIEWER_SECRET || deleteKey === secret(env) ||
+          !timingSafeEqualStr(request.headers.get('X-AVA-Deletion-Key') || '', deleteKey)) {
+          return error('Independent deletion authorization required.', 403)
+        }
         const id = clean(data?.id, 80)
         if (!id || data?.confirm !== 'DELETE') return error('A candidate ID and explicit DELETE confirmation are required.')
         const applicant = await get(db, id)
