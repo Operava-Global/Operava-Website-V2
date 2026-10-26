@@ -217,3 +217,12 @@ CREATE TABLE IF NOT EXISTS ava_screening_public_accounts (
 CREATE INDEX IF NOT EXISTS ava_screening_public_account_session_idx
   ON ava_screening_public_accounts(session_id);
 
+-- Rolling 24-hour OTP send event audit; independent of the latest send cooldown.
+CREATE TABLE IF NOT EXISTS ava_screening_public_otp_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL,
+  recorded_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ava_public_otp_by_email_time
+  ON ava_screening_public_otp_events(email, recorded_at);
+
