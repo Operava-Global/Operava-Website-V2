@@ -23,7 +23,15 @@ type ScreenState = {
   reviewProgress: { reviewed: number; pending: number; total: number }
   reviewResults: { questionId: string; review: { relevance: number; grammar: number; clarity: number; coherence: number; feedback: string } | null }[]
 }
-type ApiPayload = ScreenState & { error?: string; sessionToken?: string; maskedEmail?: string; turnstileSiteKey?: string }
+type ApplicationRecord = {
+  referenceId: string; position: string; submittedAt: string; applicationStatus: string;
+  assessmentStatus: string; reviewStatus: string; profileComplete: boolean;
+  requiredAction: string | null; isSelected: boolean
+}
+type ApiPayload = ScreenState & {
+  error?: string; sessionToken?: string; maskedEmail?: string; turnstileSiteKey?: string;
+  applicationReference?: string | null; applications?: ApplicationRecord[]
+}
 type SpeechResult = { results: ArrayLike<ArrayLike<{ transcript: string }>> }
 type SpeechClient = {
   lang: string; interimResults: boolean; continuous: boolean
@@ -64,6 +72,8 @@ export default function AvaScreening() {
   const invitation = params.get('invite') || ''
   const [session, setSession] = useState(() => { try { return sessionStorage.getItem(SESSION_KEY) || '' } catch { return '' } })
   const [screen, setScreen] = useState<ScreenState | null>(null)
+  const [applications, setApplications] = useState<ApplicationRecord[]>([])
+  const [applicationsError, setApplicationsError] = useState('')
   const [otpRequested, setOtpRequested] = useState(false)
   const [registerName,setRegisterName] = useState('')
   const [registerEmail,setRegisterEmail] = useState('')
@@ -156,6 +166,19 @@ export default function AvaScreening() {
     }
   }, [submit])
   useEffect(() => { if (session) void refresh() }, [session, refresh])
+  const loadApplications = useCallback(async () => {
+    if (!sessionRef.current) return
+    try {
+      const result = await submit('applications')
+      setApplications(result.applications || [])
+      setApplicationsError('')
+    } catch (e) {
+      setApplicationsError(e instanceof Error ? e.message : 'Application status is unavailable.')
+    }
+  }, [submit])
+  useEffect(() => {
+    if (screen?.applicant.email) void loadApplications()
+  }, [screen?.applicant.email,screen?.assessmentStatus,session,loadApplications])
   useEffect(() => { setSpeechAvailable(Boolean(detectSpeech())) }, [])
   useEffect(() => {
     if (!screen?.deadline || screen.assessmentStatus !== 'in_progress') return
@@ -228,12 +251,17 @@ export default function AvaScreening() {
     setIsSpeaking(false)
     setAnswer('')
     setAnswerSource('typed')
-    setScreen(null);setSession('');sessionRef.current='';setOtpRequested(false)
+    setScreen(null);setApplications([]);setSession('');sessionRef.current='';setOtpRequested(false)
     setProfile(BLANK_PROFILE);setPrivacyConsent(false);setMonitorConsent(false);setAiConsent(false)
     setRegisterName('');setRegisterEmail('');setPendingEmail('');setCode('')
     setTurnstileToken('');setNotice('You have signed out.')
     // Clear legacy invitation query to offer public email OTP login for resuming.
     if (invitation) navigate('/ava-screening/',{replace:true})
+  }
+  const openApplication = async (referenceId: string) => {
+    const opened = await perform(() => submit('selectApplication', { referenceId }),
+      'Application selected. Complete your profile and assessment if required.')
+    if (opened) await loadApplications()
   }
   const verifyCode = async () => { if (await perform(() => submit('verifyCode', { invitation, code }), 'Email address verified.')) setCode('') }
   const saveProfile = async () => { await perform(() => submit('profile', { ...profile, privacyConsent, monitorConsent, aiConsent }), 'Profile saved securely.') }
@@ -281,7 +309,7 @@ export default function AvaScreening() {
         <header className="ava-app-topbar">
           <div className="ava-app-brand" aria-label="Operava Ava Screening">
             <span className="ava-app-symbol" aria-hidden="true"><ShieldCheck size={22} strokeWidth={2} /></span>
-            <div><strong>OPERAVA</strong><span>AVA · TALENT SCREENING</span></div>
+            <div><strong>OPERAVA</strong><span>AVA · APPLICANT PORTAL</span></div>
           </div>
           <div className="ava-app-controls">
             <span className="ava-access-label"><LockKeyhole size={13} /> EMAIL OTP SIGN-IN</span>
@@ -292,7 +320,7 @@ export default function AvaScreening() {
           <div>
             <p className="ava-kicker"><span className="ava-dot" /> SECURE CANDIDATE WORKSPACE</p>
             <h1>AVA <span>SCREENING</span></h1>
-            <p>One guided space for verification, identity review and your role assessment.</p>
+            <p>Secure applicant sign-in, applications, assessments and recruitment status — one place.</p>
           </div>
           <div className="ava-app-heading-state"><ShieldCheck size={17} /><span>Open registration · Secure email verification</span></div>
         </div>
@@ -353,7 +381,7 @@ export default function AvaScreening() {
                 <button className="ava-primary" disabled={busy}>{busy ? 'Saving…' : 'Save profile and continue'}<ChevronRight size={17}/></button></form>
             </div>}
             {stage === 'ready' && <div className="ava-panel"><div className="ava-icon"><CheckCircle2 /></div><p className="ava-label">STEP 03 — ASSESSMENT READY</p><h2>You are ready to begin.</h2><p>Your email is verified and your candidate profile is saved. You have 45 minutes to answer {screen?.total} questions, including role-specific and English communication prompts.</p><div className="ava-invitation"><CheckCircle2 size={18}/> Email verified · Profile completed · No identity-document upload required.</div>
-              <p className="ava-muted">Your clock starts when you select Begin. Answers are submitted one at a time; refresh or tab changes do not reset the deadline.</p><button className="ava-primary" disabled={busy} onClick={() => void beginAssessment()}>{busy ? 'Starting…' : 'Begin monitored assessment'}<ChevronRight size={17}/></button></div>}
+              <p className="ava-muted">Your clock starts when you select Begin. New assessments contain 15 role questions and 15 English questions. Answers are submitted one at a time; refresh or tab changes do not reset the deadline. Focus changes are logged for reviewer inspection.</p><button className="ava-primary" disabled={busy} onClick={() => void beginAssessment()}>{busy ? 'Starting…' : 'Begin monitored assessment'}<ChevronRight size={17}/></button></div>}
             {stage === 'assessment' && <div className="ava-panel ava-assessment"><div className="ava-assessment-top"><span className="ava-label">QUESTION {screen?.question?.number} / {screen?.total}</span><span className="ava-badge">{screen?.question?.section === 'english' ? 'ENGLISH COMMUNICATION' : 'ROLE ASSESSMENT'}</span></div>
               <div className="ava-progress"><span style={{width:`${((screen?.answered || 0) / (screen?.total || 1)) * 100}%`}} /></div><h2>{screen?.question?.prompt || 'Loading next question…'}</h2><label className="ava-field">Your response<textarea className="ava-answer" rows={8} value={answer} maxLength={4000} onChange={(e) => { setAnswer(e.target.value); setAnswerSource('typed') }} placeholder="Write your response in your own words. You can also dictate, then review the transcript before submitting." /></label>
               <div className="ava-tools"><button type="button" className="ava-secondary" disabled={!speechAvailable} onClick={startDictation}><Mic size={17}/>{isSpeaking ? 'Stop dictation' : 'Dictate answer'}</button><span>{answer.length}/4000 characters</span></div>
@@ -368,6 +396,33 @@ export default function AvaScreening() {
             {notice && <p className="ava-note" role="status"><CheckCircle2 size={16}/>{notice}</p>}
           </section>
         </div>
+        {screen && stage !== 'assessment' && <section className="ava-applications" aria-label="Your Careers applications">
+          <div className="ava-applications-header">
+            <div><p className="ava-label">MY APPLICATIONS · VERIFIED ACCOUNT</p>
+              <h2>Track your applications</h2>
+              <p>Signed in as {screen.applicant.email}. Each verified Careers application has its own assessment record.</p>
+            </div>
+            <button type="button" className="ava-secondary" onClick={() => void loadApplications()}>Refresh status</button>
+          </div>
+          {applicationsError && <p role="alert" className="ava-alert">{applicationsError}</p>}
+          {!applications.length && !applicationsError && <p className="ava-muted">No verified Careers applications found for this email. You can still continue your existing Ava screening or <Link to="/apply">apply for a role</Link>.</p>}
+          <div className="ava-application-grid">
+            {applications.map(item => <article key={item.referenceId} className="ava-application-card">
+              <p className="ava-label">{item.referenceId}</p>
+              <h3>{item.position}</h3>
+              <p>Application: <strong>{item.applicationStatus}</strong></p>
+              <p>Assessment: <strong>{item.assessmentStatus.replaceAll('_',' ')}</strong></p>
+              <p>Recruitment: <strong>{item.reviewStatus.replaceAll('_',' ')}</strong></p>
+              {item.requiredAction && <p className="ava-required-action">Required action: {item.requiredAction}</p>}
+              {item.isSelected
+                ? <span className="ava-current-label">Current application</span>
+                : <button className="ava-primary" type="button" disabled={busy} onClick={() => void openApplication(item.referenceId)}>
+                  {item.requiredAction || 'View application'} <ChevronRight size={16}/>
+                </button>}
+            </article>)}
+          </div>
+          <p className="ava-muted">Verification and recruitment statuses are controlled by OPERAVA reviewers. Assessment submission does not automatically determine employment eligibility. Passport NFC and certified face-liveness verification are not yet available; do not submit identity photos through email.</p>
+        </section>}
         <div className="ava-app-support"><LockKeyhole size={13} aria-hidden="true" /> Secure email OTP sign-in · {screen && <button className="ava-signout" type="button" onClick={()=>void logout()}><LogOut size={14} /> Sign out</button>} For assistance, email <a href="mailto:talents@operavaglobal.com">talents@operavaglobal.com</a></div>
       </div>
     </div>
