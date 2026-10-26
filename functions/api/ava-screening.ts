@@ -93,6 +93,13 @@ async function ensure(db: D1Database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL,
       event_type TEXT NOT NULL, occurred_at INTEGER NOT NULL,
       FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_manual_reviews (
+      session_id TEXT PRIMARY KEY, review_status TEXT NOT NULL,
+      reviewer_note TEXT NOT NULL DEFAULT '', reviewed_at INTEGER NOT NULL,
+      FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_review_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL,
+      action TEXT NOT NULL, detail TEXT NOT NULL DEFAULT '', recorded_at INTEGER NOT NULL)`),
   ])
 }
 async function get(db: D1Database, id: string): Promise<Applicant | null> {
@@ -133,6 +140,12 @@ function applicantState(row: Applicant, answers: AnswerRow[]) {
   }
 }
 async function state(db: D1Database, row: Applicant) {
+  // Finalize expired assessments even when candidates close the browser before submitting.
+  if (row.assessment_status === 'in_progress' && row.deadline && Date.now() >= row.deadline) {
+    await db.prepare("UPDATE ava_screening_sessions SET assessment_status='time_expired', completed=? WHERE id=? AND assessment_status='in_progress' AND deadline<=?")
+      .bind(Date.now(), row.id, Date.now()).run()
+    row = (await get(db, row.id)) || row
+  }
   const answers = (await db.prepare('SELECT question_id, answer, source, review_status, review_json, submitted_at FROM ava_screening_answers WHERE session_id = ? ORDER BY submitted_at ASC, question_id ASC').bind(row.id).all<AnswerRow>()).results || []
   return applicantState(row, answers)
 }
@@ -259,15 +272,17 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (!invite || invite.v !== 1 || invite.exp <= Date.now() || !/^\d{6}$/.test(code)) return error('Enter a valid, current six-digit code.', 400)
       const row = await get(db, invite.id)
       if (!row || row.verified_at || !row.otp_hash || row.otp_expires <= Date.now() || row.otp_attempts >= 5) return error('Code expired or attempts exhausted. Request a new invitation if needed.', 401)
+      // Reserve an OTP attempt atomically so parallel guesses cannot bypass the limit.
+      const attempt = await db.prepare(`UPDATE ava_screening_sessions SET otp_attempts=otp_attempts+1
+        WHERE id=? AND verified_at IS NULL AND otp_hash=? AND otp_expires>? AND otp_attempts<5`)
+        .bind(invite.id, row.otp_hash, Date.now()).run()
+      if (!attempt.meta.changes) return error('Verification attempts exhausted or code expired.', 429)
       const actual = await hashOtp(secret(env)!, `${invite.id}:${code}`)
-      if (!timingSafeEqualStr(row.otp_hash, actual)) {
-        await db.prepare('UPDATE ava_screening_sessions SET otp_attempts=otp_attempts+1 WHERE id=? AND verified_at IS NULL AND otp_attempts<5').bind(invite.id).run()
-        return error('Incorrect verification code.', 401)
-      }
+      if (!timingSafeEqualStr(row.otp_hash, actual)) return error('Incorrect verification code.', 401)
       const now = Date.now()
       const sessionToken = await sign(env, 'as1', { v: 1, id: invite.id, exp: now + SESSION_MS })
       const update = await db.prepare(`UPDATE ava_screening_sessions SET verified_at=?, otp_hash=NULL, session_hash=?,
-        session_expires=?, otp_expires=0 WHERE id=? AND verified_at IS NULL AND otp_hash=? AND otp_expires>? AND otp_attempts<5`)
+        session_expires=?, otp_expires=0 WHERE id=? AND verified_at IS NULL AND otp_hash=? AND otp_expires>? AND otp_attempts<=5`)
         .bind(now, await digest(sessionToken), now + SESSION_MS, invite.id, actual, now).run()
       if (!update.meta.changes) return error('Code already used or expired.', 409)
       const saved = await get(db, invite.id)
@@ -337,8 +352,10 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (index >= bank.length) return error('All questions are already answered.', 409)
       const current = bank[index]
       const update = await db.prepare(`INSERT OR IGNORE INTO ava_screening_answers
-        (session_id, question_id, answer, source, submitted_at) VALUES (?,?,?,?,?)`)
-        .bind(row.id, current.id, answer, source, Date.now()).run()
+        (session_id, question_id, answer, source, submitted_at)
+        SELECT ?,?,?,?,? WHERE EXISTS (
+          SELECT 1 FROM ava_screening_sessions WHERE id=? AND assessment_status='in_progress' AND deadline>?)`)
+        .bind(row.id, current.id, answer, source, Date.now(), row.id, Date.now()).run()
       if (!update.meta.changes) return error('This question has already been submitted. Refresh to continue.', 409)
       if (index + 1 >= bank.length) await db.prepare("UPDATE ava_screening_sessions SET assessment_status='submitted', completed=? WHERE id=? AND assessment_status='in_progress'")
         .bind(Date.now(), row.id).run()
