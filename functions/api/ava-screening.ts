@@ -179,10 +179,30 @@ async function maybeReview(env: AvaEnv, db: D1Database, session: Applicant, ques
       .bind(JSON.stringify(rubric), session.id, questionId).run()
   } catch (e) { console.error('ava review unavailable', e instanceof Error ? e.message : 'unknown') }
 }
+// Enforce request limits while streaming, even when Content-Length is omitted.
+async function readLimitedBody(request: Request, limit: number): Promise<Uint8Array> {
+  if (Number(request.headers.get('Content-Length') || 0) > limit) throw new Error('REQUEST_TOO_LARGE')
+  const reader = request.body?.getReader()
+  if (!reader) return new Uint8Array()
+  const chunks: Uint8Array[] = []
+  let total = 0
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    total += value.byteLength
+    if (total > limit) {
+      await reader.cancel().catch(() => {})
+      throw new Error('REQUEST_TOO_LARGE')
+    }
+    chunks.push(value)
+  }
+  const bytes = new Uint8Array(total)
+  let offset = 0
+  for (const part of chunks) { bytes.set(part, offset); offset += part.byteLength }
+  return bytes
+}
 async function requestData(request: Request): Promise<Record<string, unknown>> {
-  if (Number(request.headers.get('Content-Length') || 0) > 15_000) throw new Error('REQUEST_TOO_LARGE')
-  const text = await request.text()
-  if (text.length > 15_000) throw new Error('REQUEST_TOO_LARGE')
+  const text = new TextDecoder().decode(await readLimitedBody(request, 15_000))
   const parsed: unknown = JSON.parse(text)
   if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') throw new Error('INVALID_JSON')
   return parsed as Record<string, unknown>
@@ -409,7 +429,8 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (row.assessment_status !== 'not_started') return error('Identity submission is closed after the assessment begins.', 409)
       if (!env.AVA_ID_BUCKET) return error('Secure identity document storage is not yet configured. Please contact Talent Acquisition.', 503)
       if (row.identity_status === 'approved' || row.identity_status === 'pending_review') return error('Identity evidence is already submitted for review.', 409)
-      const form = await request.formData()
+      const body = await readLimitedBody(request, LIMIT_BYTES + 100_000)
+      const form = await new Response(body.buffer as ArrayBuffer, { headers: { 'Content-Type': type } }).formData()
       const file = form.get('document')
       const kind = form.get('kind')
       if (!(file instanceof File) || (kind !== 'passport' && kind !== 'national_id')) return error('Select an ID/passport image or PDF and document type.')
@@ -474,6 +495,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
     }
     return error('Unsupported Ava Screening action.', 404)
   } catch (err) {
+    if (err instanceof Error && err.message === 'REQUEST_TOO_LARGE') return error('Request exceeds the maximum allowed size.', 413)
     console.error('ava-screening failure', err instanceof Error ? err.message : 'unknown')
     return error('Screening could not process this request. Please retry or contact Talent Acquisition.', 500)
   }
