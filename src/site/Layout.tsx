@@ -75,7 +75,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   // Ava Screening is a focused assessment application, not a marketing page.
   // Retain the shared design tokens and accessible main landmark, while keeping
   // all website navigation, trusted brands and footer out of this private flow.
-  if (/^\/ava-screening(?:\/|$)/.test(pathname)) {
+  if (/^\/(?:ava-screening|recruitment-admin)(?:\/|$)/.test(pathname)) {
     return (
       <div
         id="site-shell"
