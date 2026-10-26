@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { readConsent, writeConsent } from './consent'
 
 /** Slim bottom bar in the index.html style; remembers the choice in browser storage. */
 export default function CookieNotice() {
+  const { pathname } = useLocation()
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
@@ -16,7 +17,9 @@ export default function CookieNotice() {
     }
   }, [])
 
-  if (!visible) return null
+  // Recruitment consent is collected within Ava; prevent a marketing-site
+  // cookie banner from obscuring timed assessment inputs on any screen size.
+  if (!visible || /^\/ava-screening(?:\/|$)/.test(pathname)) return null
 
   const choose = (c: 'accepted' | 'essential') => {
     writeConsent(c)
