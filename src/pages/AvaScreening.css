@@ -165,3 +165,17 @@ html[data-theme="light"] .ava-screening .ava-team-art {background:radial-gradien
  .ava-stage-heading img{height:70px;width:70px}
  .ava-content{padding:22px 18px}
 }
+
+/* Applicant dashboard; uses the same standalone Ava theme. */
+.ava-applications{border:1px solid var(--ava-line);border-radius:12px;background:var(--ava-bg);padding:clamp(20px,3vw,36px);margin-top:24px}
+.ava-applications-header{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.ava-applications-header h2{font-size:24px;font-weight:800;margin:11px 0}
+.ava-applications-header p:not(.ava-label){color:var(--ava-muted);font-size:12px;line-height:1.6}
+.ava-application-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px;margin-top:24px}
+.ava-application-card{padding:20px;border:1px solid var(--ava-line);background:var(--ava-card);border-radius:11px}
+.ava-application-card h3{font-size:16px;font-weight:800;margin:10px 0 15px}
+.ava-application-card p:not(.ava-label){font-size:12px;line-height:1.7;color:var(--ava-muted);margin-top:6px}
+.ava-application-card strong{color:var(--ava-ink)}
+.ava-application-card .ava-required-action{color:#ce9cfc!important;font-weight:800}
+.ava-application-card .ava-primary{margin:17px 0 0;width:100%}
+.ava-current-label{display:inline-block;margin-top:17px;padding:8px 10px;border:1px solid #A000F0;border-radius:7px;font-size:11px;font-weight:800}
