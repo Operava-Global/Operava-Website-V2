@@ -309,6 +309,10 @@ export default function AvaScreening() {
     setProctorReady(false)
     setProctorSaved({camera:false,screen:false})
   }
+  useEffect(() => {
+    if(screen?.assessmentStatus==='submitted'||screen?.assessmentStatus==='time_expired')stopCapture()
+    // Capture must end promptly when the assessment ends; don't record the result page.
+  },[screen?.assessmentStatus])
   const isCaptureLive = () => Boolean(captures.current &&
     captures.current.screen.getVideoTracks().length &&
     captures.current.screen.getVideoTracks().every(t=>t.readyState==='live'&&t.enabled&&!t.muted) &&
