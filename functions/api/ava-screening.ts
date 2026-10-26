@@ -149,6 +149,7 @@ async function ensure(db: D1Database) {
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_application_links (reference_id TEXT PRIMARY KEY, session_id TEXT NOT NULL UNIQUE, email TEXT NOT NULL, created_at INTEGER NOT NULL, FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_questions (session_id TEXT NOT NULL, question_number INTEGER NOT NULL, question_id TEXT NOT NULL, prompt TEXT NOT NULL, PRIMARY KEY(session_id,question_number), FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_identity_attestations (session_id TEXT PRIMARY KEY, vendor_reference TEXT NOT NULL UNIQUE, face_score REAL NOT NULL, liveness_pass INTEGER NOT NULL, document_authentic INTEGER NOT NULL, document_name_match INTEGER NOT NULL, passport_nfc_pass INTEGER NOT NULL, status TEXT NOT NULL, checked_at INTEGER NOT NULL, FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_identity_intents (session_id TEXT PRIMARY KEY, vendor_reference TEXT NOT NULL UNIQUE, created_at INTEGER NOT NULL, FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_proctor_evidence (session_id TEXT NOT NULL, kind TEXT NOT NULL, chunk_id TEXT NOT NULL, object_key TEXT NOT NULL, recorded_at INTEGER NOT NULL, PRIMARY KEY(session_id,kind,chunk_id), FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS ava_proctor_evidence_latest ON ava_screening_proctor_evidence(session_id,kind,recorded_at DESC)`),
   ])
@@ -297,7 +298,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
   try {
     const type = request.headers.get('Content-Type') || ''
     const data = type.includes('multipart/form-data') ? null : await requestData(request)
-    const action = String(data?.action || (type.includes('multipart/form-data') ? 'identity' : ''))
+    const action = String(data?.action || (type.includes('multipart/form-data') ? (new URL(request.url).searchParams.get('action') === 'proctorChunk' ? 'proctorChunk' : 'identity') : ''))
     // The reviewer key is NEVER accepted as an applicant session and is not present in frontend code.
     if (['invite', 'invitations', 'publicApplicants', 'reviewIdentity', 'pendingReviews', 'identityDocument', 'screeningResults', 'screeningDetail', 'reviewScreening', 'deleteScreening'].includes(action)) {
       const reviewerKey = env.AVA_REVIEWER_SECRET || ''
@@ -754,9 +755,13 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if(!external.ok) return error('Identity verification provider is unavailable.',503)
       const result=await external.json() as {verificationUrl?:string;reference?:string}
       if(!result.verificationUrl||!result.reference) return error('Identity provider did not return a live verification session.',503)
+      await db.prepare('INSERT INTO ava_screening_identity_intents(session_id,vendor_reference,created_at) VALUES (?,?,?) ON CONFLICT(session_id) DO UPDATE SET vendor_reference=excluded.vendor_reference,created_at=excluded.created_at').bind(row.id,String(result.reference).slice(0,200),Date.now()).run()
       const url=new URL(result.verificationUrl)
       if(url.protocol!=='https:') return error('Identity provider returned an invalid URL.',503)
-      return json({ok:true,verificationUrl:url.toString(),message:'Open the secure verification provider on your phone.'})
+      await sendEmail(env,{from:resolveFromEnv(env),to:[row.email],subject:'OPERAVA | Live identity verification',
+        text:`Hello ${row.name},\n\nTo verify your applicant profile, open this secure live identity verification link on your mobile phone:\n${url.toString()}\n\nOnly proceed if you requested this link. The provider will ask permission to access your camera. A selfie and live ID capture are required; uploading existing pictures is not accepted.\n\nOPERAVA Talent Acquisition`,
+        html:`<p>Hello ${escapeHtml(row.name)},</p><p>Your live identity verification link is ready.</p><p><a href="${escapeHtml(url.toString())}">Open secure verification on your mobile phone</a></p><p>The identity provider will ask permission to use your camera. Existing photo uploads are not accepted. Ignore this message if you did not request verification.</p><p>OPERAVA Talent Acquisition</p>`})
+      return json({ok:true,verificationUrl:url.toString(),message:'Live verification link sent to your confirmed email. Use your phone to complete it.'})
     }
     if (action === 'proctorChunk') {
       if(!env.AVA_PROCTOR_BUCKET) return error('Private assessment recording storage is unavailable.',503)
@@ -789,7 +794,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const evidence=await db.prepare("SELECT kind,MAX(recorded_at) AS last_seen FROM ava_screening_proctor_evidence WHERE session_id=? GROUP BY kind")
         .bind(row.id).all<{kind:string;last_seen:number}>()
       const latest=new Map((evidence.results||[]).map(x=>[x.kind,x.last_seen]))
-      if(!latest.get('screen')||!latest.get('camera')||Date.now()-latest.get('screen')!>90_000||Date.now()-latest.get('camera')!>90_000)
+      if(!latest.get('screen')||!latest.get('camera')||Date.now()-latest.get('screen')!>30_000||Date.now()-latest.get('camera')!>30_000)
         return error('Enable screen, camera and microphone recording and allow initial segments to save before starting.',403)
       const now = Date.now()
       await db.prepare("UPDATE ava_screening_sessions SET assessment_status='in_progress', assessment_started=?, deadline=?, assessment_version=2 WHERE id=? AND assessment_status='not_started'")
@@ -807,7 +812,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         const segments=await db.prepare("SELECT kind,MAX(recorded_at) AS last_seen FROM ava_screening_proctor_evidence WHERE session_id=? GROUP BY kind")
           .bind(row.id).all<{kind:string;last_seen:number}>()
         const recent=new Map((segments.results||[]).map(x=>[x.kind,x.last_seen]))
-        if(!recent.get('camera')||!recent.get('screen')||Date.now()-recent.get('camera')!>90_000||Date.now()-recent.get('screen')!>90_000)
+        if(!recent.get('camera')||!recent.get('screen')||Date.now()-recent.get('camera')!>30_000||Date.now()-recent.get('screen')!>30_000)
           return error('Assessment recording was interrupted. Restore screen, camera and microphone before submitting.',409)
       }
       const answer = clean(data?.answer, 4000)
