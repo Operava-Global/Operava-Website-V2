@@ -776,7 +776,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const kind=form.get('kind')
       const chunk=form.get('chunk')
       if(kind!=='screen'&&kind!=='camera') return error('Unknown recording track.')
-      if(!(chunk instanceof File)||chunk.size<100||chunk.size>=LIMIT_BYTES||!['video/webm','video/mp4','audio/webm'].includes(chunk.type)) return error('Invalid recording segment.')
+      if(!(chunk instanceof File)||chunk.size<100||chunk.size>=LIMIT_BYTES||!['video/webm','video/mp4','audio/webm'].includes(chunk.type.split(';')[0].trim().toLowerCase())) return error('Invalid recording segment.')
       const id=crypto.randomUUID(),key=`ava-proctor/${row.id}/${kind}/${id}`
       const bytes=await chunk.arrayBuffer()
       await env.AVA_PROCTOR_BUCKET.put(key,bytes,{httpMetadata:{contentType:chunk.type},customMetadata:{kind,category:'consented-proctor-recording'}})
