@@ -55,6 +55,17 @@ export const CAREER_PHOTO: Record<string, string> = {
   cx: original('customer-support'),
 }
 
+/**
+ * Transparent foreground service elements (SVG image files, not inline SVG).
+ * They sit on top of the existing hero photographs; the photos stay unchanged.
+ */
+export const SERVICE_ELEMENT = {
+  hub: { src: '/media/services/operava-service-cloud.svg', alt: 'Rack servers connected to a glass cloud' },
+  it: { src: '/media/services/operava-service-it.svg', alt: 'Laptop running a code editor with a security shield' },
+  bpo: { src: '/media/services/operava-service-bpo.svg', alt: 'Support headset in front of a customer service desk' },
+  automation: { src: '/media/services/operava-service-automation.svg', alt: 'Tablet workflow builder with interlocking gears' },
+} as const
+
 export const AUTOMATION_PHOTO = {
   ai: original('digital-strategy'),
   custom: original('business-analytics'),

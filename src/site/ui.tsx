@@ -193,6 +193,7 @@ export function PageHero({
   height = 'h-[500px]',
   brightness = 'brightness-[0.6]',
   titleClass = 'text-[40px] sm:text-[56px] lg:text-[84px]',
+  element,
 }: {
   image?: string
   alt?: string
@@ -206,6 +207,8 @@ export function PageHero({
   height?: string
   brightness?: string
   titleClass?: string
+  /** Optional transparent foreground illustration placed over the photo (photo is unchanged). */
+  element?: { src: string; alt: string }
 }) {
   return (
     <section className={`photo-overlay relative ${height} max-lg:h-auto min-h-[460px] rounded-[12px] overflow-hidden border border-neutral-900 mt-6`}>
@@ -246,6 +249,22 @@ export function PageHero({
           </div>
         )}
       </div>
+      {element && (
+        <div
+          style={{ ['--d' as string]: '0.45s' }}
+          className="hero-in pointer-events-none select-none relative z-10 w-full max-w-[340px] mx-auto -mt-4 mb-6 px-4 lg:hidden xl:block xl:absolute xl:z-[5] xl:m-0 xl:p-0 xl:max-w-[560px] xl:w-[30%] 2xl:w-[34%] xl:right-[3%] xl:top-1/2 xl:-translate-y-1/2"
+        >
+          <img
+            src={element.src}
+            alt={element.alt}
+            width={1200}
+            height={900}
+            loading="eager"
+            decoding="async"
+            className="block w-full h-auto drop-shadow-[0_18px_24px_rgba(0,0,0,0.28)]"
+          />
+        </div>
+      )}
     </section>
   )
 }
