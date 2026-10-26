@@ -26,5 +26,7 @@
 
 # Allow explicit camera capture / dictation only on the invitation-only Ava Screening page.
 /ava-screening/*
-  Permissions-Policy: camera=(self), microphone=(self), geolocation=()
+  Permissions-Policy: camera=(), microphone=(self), geolocation=()
+  Referrer-Policy: no-referrer
+  X-Robots-Tag: noindex, nofollow, noarchive
   Cache-Control: no-store
