@@ -18,6 +18,10 @@ type AvaEnv = FormEnv & {
   AVA_TURNSTILE_SITE_KEY?: string
   AVA_TURNSTILE_SECRET?: string
   AVA_ID_BUCKET?: R2Bucket
+  AVA_PROCTOR_BUCKET?: R2Bucket
+  AVA_IDV_API_URL?: string
+  AVA_IDV_API_KEY?: string
+  AVA_IDV_WEBHOOK_SECRET?: string
   AI?: Ai
 }
 type Invite = { v: 1; id: string; email: string; name: string; role: Role; exp: number }
@@ -144,6 +148,9 @@ async function ensure(db: D1Database) {
       ON ava_screening_public_otp_events(email, recorded_at)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_application_links (reference_id TEXT PRIMARY KEY, session_id TEXT NOT NULL UNIQUE, email TEXT NOT NULL, created_at INTEGER NOT NULL, FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_questions (session_id TEXT NOT NULL, question_number INTEGER NOT NULL, question_id TEXT NOT NULL, prompt TEXT NOT NULL, PRIMARY KEY(session_id,question_number), FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_identity_attestations (session_id TEXT PRIMARY KEY, vendor_reference TEXT NOT NULL UNIQUE, face_score REAL NOT NULL, liveness_pass INTEGER NOT NULL, document_authentic INTEGER NOT NULL, document_name_match INTEGER NOT NULL, passport_nfc_pass INTEGER NOT NULL, status TEXT NOT NULL, checked_at INTEGER NOT NULL, FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_proctor_evidence (session_id TEXT NOT NULL, kind TEXT NOT NULL, chunk_id TEXT NOT NULL, object_key TEXT NOT NULL, recorded_at INTEGER NOT NULL, PRIMARY KEY(session_id,kind,chunk_id), FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS ava_proctor_evidence_latest ON ava_screening_proctor_evidence(session_id,kind,recorded_at DESC)`),
   ])
   // D1 table already exists for previous sessions; one-time additive migration.
   try { await db.prepare('ALTER TABLE ava_screening_sessions ADD COLUMN assessment_version INTEGER NOT NULL DEFAULT 1').run() }
@@ -199,7 +206,12 @@ async function state(db: D1Database, env: AvaEnv, row: Applicant) {
   if(result.question && (row.assessment_version||1)>=2) {
     result.question.prompt = await questionPrompt(db,env,row,result.question.number)
   }
-  return {...result,applicationReference:link?.reference_id||null}
+  const attestation=await db.prepare('SELECT status,face_score FROM ava_screening_identity_attestations WHERE session_id=?').bind(row.id).first<{status:string;face_score:number}>()
+  return {...result,applicationReference:link?.reference_id||null,
+    verifiedApplicantProfile:row.identity_status==='approved' && attestation?.status==='verified',
+    identityVerification:attestation?.status||'required',faceMatchScore:attestation?.status==='verified'?attestation.face_score:null,
+    identityProviderAvailable:Boolean(env.AVA_IDV_API_URL&&env.AVA_IDV_API_KEY&&env.AVA_IDV_WEBHOOK_SECRET),
+    recordingStorageReady:Boolean(env.AVA_PROCTOR_BUCKET)}
 }
 async function questionPrompt(db:D1Database,env:AvaEnv,row:Applicant,number:number):Promise<string> {
   const existing=await db.prepare('SELECT prompt FROM ava_screening_questions WHERE session_id=? AND question_number=?').bind(row.id,number).first<{prompt:string}>()
@@ -727,11 +739,58 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (row.identity_key) await env.AVA_ID_BUCKET.delete(row.identity_key).catch(() => {})
       return json(await state(db, env, (await get(db, row.id))!))
     }
+    if (action === 'identityStart') {
+      if (!row.profile || !row.consent_at || !row.monitor_consent_at) return error('Complete the applicant profile and required consents first.',403)
+      if (!env.AVA_IDV_API_URL || !env.AVA_IDV_API_KEY || !env.AVA_IDV_WEBHOOK_SECRET) return error('Certified live identity verification is not configured. Contact Talent Acquisition.',503)
+      // Provider adapter: never send face/ID photos to the general application API.
+      // Credentials must only be available as Cloudflare encrypted secrets.
+      const endpoint=new URL(env.AVA_IDV_API_URL)
+      if(endpoint.protocol!=='https:') return error('Identity provider configuration is unsafe.',503)
+      const external=await fetch(endpoint.toString(),{
+        method:'POST',headers:{Authorization:`Bearer ${env.AVA_IDV_API_KEY}`,'Content-Type':'application/json'},
+        body:JSON.stringify({reference:row.id,subject:{name:row.name},workflow:'live-face-document-passport-nfc',
+          callbackUrl:new URL('/api/ava-identity-callback',request.url).toString()})
+      })
+      if(!external.ok) return error('Identity verification provider is unavailable.',503)
+      const result=await external.json() as {verificationUrl?:string;reference?:string}
+      if(!result.verificationUrl||!result.reference) return error('Identity provider did not return a live verification session.',503)
+      const url=new URL(result.verificationUrl)
+      if(url.protocol!=='https:') return error('Identity provider returned an invalid URL.',503)
+      return json({ok:true,verificationUrl:url.toString(),message:'Open the secure verification provider on your phone.'})
+    }
+    if (action === 'proctorChunk') {
+      if(!env.AVA_PROCTOR_BUCKET) return error('Private assessment recording storage is unavailable.',503)
+      if(!row.consent_at||!row.monitor_consent_at||!row.profile) return error('Profile and monitoring consent are required.',403)
+      if(row.assessment_status!=='not_started'&&row.assessment_status!=='in_progress') return error('Assessment is not accepting recordings.',409)
+      if(!type.includes('multipart/form-data')) return error('Expected a live recording segment.',415)
+      const raw=await readLimitedBody(request, LIMIT_BYTES+100_000)
+      const form=await new Response(raw.buffer as ArrayBuffer,{headers:{'Content-Type':type}}).formData()
+      const kind=form.get('kind')
+      const chunk=form.get('chunk')
+      if(kind!=='screen'&&kind!=='camera') return error('Unknown recording track.')
+      if(!(chunk instanceof File)||chunk.size<100||chunk.size>=LIMIT_BYTES||!['video/webm','video/mp4','audio/webm'].includes(chunk.type)) return error('Invalid recording segment.')
+      const id=crypto.randomUUID(),key=`ava-proctor/${row.id}/${kind}/${id}`
+      const bytes=await chunk.arrayBuffer()
+      await env.AVA_PROCTOR_BUCKET.put(key,bytes,{httpMetadata:{contentType:chunk.type},customMetadata:{kind,category:'consented-proctor-recording'}})
+      try {
+        await db.prepare('INSERT INTO ava_screening_proctor_evidence(session_id,kind,chunk_id,object_key,recorded_at) VALUES (?,?,?,?,?)')
+          .bind(row.id,kind,id,key,Date.now()).run()
+      } catch(e) {await env.AVA_PROCTOR_BUCKET.delete(key).catch(()=>{});throw e}
+      return json({ok:true,stored:true})
+    }
     if (action === 'begin') {
-      // Public applicants can begin immediately after OTP verification + profile consent.
-      // Original identity upload remains a legacy, optional admin-reviewed capability.
+      // Fail closed: the server requires a certified identity attestation and
+      // actual private live recording segments, not browser-supplied booleans.
       if (!row.profile || !row.consent_at || !row.monitor_consent_at) return error('Complete the profile and monitoring consent before starting.', 403)
       if (row.assessment_status !== 'not_started') return error('Assessment already started or submitted.', 409)
+      const verified=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status='verified'").bind(row.id).first()
+      if(row.identity_status!=='approved'||!verified) return error('Live identity and document verification must pass before the assessment.',403)
+      if(!env.AVA_PROCTOR_BUCKET) return error('Secure live proctor recording is not configured.',503)
+      const evidence=await db.prepare("SELECT kind,MAX(recorded_at) AS last_seen FROM ava_screening_proctor_evidence WHERE session_id=? GROUP BY kind")
+        .bind(row.id).all<{kind:string;last_seen:number}>()
+      const latest=new Map((evidence.results||[]).map(x=>[x.kind,x.last_seen]))
+      if(!latest.get('screen')||!latest.get('camera')||Date.now()-latest.get('screen')!>90_000||Date.now()-latest.get('camera')!>90_000)
+        return error('Enable screen, camera and microphone recording and allow initial segments to save before starting.',403)
       const now = Date.now()
       await db.prepare("UPDATE ava_screening_sessions SET assessment_status='in_progress', assessment_started=?, deadline=?, assessment_version=2 WHERE id=? AND assessment_status='not_started'")
         .bind(now, now + ASSESSMENT_MS, row.id).run()
@@ -743,6 +802,13 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         await db.prepare("UPDATE ava_screening_sessions SET assessment_status='time_expired', completed=? WHERE id=? AND assessment_status='in_progress'")
           .bind(Date.now(), row.id).run()
         return error('Assessment time has elapsed. Submitted answers remain saved.', 409)
+      }
+      if((row.assessment_version||1)>=2) {
+        const segments=await db.prepare("SELECT kind,MAX(recorded_at) AS last_seen FROM ava_screening_proctor_evidence WHERE session_id=? GROUP BY kind")
+          .bind(row.id).all<{kind:string;last_seen:number}>()
+        const recent=new Map((segments.results||[]).map(x=>[x.kind,x.last_seen]))
+        if(!recent.get('camera')||!recent.get('screen')||Date.now()-recent.get('camera')!>90_000||Date.now()-recent.get('screen')!>90_000)
+          return error('Assessment recording was interrupted. Restore screen, camera and microphone before submitting.',409)
       }
       const answer = clean(data?.answer, 4000)
       const source = data?.source === 'dictation' ? 'dictation' : 'typed'
