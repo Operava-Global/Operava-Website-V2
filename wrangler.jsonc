@@ -22,6 +22,10 @@
     "CLIENT_INBOX": "hello@operavaglobal.com",
     "TALENT_INBOX": "talents@operavaglobal.com",
     "SES_SMTP_HOST": "email-smtp.ap-southeast-2.amazonaws.com",
-    "ACADEMY_INBOX": "academy@operavaglobal.com"
+    "ACADEMY_INBOX": "academy@operavaglobal.com",
+    "AVA_SCREENING_ENABLED": "true",
+    "AVA_TURNSTILE_SITE_KEY": "0x4AAAAAAFm-aW4IrjCV-iTl",
+    "AVA_ACCESS_AUD": "309b4030d6c8fd4a15a20b2ef0fcb032301225d4c5d9d8e49c08030ca9059abd",
+    "AVA_ACCESS_TEAM_DOMAIN": "dry-rain-3eba.cloudflareaccess.com"
   }
 }

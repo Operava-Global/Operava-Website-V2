@@ -13,6 +13,18 @@ on:
       - 'functions/recruitment-admin/**'
       - 'public/media/ava-assessment-*.svg'
       - 'db/submissions.sql'
+      - 'wrangler.jsonc'
+      - 'tests/avaProductionSmoke.mjs'
+      - '.github/workflows/validate-ava-screening.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'wrangler.jsonc'
+      - 'src/pages/AvaScreening.*'
+      - 'src/pages/RecruitmentAdmin.*'
+      - 'functions/api/ava-screening.ts'
+      - 'functions/recruitment-admin/**'
+      - 'tests/avaProductionSmoke.mjs'
       - '.github/workflows/validate-ava-screening.yml'
   workflow_dispatch:
 
@@ -34,3 +46,6 @@ jobs:
         run: npm run lint
       - name: Build Cloudflare Pages frontend
         run: npm run build:pages
+      - name: Non-invasive production Ava API smoke
+        if: github.event_name != 'pull_request'
+        run: node tests/avaProductionSmoke.mjs
