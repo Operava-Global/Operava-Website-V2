@@ -101,6 +101,12 @@ async function ensure(db: D1Database) {
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_review_events (
       id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL,
       action TEXT NOT NULL, detail TEXT NOT NULL DEFAULT '', recorded_at INTEGER NOT NULL)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_invitations (
+      id TEXT PRIMARY KEY, email TEXT NOT NULL, name TEXT NOT NULL,
+      role TEXT NOT NULL, sent_at INTEGER NOT NULL, expires_at INTEGER NOT NULL,
+      invited_by TEXT NOT NULL DEFAULT 'reviewer_api')`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS ava_screening_invitation_sent_idx
+      ON ava_screening_invitations(sent_at DESC)`),
   ])
 }
 async function get(db: D1Database, id: string): Promise<Applicant | null> {
@@ -217,12 +223,29 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
     const data = type.includes('multipart/form-data') ? null : await requestData(request)
     const action = String(data?.action || (type.includes('multipart/form-data') ? 'identity' : ''))
     // The reviewer key is NEVER accepted as an applicant session and is not present in frontend code.
-    if (['invite', 'reviewIdentity', 'pendingReviews', 'identityDocument', 'screeningResults', 'screeningDetail', 'reviewScreening', 'deleteScreening'].includes(action)) {
+    if (['invite', 'invitations', 'reviewIdentity', 'pendingReviews', 'identityDocument', 'screeningResults', 'screeningDetail', 'reviewScreening', 'deleteScreening'].includes(action)) {
       const reviewerKey = env.AVA_REVIEWER_SECRET || ''
       if (reviewerKey.length < REQUIRED_SECRET_LENGTH || reviewerKey === secret(env) || !timingSafeEqualStr(request.headers.get('X-AVA-Reviewer-Key') || '', reviewerKey)) {
         return error('Reviewer authorization required.', 403)
       }
       await ensure(db)
+      if (action === 'invitations') {
+        const records = await db.prepare(`
+          SELECT i.id,i.name,i.email,i.role,i.sent_at,i.expires_at,i.invited_by,
+            CASE WHEN s.id IS NULL THEN CASE WHEN i.expires_at<=? THEN 'expired' ELSE 'sent' END
+              WHEN s.assessment_status IN ('submitted','time_expired') THEN s.assessment_status
+              WHEN s.assessment_status='in_progress' THEN 'assessment_in_progress'
+              WHEN s.identity_status='approved' THEN 'identity_approved'
+              WHEN s.identity_status='pending_review' THEN 'identity_pending'
+              WHEN s.identity_status='needs_resubmission' THEN 'resubmission_requested'
+              WHEN s.verified_at IS NOT NULL THEN 'email_verified'
+              ELSE 'opened' END AS status
+          FROM ava_screening_invitations i
+          LEFT JOIN ava_screening_sessions s ON s.id=i.id
+          ORDER BY i.sent_at DESC LIMIT 100`)
+          .bind(Date.now()).all()
+        return json({ok:true,invitations:records.results || []})
+      }
       if (action === 'pendingReviews') {
         const results = await db.prepare("SELECT id,name,email,role,identity_kind,identity_submitted FROM ava_screening_sessions WHERE identity_status='pending_review' ORDER BY identity_submitted ASC LIMIT 100").all()
         return json({ ok: true, pending: results.results || [] })
@@ -326,6 +349,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
           db.prepare('DELETE FROM ava_screening_manual_reviews WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_review_events WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_sessions WHERE id=?').bind(id),
+          db.prepare('DELETE FROM ava_screening_invitations WHERE id=?').bind(id),
         ])
         return json({ ok: true, deleted: true })
       }
@@ -342,7 +366,11 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
           text: `Hello ${name},\n\nYou have been invited to complete the ${ROLES[role]} screening.\n\nOpen this private invitation link within 7 days:\n${url}\n\nYou will confirm your email with a one-time code and complete identity review before the assessment.\n\nIf unexpected, ignore this email.\n\nOPERAVA Talent Acquisition`,
           html: `<p>Hello ${escapeHtml(name)},</p><p>You are invited to complete the <strong>${escapeHtml(ROLES[role])}</strong> Ava Screening.</p><p><a href="${escapeHtml(url)}">Open your private invitation</a> (valid for 7 days)</p><p>For your security, an additional email code and human identity review are required before the timed assessment.</p><p>OPERAVA Talent Acquisition</p>`,
         })
-        return json({ ok: true, message: 'Invitation email sent.', expiresAt: payload.exp })
+        await db.prepare(`INSERT INTO ava_screening_invitations(id,email,name,role,sent_at,expires_at,invited_by)
+          VALUES (?,?,?,?,?,?,?)`)
+          .bind(payload.id, email, name, role, Date.now(), payload.exp,
+            clean(request.headers.get('X-AVA-Reviewer-Identity') || '', 180) || 'reviewer_api').run()
+        return json({ ok: true, message: 'Invitation email sent.', expiresAt: payload.exp, invitationId: payload.id })
       }
       const id = clean(data?.id, 80)
       const decision = data?.decision
