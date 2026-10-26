@@ -104,3 +104,60 @@ html[data-theme="light"] .ava-primary:hover:not(:disabled) {background:#7200b0!i
 @media(max-width:960px){.ava-wrap{padding:0 20px}.ava-hero{padding:42px 30px}.ava-hero-mark{min-width:auto}.ava-shell{grid-template-columns:260px minmax(0,1fr)}.ava-sidebar{padding:25px 18px}}
 @media(max-width:720px){.ava-wrap{padding:0 14px}.ava-hero{padding:39px 22px;align-items:start}.ava-hero-mark{display:none}.ava-steps{grid-template-columns:repeat(4,minmax(0,1fr))}.ava-step{flex-direction:column;text-align:center;gap:7px;font-size:9px;padding:13px 4px}.ava-shell{grid-template-columns:1fr}.ava-sidebar{display:grid;grid-template-columns:1fr 1fr;gap:16px}.ava-sidebar-block{padding:0;margin:0;border:0}.ava-sidebar-block:nth-child(2){display:none}.ava-sidebar-note{grid-column:span 2}.ava-timer{padding:0}.ava-content{padding:27px 20px}.ava-identity-grid{grid-template-columns:1fr}.ava-summary{grid-template-columns:1fr}.ava-footer{line-height:1.65}}
 @media(prefers-reduced-motion:reduce){.ava-screening *, .ava-screening *:before, .ava-screening *:after{transition:none!important;animation:none!important}}
+
+/* Standalone assessment-app shell, shared with the private operations workspace. */
+#site-shell.ava-app-host {
+  background:var(--bg,#1b1b21)!important;
+  color:var(--text,#fff);
+  min-height:100vh;
+  isolation:isolate;
+}
+#site-shell.ava-app-host > main {z-index:auto;position:relative}
+.ava-screening {min-height:100vh;background:var(--bg,#1b1b21);position:relative;padding-bottom:24px}
+.ava-screening::before {content:"";position:absolute;inset:0 0 auto;height:460px;pointer-events:none;opacity:.6;background:radial-gradient(ellipse at 12% 0%,rgba(160,0,240,.11),transparent 60%),radial-gradient(ellipse at 95% 0%,rgba(160,0,240,.08),transparent 56%)}
+.ava-wrap {max-width:1420px;position:relative;padding:0 clamp(16px,3vw,48px) 30px}
+.ava-app-topbar {min-height:84px;display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:1px solid var(--ava-line)}
+.ava-app-brand {display:flex;align-items:center;gap:14px}
+.ava-app-symbol {display:grid;place-items:center;height:43px;width:43px;border:1px solid rgba(160,0,240,.4);background:rgba(160,0,240,.13);border-radius:13px;color:#b770fa}
+.ava-app-brand div {display:flex;flex-direction:column;gap:3px}
+.ava-app-brand strong {font-size:18px;line-height:1.05;letter-spacing:-.05em;font-weight:900}
+.ava-app-brand div span {color:var(--ava-muted);font-size:9px;letter-spacing:.17em;font-weight:750}
+.ava-app-controls {display:flex;align-items:center;gap:18px}
+.ava-access-label {color:var(--ava-muted);display:flex;align-items:center;gap:8px;font-size:10px;font-weight:750;letter-spacing:.15em}
+.ava-app-controls .theme-toggle {border:1px solid var(--ava-line);color:var(--ava-ink);background:var(--ava-bg);border-radius:11px;height:41px;width:41px;display:flex;align-items:center;justify-content:center}
+.ava-app-heading {display:flex;justify-content:space-between;align-items:end;gap:24px;padding:37px 0 8px}
+.ava-app-heading h1 {font-size:clamp(33px,4.2vw,56px);line-height:1;letter-spacing:-.06em;font-weight:900;margin:10px 0 11px}
+.ava-app-heading h1 span {color:#A000F0}
+.ava-app-heading p:not(.ava-kicker) {font-size:13px;color:var(--ava-muted);line-height:1.65}
+.ava-app-heading-state {display:flex;align-items:center;gap:9px;color:var(--ava-muted);font-size:11px;white-space:nowrap}
+.ava-app-heading-state svg {color:#A000F0}
+.ava-steps {margin:24px 0 21px}
+.ava-shell {grid-template-columns:300px minmax(0,1fr)}
+.ava-sidebar {padding:20px}
+.ava-team-art {border:1px solid rgba(160,0,240,.17);border-radius:12px;background:radial-gradient(circle at 55% 45%,rgba(160,0,240,.14),transparent 70%),var(--ava-card);margin-bottom:27px;overflow:hidden}
+.ava-team-art img {height:auto;width:100%;max-height:210px;object-fit:contain}
+.ava-stage-heading {display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--ava-line);margin:-24px 0 27px;padding-bottom:10px}
+.ava-stage-heading>div {display:flex;flex-direction:column;gap:8px}
+.ava-stage-heading>div span {font-size:9px;color:var(--ava-muted);font-weight:800;letter-spacing:.19em}
+.ava-stage-heading>div strong {font-size:13px;font-weight:750;color:var(--ava-ink)}
+.ava-stage-heading img {width:94px;height:94px;object-fit:contain;flex:none;filter:drop-shadow(0 11px 20px rgba(160,0,240,.13))}
+.ava-app-support {display:flex;align-items:center;justify-content:center;gap:8px;padding:25px 12px 8px;font-size:10px;color:var(--ava-muted);line-height:1.8;flex-wrap:wrap}
+.ava-app-support a {color:var(--ava-ink);text-decoration:underline;text-underline-offset:3px}
+.ava-app-support a:hover {color:#A000F0}
+html[data-theme="light"] #site-shell.ava-app-host {color:var(--text);background:var(--bg)!important}
+html[data-theme="light"] .ava-screening {--ava-ink:#19132b;--ava-bg:#fff;--ava-card:#f1ecf8;--ava-line:#dad4e6;--ava-muted:#554d65}
+html[data-theme="light"] .ava-screening .ava-team-art {background:radial-gradient(circle at center,rgba(160,0,240,.08),transparent 72%),var(--ava-card)}
+@media(max-width:960px){.ava-shell{grid-template-columns:260px minmax(0,1fr)}}
+@media(max-width:720px){
+ .ava-app-topbar{min-height:73px}
+ .ava-app-brand strong{font-size:16px}
+ .ava-access-label{display:none}
+ .ava-app-heading{padding:29px 0 2px;align-items:start}
+ .ava-app-heading-state{display:none}
+ .ava-shell{grid-template-columns:1fr}
+ .ava-sidebar{padding:17px}
+ .ava-team-art{display:none}
+ .ava-stage-heading{margin:-8px 0 21px}
+ .ava-stage-heading img{height:70px;width:70px}
+ .ava-content{padding:22px 18px}
+}

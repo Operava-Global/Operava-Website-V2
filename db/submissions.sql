@@ -194,3 +194,16 @@ CREATE TABLE IF NOT EXISTS ava_screening_review_events (
 CREATE INDEX IF NOT EXISTS ava_screening_review_events_idx
   ON ava_screening_review_events(session_id, recorded_at);
 
+-- Individual invitation audit and recruiter dashboard tracking.
+CREATE TABLE IF NOT EXISTS ava_screening_invitations (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('tech','ops','cx')),
+  sent_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  invited_by TEXT NOT NULL DEFAULT 'reviewer_api'
+);
+CREATE INDEX IF NOT EXISTS ava_screening_invitation_sent_idx
+  ON ava_screening_invitations(sent_at DESC);
+

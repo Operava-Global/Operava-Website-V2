@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Camera, CheckCircle2, ChevronRight, ClipboardCheck, Clock3, FileBadge, Headphones, LockKeyhole, MailCheck, Mic, MonitorCheck, ShieldCheck, Smartphone, TriangleAlert } from 'lucide-react'
 import { usePageMeta } from '../site/seo'
+import ThemeToggle from '../site/ThemeToggle'
 import './AvaScreening.css'
 
 type Role = 'tech' | 'ops' | 'cx'
@@ -43,6 +44,15 @@ const FORM_FIELDS: { key: keyof Profile; label: string; placeholder: string; row
   { key: 'motivation', label: 'Why this role?', placeholder: 'What makes you interested in this OPERAVA position?', rows: 3 },
 ]
 const STEPS = ['Verify email', 'Your profile', 'Review identity', 'Assessment']
+const STEP_ILLUSTRATIONS: Record<string, { src: string; label: string }> = {
+  email: { src: '/media/ava-assessment-verified.svg', label: '01 / Secure access' },
+  profile: { src: '/media/ava-assessment-profile.svg', label: '02 / Candidate background' },
+  identity: { src: '/media/ava-assessment-identity.svg', label: '03 / Document submission' },
+  waiting: { src: '/media/ava-assessment-review.svg', label: '03 / Human identity review' },
+  ready: { src: '/media/ava-assessment-ready.svg', label: '04 / Ready to begin' },
+  assessment: { src: '/media/ava-assessment-question.svg', label: '04 / Timed assessment' },
+  finished: { src: '/media/ava-assessment-complete.svg', label: 'Complete / Submitted for review' },
+}
 const detectSpeech = (): SpeechCtor | null => {
   const scope = window as unknown as { SpeechRecognition?: SpeechCtor; webkitSpeechRecognition?: SpeechCtor }
   return scope.SpeechRecognition || scope.webkitSpeechRecognition || null
@@ -207,22 +217,38 @@ export default function AvaScreening() {
   return (
     <div className="ava-screening">
       <div className="ava-wrap">
-        <nav className="ava-crumbs" aria-label="Breadcrumb"><Link to="/careers">Careers</Link><span>/</span><span>Ava Screening</span></nav>
-        <header className="ava-hero">
-          <div><p className="ava-kicker"><span className="ava-dot" /> OPERAVA / SECURE RECRUITMENT</p><h1>AVA <span>SCREENING</span></h1>
-            <p>Identity-aware, role-specific screening with a clear, protected candidate journey.</p>
+        <header className="ava-app-topbar">
+          <div className="ava-app-brand" aria-label="Operava Ava Screening">
+            <span className="ava-app-symbol" aria-hidden="true"><ShieldCheck size={22} strokeWidth={2} /></span>
+            <div><strong>OPERAVA</strong><span>AVA · TALENT SCREENING</span></div>
           </div>
-          <div className="ava-hero-mark" aria-hidden="true"><ShieldCheck size={44} strokeWidth={1.2} /><span>PRIVATE · VERIFIED · MONITORED</span></div>
+          <div className="ava-app-controls">
+            <span className="ava-access-label"><LockKeyhole size={13} /> PRIVATE ASSESSMENT</span>
+            <ThemeToggle />
+          </div>
         </header>
+        <div className="ava-app-heading">
+          <div>
+            <p className="ava-kicker"><span className="ava-dot" /> SECURE CANDIDATE WORKSPACE</p>
+            <h1>AVA <span>SCREENING</span></h1>
+            <p>One guided space for verification, identity review and your role assessment.</p>
+          </div>
+          <div className="ava-app-heading-state"><ShieldCheck size={17} /><span>Invitation-only access</span></div>
+        </div>
         <div className="ava-steps" aria-label="Screening stages">{STEPS.map((label, i) => <div className={`ava-step ${i <= stageIndex ? 'is-active' : ''}`} key={label}><span>{i < stageIndex ? <CheckCircle2 size={15} /> : String(i + 1).padStart(2, '0')}</span><strong>{label}</strong></div>)}</div>
         <div className="ava-shell">
-          <aside className="ava-sidebar">
+          <aside className="ava-sidebar" aria-label="Assessment guidance">
+            {stage !== 'assessment' && stage !== 'finished' && <div className="ava-team-art"><img src="/media/ava-assessment-team.svg" alt="Connected Operava professionals, secure assessment and teamwork" width={660} height={400} decoding="async" /></div>}
             <div className="ava-sidebar-block"><p className="ava-label">CANDIDATE ACCESS</p><h2>{screen?.applicant.roleTitle || 'By invitation only'}</h2><p>{screen?.applicant.email || 'Your access is linked to an OPERAVA Talent Acquisition invitation.'}</p></div>
             <div className="ava-sidebar-block"><p className="ava-label">ASSESSMENT PROTOCOL</p><div className="ava-sidebar-info"><Clock3 size={18}/><span>45-minute, server-enforced timer</span></div><div className="ava-sidebar-info"><MonitorCheck size={18}/><span>Consent-based focus and visibility logs</span></div><div className="ava-sidebar-info"><ClipboardCheck size={18}/><span>Written and role-based responses</span></div><div className="ava-sidebar-info"><Headphones size={18}/><span>Optional speech-to-text dictation</span></div></div>
             <div className="ava-sidebar-note"><LockKeyhole size={17}/><span>No continuous video/audio recording. AI writing feedback is advisory; a person makes recruitment decisions.</span></div>
             {screen?.assessmentStatus === 'in_progress' && <div className="ava-timer"><span>TIME REMAINING</span><strong aria-live="off" className={seconds < 300 ? 'ava-time-low' : ''}>{formatRemaining(seconds)}</strong><small>Time runs even if this tab closes.</small></div>}
           </aside>
           <section className="ava-content" aria-live="polite">
+            <div className="ava-stage-heading">
+              <div><span>AVA SCREENING JOURNEY</span><strong>{STEP_ILLUSTRATIONS[stage].label}</strong></div>
+              <img src={STEP_ILLUSTRATIONS[stage].src} alt="" aria-hidden="true" width={112} height={112} decoding="async" />
+            </div>
             {stage === 'email' && <div className="ava-panel"><div className="ava-icon"><MailCheck /></div><p className="ava-label">STEP 01 — PRE-ASSESSMENT VERIFICATION</p><h2>Confirm your email.</h2>
               <p>Only candidates invited by OPERAVA Talent Acquisition can access this assessment. We’ll send a one-time verification code to the address associated with your invitation.</p>
               {invitation ? <><div className="ava-invitation"><ShieldCheck size={20}/> A private invitation was detected. Do not forward or share its link.</div>
@@ -265,7 +291,7 @@ export default function AvaScreening() {
             {notice && <p className="ava-note" role="status"><CheckCircle2 size={16}/>{notice}</p>}
           </section>
         </div>
-        <footer className="ava-footer"><span>OPERAVA GLOBAL SOLUTIONS · RECRUITMENT SECURITY</span><a href="mailto:talents@operavaglobal.com">Contact Talent Acquisition</a></footer>
+        <div className="ava-app-support"><LockKeyhole size={13} aria-hidden="true" /> Private screening · For assistance, email <a href="mailto:talents@operavaglobal.com">talents@operavaglobal.com</a></div>
       </div>
     </div>
   )

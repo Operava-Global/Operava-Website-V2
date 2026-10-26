@@ -72,6 +72,29 @@ export default function Layout({ children }: { children: ReactNode }) {
   useScrollManager(pathname, hash)
   useSpotlight()
 
+  // Ava Screening is a focused assessment application, not a marketing page.
+  // Retain the shared design tokens and accessible main landmark, while keeping
+  // all website navigation, trusted brands and footer out of this private flow.
+  if (/^\/(?:ava-screening|recruitment-admin)(?:\/|$)/.test(pathname)) {
+    return (
+      <div
+        id="site-shell"
+        className="app-shell ava-app-host min-h-screen flex flex-col"
+        style={{ paddingTop: 'var(--safe-area-inset-top)', boxSizing: 'border-box' }}
+      >
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:bg-white focus:text-black focus:px-4 focus:py-2 text-xs"
+        >
+          Skip to screening
+        </a>
+        <main id="main" key={pathname} className="flex-1">
+          {children}
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div
       id="site-shell"

@@ -13,6 +13,50 @@ New, separate **invitation-only** route: `/ava-screening/`. The original `/ai-jo
 - `SES_SMTP_USERNAME`, `SES_SMTP_PASSWORD`, `SES_EMAIL_FROM` — existing AWS SES SMTP delivery from Sydney; verified domain must allow outgoing messages.
 - `AI` (optional Workers AI binding) — role and English *written* feedback only. Without an AI binding, answers remain `pending` for human review; no fake numerical grades are produced.
 
+## Private Recruitment Admin dashboard (Cloudflare Access)
+
+The private reviewer workspace is at `https://www.operavaglobal.com/recruitment-admin/`.
+It is implemented in the **same GitHub repository** and shares the existing `SUBMISSIONS_DB`,
+private identity bucket and `/api/ava-screening` backend with the candidate assessment.
+There is no public website header/footer, public navigation link, or sitemap listing
+for this route. The candidate assessment at `/ava-screening/` uses the same isolated
+app-only shell and stage-specific SVG illustrations from `public/media/ava-assessment-*.svg`.
+
+Cloudflare Access application: **OPERAVA Recruitment Admin — Private**.
+It protects `www.operavaglobal.com/recruitment-admin/*`, uses one-hour sessions,
+is hidden from the Access app launcher and currently authorizes only the existing
+`admin@operavaglobal.com` admin account using the existing OTP login method.
+To add Recruitment Team members, have the Zero Trust administrator explicitly
+amend the *Access Allow policy* with their individually approved addresses/groups.
+**Never** broaden the policy to any internet user, and do not treat the hidden URL
+as sufficient access control.
+
+The admin Pages Functions at `functions/recruitment-admin/` revalidate the
+signed `Cf-Access-Jwt-Assertion` JWT (Cloudflare certs, RSA signature, audience,
+issuer and expiration). Production and preview Pages settings require:
+`AVA_ACCESS_AUD` and `AVA_ACCESS_TEAM_DOMAIN` (configured as nonsecret environment
+variables). The protected origin-side `/recruitment-admin/api` proxy additionally
+checks the same-origin POST request and injects `AVA_REVIEWER_SECRET` server-side
+before invoking the underlying reviewer actions. It never delivers reviewer
+or deletion secrets to the browser. The privileged irreversible deletion action
+remains excluded from the browser dashboard.
+
+The dashboard provides:
+1. **Send Invitation** — enter applicant name, invited email and position. The
+   server signs a unique 7-day invitation link and emails it via existing Amazon SES.
+2. **Invitation Tracking** — shows the most recent 100 invitations and opened,
+   email-verified, identity-pending, assessment-progress or expired state.
+3. **Identity Review** — download evidence from private R2, manually inspect
+   the original, then approve or ask for resubmission.
+4. **Assessment Reports** — review candidate profile and actual written answers,
+   and save human review or follow-up notes. No automated hire/reject result.
+
+Production must retain `AVA_SCREENING_ENABLED=false` until private ID R2,
+32+ character Ava-specific secrets, retention schedule, review permissions and
+full synthetic end-to-end tests are verified and approved. A successful website
+build or Cloudflare Access deployment does *not* prove invitation mail or ID
+upload flows function. The initial allowlist is intentionally narrow.
+
 ## Reviewer operations
 
 The reviewer API is `POST https://www.operavaglobal.com/api/ava-screening` with `Content-Type: application/json`, header `X-AVA-Reviewer-Key: <AVA_REVIEWER_SECRET>`, and one of these bodies:
