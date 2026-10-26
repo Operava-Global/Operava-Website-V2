@@ -19,7 +19,7 @@ export default function CookieNotice() {
 
   // Recruitment consent is collected within Ava; prevent a marketing-site
   // cookie banner from obscuring timed assessment inputs on any screen size.
-  if (!visible || /^\/ava-screening(?:\/|$)/.test(pathname)) return null
+  if (!visible || /^\/(?:ava-screening|recruitment-admin)(?:\/|$)/.test(pathname)) return null
 
   const choose = (c: 'accepted' | 'essential') => {
     writeConsent(c)
