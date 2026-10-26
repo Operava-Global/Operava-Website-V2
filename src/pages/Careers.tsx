@@ -34,6 +34,15 @@ export default function Careers() {
         lead="Build skills for the future with a remote-first company connecting technology, skilled professionals and business processes across markets."
       />
 
+      <section className="mx-auto max-w-[1420px] px-6 lg:px-12 pt-10" aria-label="Applicant portal login">
+        <div className="rounded-xl border border-[#A000F0]/35 bg-[rgba(160,0,240,.07)] p-6 lg:p-9 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div><p className="text-[10px] tracking-[.2em] font-bold text-accent uppercase">Already applied?</p>
+            <h2 className="mt-2 text-2xl font-black uppercase">Applicant Portal</h2>
+            <p className="mt-2 text-sm text-neutral-400">Sign in with your verified email to see each application status and complete any outstanding Ava assessment.</p></div>
+          <Link to="/applicant-portal" className="inline-flex items-center justify-center border border-[#A000F0] bg-[#A000F0] text-white px-6 py-4 text-xs font-bold uppercase tracking-widest rounded-lg hover:brightness-110">
+            Applicant login &amp; status →
+          </Link></div>
+      </section>
       <Section id="open-roles">
         <SectionHead
           kicker="Open roles"
