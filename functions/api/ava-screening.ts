@@ -1,5 +1,5 @@
 /**
- * Invitation-only Ava Screening. Isolated from the deliberately disabled legacy
+ * Public email-OTP Ava Screening. Isolated from the deliberately disabled legacy
  * /api/recruitment/* endpoints. Never release identity media to the public.
  */
 import {
@@ -15,6 +15,8 @@ type AvaEnv = FormEnv & {
   AVA_SCREENING_SECRET?: string
   AVA_REVIEWER_SECRET?: string
   AVA_DELETION_SECRET?: string
+  AVA_TURNSTILE_SITE_KEY?: string
+  AVA_TURNSTILE_SECRET?: string
   AVA_ID_BUCKET?: R2Bucket
   AI?: Ai
 }
@@ -56,6 +58,23 @@ function secret(env: AvaEnv) {
 function enabled(env: AvaEnv) { return env.AVA_SCREENING_ENABLED?.trim().toLowerCase() === 'true' }
 function error(message: string, status = 400) { return json({ error: message }, status) }
 function validRole(input: unknown): input is Role { return input === 'tech' || input === 'ops' || input === 'cx' }
+async function verifyTurnstile(env: AvaEnv, response: unknown, request: Request): Promise<boolean> {
+  const secret = env.AVA_TURNSTILE_SECRET?.trim() || ''
+  if (!secret || typeof response !== 'string' || response.length < 10 || response.length > 2500) return false
+  const body = new URLSearchParams({ secret, response })
+  const remoteIp = request.headers.get('CF-Connecting-IP')
+  if (remoteIp) body.set('remoteip', remoteIp)
+  try {
+    const result = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST', body, signal: AbortSignal.timeout(8000),
+    })
+    if (!result.ok) return false
+    const verification = await result.json() as { success?: boolean; hostname?: string; action?: string }
+    const allowed = ['operavaglobal.com', 'www.operavaglobal.com', 'operava-website-v2.pages.dev']
+    const hostname = String(verification.hostname || '').toLowerCase()
+    return verification.success === true && allowed.some(host => hostname === host || hostname.endsWith('.' + host))
+  } catch { return false }
+}
 async function sign(env: AvaEnv, prefix: 'av1' | 'as1', data: Invite | SessionTicket) {
   const encoded = b64urlEncode(JSON.stringify(data))
   return `${prefix}.${encoded}.${await hmacSign(secret(env)!, `${prefix}.${encoded}`)}`
@@ -107,6 +126,9 @@ async function ensure(db: D1Database) {
       invited_by TEXT NOT NULL DEFAULT 'reviewer_api')`),
     db.prepare(`CREATE INDEX IF NOT EXISTS ava_screening_invitation_sent_idx
       ON ava_screening_invitations(sent_at DESC)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_public_accounts (
+      email TEXT PRIMARY KEY, session_id TEXT NOT NULL UNIQUE, created_at INTEGER NOT NULL,
+      FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
   ])
 }
 async function get(db: D1Database, id: string): Promise<Applicant | null> {
@@ -350,6 +372,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
           db.prepare('DELETE FROM ava_screening_review_events WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_sessions WHERE id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_invitations WHERE id=?').bind(id),
+          db.prepare('DELETE FROM ava_screening_public_accounts WHERE session_id=?').bind(id),
         ])
         return json({ ok: true, deleted: true })
       }
@@ -386,6 +409,87 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       ])
       if (!results[0].meta.changes) return error('Identity status changed. Refresh the queue.', 409)
       return json({ ok: true, identityStatus: decision })
+    }
+    if (action === 'publicConfig') {
+      return json({ ok: true, emailOtpOnly: true, registrationOpen: true,
+        turnstileSiteKey: env.AVA_TURNSTILE_SECRET && env.AVA_TURNSTILE_SITE_KEY
+          ? env.AVA_TURNSTILE_SITE_KEY : null })
+    }
+    if (action === 'publicStart') {
+      // Public users may register, or log back into the same profile with email OTP.
+      // Turnstile, a per-address cooldown and daily quotas protect SES sending costs.
+      const email = clean(data?.email, 180).toLowerCase()
+      const name = clean(data?.name, 100)
+      const role = data?.role
+      if (!EMAIL_RE.test(email) || name.length < 2 || !validRole(role)) {
+        return error('Enter your full name, a valid email, and an assessment track.')
+      }
+      if (request.headers.get('Origin') !== new URL(request.url).origin ||
+        !type.toLowerCase().startsWith('application/json')) return error('Invalid request origin.', 403)
+      if (!await verifyTurnstile(env, data?.turnstileToken, request)) {
+        return error('Security verification failed or expired. Complete the challenge again.', 403)
+      }
+      await ensure(db)
+      const now = Date.now()
+      const match = await db.prepare('SELECT session_id FROM ava_screening_public_accounts WHERE email=?')
+        .bind(email).first<{ session_id: string }>()
+      const proposedId = crypto.randomUUID()
+      if (!match) {
+        // Untrusted public signup never grants reviewer privileges.
+        await db.batch([
+          db.prepare(`INSERT OR IGNORE INTO ava_screening_sessions
+            (id,email,name,role,invite_exp,created_at) VALUES (?,?,?,?,?,?)`)
+            .bind(proposedId,email,name,role,now+365*24*60*60_000,now),
+          db.prepare(`INSERT OR IGNORE INTO ava_screening_public_accounts(email,session_id,created_at)
+            VALUES (?,?,?)`).bind(email,proposedId,now),
+        ])
+      }
+      const account = await db.prepare('SELECT session_id FROM ava_screening_public_accounts WHERE email=?')
+        .bind(email).first<{ session_id: string }>()
+      if (!account) return error('Unable to create account. Please try again.', 503)
+      const applicant = await get(db, account.session_id)
+      if (!applicant) return error('Account temporarily unavailable.', 503)
+      const code = generateOtp()
+      const codeHash = await hashOtp(secret(env)!, `${account.session_id}:${code}`)
+      const updated = await db.prepare(`UPDATE ava_screening_sessions SET
+        otp_hash=?,otp_expires=?,otp_attempts=0,otp_sent=?,
+        otp_count=CASE WHEN otp_sent<? THEN 1 ELSE otp_count+1 END
+        WHERE id=? AND otp_sent<=? AND (otp_sent<? OR otp_count<5)`)
+        .bind(codeHash,now+OTP_MS,now,now-24*60*60_000,account.session_id,
+          now-60_000,now-24*60*60_000).run()
+      if (!updated.meta.changes) return error('A code was recently requested or the daily email limit was reached. Try again later.', 429)
+      await sendEmail(env,{from:resolveFromEnv(env),to:[email],
+        subject:'OPERAVA Ava Screening | Your sign-in code',
+        text:`Hi ${applicant.name},\n\nYour Ava Assessment sign-in code is ${code}. It expires in 10 minutes. Do not share it.\n\nIf you did not request this, ignore this email.\n\nOPERAVA Talent Acquisition`,
+        html:`<p>Hello ${escapeHtml(applicant.name)},</p><p>Your Ava Assessment email sign-in code:</p><p style="font-size:30px;font-weight:800;letter-spacing:5px">${code.slice(0,3)} ${code.slice(3)}</p><p>Valid for 10 minutes. Do not share this code. If you didn't request it, ignore this email.</p><p>OPERAVA Talent Acquisition</p>`,
+      })
+      return json({ok:true,maskedEmail:maskEmail(email),message:'Verification code sent.'})
+    }
+    if (action === 'publicVerify') {
+      const email = clean(data?.email,180).toLowerCase()
+      const code = String(data?.code || '')
+      if (!EMAIL_RE.test(email) || !/^\d{6}$/.test(code)) return error('Enter your email and six-digit code.')
+      await ensure(db)
+      const account = await db.prepare('SELECT session_id FROM ava_screening_public_accounts WHERE email=?')
+        .bind(email).first<{session_id:string}>()
+      if (!account) return error('Invalid or expired verification code.', 401)
+      const row = await get(db,account.session_id)
+      if (!row?.otp_hash || row.otp_expires<=Date.now() || row.otp_attempts>=5) return error('Invalid or expired verification code.', 401)
+      const attempt = await db.prepare(`UPDATE ava_screening_sessions SET otp_attempts=otp_attempts+1
+        WHERE id=? AND otp_hash=? AND otp_expires>? AND otp_attempts<5`)
+        .bind(row.id,row.otp_hash,Date.now()).run()
+      if (!attempt.meta.changes) return error('Verification attempts exhausted.',429)
+      const supplied = await hashOtp(secret(env)!, `${row.id}:${code}`)
+      if (!timingSafeEqualStr(row.otp_hash,supplied)) return error('Invalid or expired verification code.',401)
+      const now=Date.now()
+      const sessionToken = await sign(env,'as1',{v:1,id:row.id,exp:now+SESSION_MS})
+      const update = await db.prepare(`UPDATE ava_screening_sessions SET
+        verified_at=COALESCE(verified_at,?),otp_hash=NULL,otp_expires=0,
+        session_hash=?,session_expires=?
+        WHERE id=? AND otp_hash=? AND otp_expires>? AND otp_attempts<=5`)
+        .bind(now,await digest(sessionToken),now+SESSION_MS,row.id,supplied,now).run()
+      if (!update.meta.changes) return error('Code already used or expired.',409)
+      return json({...(await state(db,(await get(db,row.id))!)),sessionToken})
     }
     if (action === 'requestCode') {
       const inviteRaw = String(data?.invitation || '')
@@ -439,6 +543,11 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
     const row = await authorized(request, env, db)
     if (!row) return error('Your secure screening session is missing or expired.', 401)
     if (action === 'state') return json(await state(db, row))
+    if (action === 'logout') {
+      await db.prepare('UPDATE ava_screening_sessions SET session_hash=NULL,session_expires=NULL WHERE id=? AND session_hash=?')
+        .bind(row.id,await digest(request.headers.get('Authorization')?.replace(/^Bearer\s+/i,'') || '')).run()
+      return json({ok:true})
+    }
     if (action === 'profile') {
       if (row.assessment_status !== 'not_started') return error('Profile cannot be changed after the assessment starts.', 409)
       const profile = {
@@ -477,7 +586,8 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       return json(await state(db, (await get(db, row.id))!))
     }
     if (action === 'begin') {
-      if (row.identity_status !== 'approved') return error('Manual identity review must be approved before the assessment.', 403)
+      // Public applicants can begin immediately after OTP verification + profile consent.
+      // Original identity upload remains a legacy, optional admin-reviewed capability.
       if (!row.profile || !row.consent_at || !row.monitor_consent_at) return error('Complete the profile and monitoring consent before starting.', 403)
       if (row.assessment_status !== 'not_started') return error('Assessment already started or submitted.', 409)
       const now = Date.now()
