@@ -12,6 +12,12 @@ type ScreenState = {
   applicant: { name: string; email: string; role: Role; roleTitle: string }
   identityStatus: 'not_submitted' | 'pending_review' | 'approved' | 'needs_resubmission'
   identityKind: string | null
+  identityVerification?: string
+  verifiedApplicantProfile?: boolean
+  faceMatchScore?: number | null
+  identityProviderAvailable?: boolean
+  recordingStorageReady?: boolean
+  applicationReference?: string | null
   profile: Partial<Profile>
   consentGiven: boolean
   aiConsentGiven: boolean
@@ -30,7 +36,7 @@ type ApplicationRecord = {
 }
 type ApiPayload = ScreenState & {
   error?: string; sessionToken?: string; maskedEmail?: string; turnstileSiteKey?: string;
-  applicationReference?: string | null; applications?: ApplicationRecord[]
+  applicationReference?: string | null; applications?: ApplicationRecord[]; verificationUrl?: string
 }
 type SpeechResult = { results: ArrayLike<ArrayLike<{ transcript: string }>> }
 type SpeechClient = {
@@ -98,6 +104,15 @@ export default function AvaScreening() {
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [speechAvailable, setSpeechAvailable] = useState(false)
   const recognition = useRef<SpeechClient | null>(null)
+  const captures = useRef<{screen:MediaStream;camera:MediaStream}|null>(null)
+  const recorders = useRef<MediaRecorder[]>([])
+  const audioContext = useRef<AudioContext|null>(null)
+  const soundPoll = useRef<number|null>(null)
+  const [proctorReady,setProctorReady] = useState(false)
+  const [proctorBusy,setProctorBusy] = useState(false)
+  const [proctorSaved,setProctorSaved] = useState({camera:false,screen:false})
+  const [recordingConsent,setRecordingConsent] = useState(false)
+  const [identityBusy,setIdentityBusy] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
   const consentRef = useRef(false)
   const sessionRef = useRef(session)
@@ -203,7 +218,14 @@ export default function AvaScreening() {
     document.addEventListener('fullscreenchange', changed)
     return () => { document.removeEventListener('visibilitychange', visibility); window.removeEventListener('blur', blur); window.removeEventListener('focus', focus); document.removeEventListener('fullscreenchange', changed) }
   }, [])
-  useEffect(() => () => { recognition.current?.stop() }, [])
+  useEffect(() => () => {
+    recognition.current?.stop()
+    for (const recorder of recorders.current) {if(recorder.state!=='inactive')recorder.stop()}
+    captures.current?.screen.getTracks().forEach(track=>track.stop())
+    captures.current?.camera.getTracks().forEach(track=>track.stop())
+    if(soundPoll.current!==null)window.clearInterval(soundPoll.current)
+    void audioContext.current?.close()
+  }, [])
 
   const perform = async (fn: () => Promise<ApiPayload>, success?: string) => {
     setBusy(true); setError(''); setNotice('')
@@ -244,6 +266,7 @@ export default function AvaScreening() {
     }
   }
   const logout = async () => {
+    stopCapture()
     try {await submit('logout')} catch { /* expiration also invalidates the browser session */ }
     try {sessionStorage.removeItem(SESSION_KEY)} catch { /* private browsing */ }
     recognition.current?.stop()
@@ -265,13 +288,126 @@ export default function AvaScreening() {
   }
   const verifyCode = async () => { if (await perform(() => submit('verifyCode', { invitation, code }), 'Email address verified.')) setCode('') }
   const saveProfile = async () => { await perform(() => submit('profile', { ...profile, privacyConsent, monitorConsent, aiConsent }), 'Profile saved securely.') }
+  const requestIdentity = async () => {
+    setIdentityBusy(true);setError('')
+    try {
+      await submit('identityStart')
+      setNotice('A live identity verification link was sent to your email. Open it on your phone, grant camera permission and complete the provider checks; then refresh this portal.')
+    } catch(e){setError(e instanceof Error?e.message:'Identity verification is unavailable.')}
+    finally{setIdentityBusy(false)}
+  }
+  const stopCapture = () => {
+    for(const recorder of recorders.current) {if(recorder.state!=='inactive'){try{recorder.stop()}catch{ /* already stopped */ }}}
+    recorders.current=[]
+    captures.current?.screen.getTracks().forEach(t=>t.stop())
+    captures.current?.camera.getTracks().forEach(t=>t.stop())
+    captures.current=null
+    if(soundPoll.current!==null)window.clearInterval(soundPoll.current)
+    soundPoll.current=null
+    void audioContext.current?.close()
+    audioContext.current=null
+    setProctorReady(false)
+    setProctorSaved({camera:false,screen:false})
+  }
+  const isCaptureLive = () => Boolean(captures.current &&
+    captures.current.screen.getVideoTracks().length &&
+    captures.current.screen.getVideoTracks().every(t=>t.readyState==='live'&&t.enabled&&!t.muted) &&
+    captures.current.camera.getVideoTracks().length &&
+    captures.current.camera.getVideoTracks().every(t=>t.readyState==='live'&&t.enabled&&!t.muted) &&
+    captures.current.camera.getAudioTracks().length &&
+    captures.current.camera.getAudioTracks().every(t=>t.readyState==='live'&&t.enabled&&!t.muted) &&
+    recorders.current.length===2&&recorders.current.every(r=>r.state==='recording'))
+  const startCapture = async () => {
+    if(!recordingConsent){setError('Explicit recording consent is required.');return}
+    if(!screen?.recordingStorageReady){setError('Secure private recording storage is not yet configured.');return}
+    setProctorBusy(true);setError('');setProctorSaved({camera:false,screen:false})
+    let display:MediaStream|null=null,webcam:MediaStream|null=null
+    try {
+      if(!navigator.mediaDevices?.getDisplayMedia||!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined')
+        throw Error('Required screen, camera and microphone capture is not supported in this browser.')
+      // A direct click must initiate the native browser screen-share permission dialog.
+      display=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false})
+      webcam=await navigator.mediaDevices.getUserMedia({video:true,audio:true})
+      if(!display.getVideoTracks().length||!webcam.getVideoTracks().length||!webcam.getAudioTracks().length)
+        throw Error('Screen, webcam, and microphone permissions are all required.')
+      captures.current={screen:display,camera:webcam}
+      const onLost=()=>{
+        setProctorReady(false)
+        setError('A required recording device was stopped or revoked. Restore all permissions to continue.')
+      }
+      for(const track of [...display.getTracks(),...webcam.getTracks()]){
+        track.addEventListener('ended',onLost,{once:true})
+        if(track.kind==='audio')track.addEventListener('mute',onLost)
+      }
+      const mime=['video/webm;codecs=vp8,opus','video/webm','video/mp4'].find(x=>MediaRecorder.isTypeSupported(x))
+      if(!mime)throw Error('Recording is not supported with a secure video format in this browser.')
+      const sendChunk=(kind:'camera'|'screen',blob:Blob)=>{
+        if(!blob.size)return
+        const form=new FormData()
+        form.append('kind',kind)
+        form.append('chunk',new File([blob],kind+'.recording',{type:blob.type||mime}))
+        void fetch(API+'?action=proctorChunk',{
+          method:'POST',body:form,headers:{Authorization:`Bearer ${sessionRef.current}`}
+        }).then(async response=>{
+          const result=await response.json().catch(()=>({})) as {ok?:boolean;error?:string}
+          if(!response.ok||!result.ok)throw Error(result.error||'Recording segment was rejected.')
+          setProctorSaved(prev=>({...prev,[kind]:true}))
+        }).catch(e=>{
+          setProctorReady(false)
+          setError(e instanceof Error?e.message:'A recording segment could not be stored.')
+        })
+      }
+      for(const [kind,stream] of [['camera',webcam],['screen',display]] as const){
+        const recorder=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:500_000})
+        recorder.ondataavailable=event=>sendChunk(kind,event.data)
+        recorder.onerror=onLost
+        recorders.current.push(recorder)
+        recorder.start(8000)
+      }
+      try {
+        const context=new AudioContext()
+        audioContext.current=context
+        const source=context.createMediaStreamSource(webcam)
+        const analyser=context.createAnalyser();analyser.fftSize=512
+        source.connect(analyser)
+        const samples=new Uint8Array(analyser.fftSize)
+        let sustained=0,lastEvent=0
+        soundPoll.current=window.setInterval(()=>{
+          if(!consentRef.current||!captures.current)return
+          analyser.getByteTimeDomainData(samples)
+          let sum=0
+          for(const sample of samples){const level=(sample-128)/128;sum+=level*level}
+          sustained=Math.sqrt(sum/samples.length)>0.24?sustained+1:0
+          if(sustained>=3&&Date.now()-lastEvent>=60_000){
+            lastEvent=Date.now();sustained=0
+            void submit('event',{event:'sound_flag'}).catch(()=>{})
+          }
+        },1000)
+      } catch{ /* Background sound analysis is advisory only. */ }
+      setProctorReady(true)
+      setNotice('Live recording started. Allow the first secure screen and camera segments to upload before beginning.')
+    }catch(e){
+      display?.getTracks().forEach(t=>t.stop())
+      webcam?.getTracks().forEach(t=>t.stop())
+      stopCapture()
+      setError(e instanceof Error?e.message:'Recording permissions are required.')
+    } finally{setProctorBusy(false)}
+  }
   const beginAssessment = async () => {
+    if(!proctorReady||!proctorSaved.camera||!proctorSaved.screen||!isCaptureLive()){
+      setError('Allow screen, webcam and microphone recording and wait until both streams are securely saved.')
+      return
+    }
     const ok = await perform(() => submit('begin'), 'Your 45-minute assessment has started.')
     if (ok && document.fullscreenEnabled) {
       try { await document.documentElement.requestFullscreen() } catch { /* Fullscreen is optional; record only actual exits. */ }
     }
   }
   const sendAnswer = async () => {
+    if(screen?.total===30&&(!proctorReady||!isCaptureLive())){
+      setError('Screen, webcam and microphone recording must remain active before answering.')
+      return
+    }
     if (await perform(() => submit('answer', { answer, source: answerSource }))) {
       setAnswer(''); setAnswerSource('typed'); recognition.current?.stop(); setIsSpeaking(false)
     }
