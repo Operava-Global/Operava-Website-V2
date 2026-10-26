@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Camera, CheckCircle2, ChevronRight, ClipboardCheck, Clock3, FileBadge, Headphones, LockKeyhole, MailCheck, Mic, MonitorCheck, ShieldCheck, Smartphone, TriangleAlert } from 'lucide-react'
+import { CheckCircle2, ChevronRight, ClipboardCheck, Clock3, Headphones, LockKeyhole, MailCheck, Mic, MonitorCheck, ShieldCheck, Smartphone, TriangleAlert, LogOut } from 'lucide-react'
 import { usePageMeta } from '../site/seo'
 import ThemeToggle from '../site/ThemeToggle'
 import './AvaScreening.css'
@@ -23,7 +23,7 @@ type ScreenState = {
   reviewProgress: { reviewed: number; pending: number; total: number }
   reviewResults: { questionId: string; review: { relevance: number; grammar: number; clarity: number; coherence: number; feedback: string } | null }[]
 }
-type ApiPayload = ScreenState & { error?: string; sessionToken?: string; maskedEmail?: string }
+type ApiPayload = ScreenState & { error?: string; sessionToken?: string; maskedEmail?: string; turnstileSiteKey?: string }
 type SpeechResult = { results: ArrayLike<ArrayLike<{ transcript: string }>> }
 type SpeechClient = {
   lang: string; interimResults: boolean; continuous: boolean
@@ -43,14 +43,12 @@ const FORM_FIELDS: { key: keyof Profile; label: string; placeholder: string; row
   { key: 'experience', label: 'Work experience and achievements', placeholder: 'Your previous responsibilities, years of experience and examples', rows: 4 },
   { key: 'motivation', label: 'Why this role?', placeholder: 'What makes you interested in this OPERAVA position?', rows: 3 },
 ]
-const STEPS = ['Verify email', 'Your profile', 'Review identity', 'Assessment']
+const STEPS = ['Verify email', 'Your profile', 'Assessment']
 const STEP_ILLUSTRATIONS: Record<string, { src: string; label: string }> = {
   email: { src: '/media/ava-assessment-verified.svg', label: '01 / Secure access' },
   profile: { src: '/media/ava-assessment-profile.svg', label: '02 / Candidate background' },
-  identity: { src: '/media/ava-assessment-identity.svg', label: '03 / Document submission' },
-  waiting: { src: '/media/ava-assessment-review.svg', label: '03 / Human identity review' },
-  ready: { src: '/media/ava-assessment-ready.svg', label: '04 / Ready to begin' },
-  assessment: { src: '/media/ava-assessment-question.svg', label: '04 / Timed assessment' },
+  ready: { src: '/media/ava-assessment-ready.svg', label: '03 / Ready to begin' },
+  assessment: { src: '/media/ava-assessment-question.svg', label: '03 / Timed assessment' },
   finished: { src: '/media/ava-assessment-complete.svg', label: 'Complete / Submitted for review' },
 }
 const detectSpeech = (): SpeechCtor | null => {
@@ -60,20 +58,26 @@ const detectSpeech = (): SpeechCtor | null => {
 const formatRemaining = (seconds: number) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
 
 export default function AvaScreening() {
-  usePageMeta({ title: 'Ava Screening | Secure Recruitment Portal', description: 'Invitation-only, verified OPERAVA role assessment.', crumbs: [{ name: 'Careers', path: '/careers' }, { name: 'Ava Screening', path: '/ava-screening/' }] })
+  usePageMeta({ title: 'Ava Assessment | Public Applicant Portal', description: 'Register and securely sign in with email OTP to complete your OPERAVA candidate profile and role assessment.' })
   const [params] = useSearchParams()
   const invitation = params.get('invite') || ''
   const [session, setSession] = useState(() => { try { return sessionStorage.getItem(SESSION_KEY) || '' } catch { return '' } })
   const [screen, setScreen] = useState<ScreenState | null>(null)
   const [otpRequested, setOtpRequested] = useState(false)
+  const [registerName,setRegisterName] = useState('')
+  const [registerEmail,setRegisterEmail] = useState('')
+  const [registerRole,setRegisterRole] = useState<Role>('tech')
+  const [pendingEmail,setPendingEmail] = useState('')
+  const [turnstileKey,setTurnstileKey] = useState('')
+  const [turnstileToken,setTurnstileToken] = useState('')
+  const turnstileNode = useRef<HTMLDivElement | null>(null)
+  const turnstileWidget = useRef<string | undefined>(undefined)
   const [maskedEmail, setMaskedEmail] = useState('')
   const [code, setCode] = useState('')
   const [profile, setProfile] = useState<Profile>(BLANK_PROFILE)
   const [privacyConsent, setPrivacyConsent] = useState(false)
   const [monitorConsent, setMonitorConsent] = useState(false)
   const [aiConsent, setAiConsent] = useState(false)
-  const [identityKind, setIdentityKind] = useState<'passport' | 'national_id'>('passport')
-  const [identityFile, setIdentityFile] = useState<File | null>(null)
   const [answer, setAnswer] = useState('')
   const [answerSource, setAnswerSource] = useState<'typed' | 'dictation'>('typed')
   const [seconds, setSeconds] = useState(45 * 60)
@@ -100,6 +104,37 @@ export default function AvaScreening() {
     if (!res.ok || data.error) throw new Error(data.error || `Request unsuccessful (${res.status}).`)
     return data
   }, [])
+  // Public entry must not require an invitation. The site key is public; the
+  // Turnstile verification secret is held only in Cloudflare Pages environment.
+  useEffect(() => {
+    if (invitation || session) return
+    void submit('publicConfig').then(data => setTurnstileKey(data.turnstileSiteKey || ''))
+      .catch(() => setError('Registrations are temporarily unavailable. Please try again later.'))
+  }, [invitation,session,submit])
+  useEffect(() => {
+    if (invitation || session || otpRequested || !turnstileKey || !turnstileNode.current) return
+    const external = window as unknown as { turnstile?: {
+      render: (container:HTMLElement,options:{sitekey:string;theme:string;callback:(token:string)=>void;
+        'expired-callback':()=>void;'error-callback':()=>void}) => string
+      remove:(id:string)=>void;reset:(id:string)=>void;
+    } }
+    let active = true
+    const render = () => {
+      if (!active || !turnstileNode.current || !external.turnstile || turnstileWidget.current) return
+      turnstileWidget.current = external.turnstile.render(turnstileNode.current,{
+        sitekey:turnstileKey,theme:'auto',callback:token=>setTurnstileToken(token),
+        'expired-callback':()=>setTurnstileToken(''),'error-callback':()=>setTurnstileToken(''),
+      })
+    }
+    const existing = document.querySelector<HTMLScriptElement>('script[data-ava-turnstile]')
+    if (existing) { if (external.turnstile) render(); else existing.addEventListener('load',render) }
+    else { const script=document.createElement('script')
+      script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+      script.async=true; script.defer=true;script.dataset.avaTurnstile='1'
+      script.addEventListener('load',render);document.head.appendChild(script) }
+    return () => {active=false;if (existing)existing.removeEventListener('load',render)
+      if (turnstileWidget.current && external.turnstile) {external.turnstile.remove(turnstileWidget.current);turnstileWidget.current=undefined} }
+  }, [invitation,session,otpRequested,turnstileKey])
   const refresh = useCallback(async () => {
     if (!sessionRef.current) return
     try {
@@ -166,14 +201,31 @@ export default function AvaScreening() {
     finally { setBusy(false) }
   }
   const requestCode = async () => { if (await perform(() => submit('requestCode', { invitation }), 'A six-digit code was sent. Check your inbox and spam folder.')) setOtpRequested(true) }
+  const startPublic = async () => {
+    const email=registerEmail.trim().toLowerCase()
+    const success=await perform(()=>submit('publicStart',{
+      name:registerName.trim(),email,role:registerRole,turnstileToken
+    }),'A six-digit login code was sent. Check your inbox.')
+    setTurnstileToken('')
+    if (success) {setPendingEmail(email);setOtpRequested(true)}
+    else if (turnstileWidget.current) {
+      const ts = (window as unknown as { turnstile?: {reset:(id:string)=>void} }).turnstile
+      ts?.reset(turnstileWidget.current)
+    }
+  }
+  const verifyPublic = async () => {
+    if (await perform(()=>submit('publicVerify',{email:pendingEmail,code}),'Your email is verified.')) {
+      setCode('')
+    }
+  }
+  const logout = async () => {
+    try {await submit('logout')} catch { /* expiration also invalidates the browser session */ }
+    try {sessionStorage.removeItem(SESSION_KEY)} catch { /* private browsing */ }
+    setScreen(null);setSession('');sessionRef.current='';setOtpRequested(false)
+    setTurnstileToken('');setNotice('You have signed out.')
+  }
   const verifyCode = async () => { if (await perform(() => submit('verifyCode', { invitation, code }), 'Email address verified.')) setCode('') }
   const saveProfile = async () => { await perform(() => submit('profile', { ...profile, privacyConsent, monitorConsent, aiConsent }), 'Profile saved securely.') }
-  const uploadIdentity = async () => {
-    if (!identityFile) { setError('Select an identity file first.'); return }
-    if (identityFile.size >= 5_000_000) { setError('File must be smaller than 5 MB.'); return }
-    const data = new FormData(); data.append('document', identityFile); data.append('kind', identityKind)
-    if (await perform(() => submit('identity', {}, data), 'Identity evidence received. A human reviewer must approve it.')) setIdentityFile(null)
-  }
   const beginAssessment = async () => {
     const ok = await perform(() => submit('begin'), 'Your 45-minute assessment has started.')
     if (ok && document.fullscreenEnabled) {
@@ -206,12 +258,10 @@ export default function AvaScreening() {
     catch { setError('Unable to copy the link. Use your browser’s Share option.') }
   }
 
-  const stageIndex = !screen ? 0 : !screen.profile?.fullName || !screen.consentGiven ? 1 : screen.identityStatus !== 'approved' ? 2 : 3
+  const stageIndex = !screen ? 0 : !screen.profile?.fullName || !screen.consentGiven ? 1 : 2
   const stage = !screen ? 'email' : screen.assessmentStatus === 'submitted' || screen.assessmentStatus === 'time_expired' ? 'finished'
     : screen.assessmentStatus === 'in_progress' ? 'assessment'
-    : !screen.profile?.fullName || !screen.consentGiven ? 'profile'
-    : screen.identityStatus === 'pending_review' ? 'waiting'
-    : screen.identityStatus !== 'approved' ? 'identity' : 'ready'
+    : !screen.profile?.fullName || !screen.consentGiven ? 'profile' : 'ready'
   const finished = stage === 'finished'
 
   return (
@@ -223,7 +273,7 @@ export default function AvaScreening() {
             <div><strong>OPERAVA</strong><span>AVA · TALENT SCREENING</span></div>
           </div>
           <div className="ava-app-controls">
-            <span className="ava-access-label"><LockKeyhole size={13} /> PRIVATE ASSESSMENT</span>
+            <span className="ava-access-label"><LockKeyhole size={13} /> EMAIL OTP SIGN-IN</span>
             <ThemeToggle />
           </div>
         </header>
@@ -233,13 +283,13 @@ export default function AvaScreening() {
             <h1>AVA <span>SCREENING</span></h1>
             <p>One guided space for verification, identity review and your role assessment.</p>
           </div>
-          <div className="ava-app-heading-state"><ShieldCheck size={17} /><span>Invitation-only access</span></div>
+          <div className="ava-app-heading-state"><ShieldCheck size={17} /><span>Open registration · Secure email verification</span></div>
         </div>
         <div className="ava-steps" aria-label="Screening stages">{STEPS.map((label, i) => <div className={`ava-step ${i <= stageIndex ? 'is-active' : ''}`} key={label}><span>{i < stageIndex ? <CheckCircle2 size={15} /> : String(i + 1).padStart(2, '0')}</span><strong>{label}</strong></div>)}</div>
         <div className="ava-shell">
           <aside className="ava-sidebar" aria-label="Assessment guidance">
             {stage !== 'assessment' && stage !== 'finished' && <div className="ava-team-art"><img src="/media/ava-assessment-team.svg" alt="Connected Operava professionals, secure assessment and teamwork" width={660} height={400} decoding="async" /></div>}
-            <div className="ava-sidebar-block"><p className="ava-label">CANDIDATE ACCESS</p><h2>{screen?.applicant.roleTitle || 'By invitation only'}</h2><p>{screen?.applicant.email || 'Your access is linked to an OPERAVA Talent Acquisition invitation.'}</p></div>
+            <div className="ava-sidebar-block"><p className="ava-label">CANDIDATE ACCESS</p><h2>{screen?.applicant.roleTitle || 'Open applicant registration'}</h2><p>{screen?.applicant.email || 'Create a profile or sign in with a one-time code sent to your email.'}</p></div>
             <div className="ava-sidebar-block"><p className="ava-label">ASSESSMENT PROTOCOL</p><div className="ava-sidebar-info"><Clock3 size={18}/><span>45-minute, server-enforced timer</span></div><div className="ava-sidebar-info"><MonitorCheck size={18}/><span>Consent-based focus and visibility logs</span></div><div className="ava-sidebar-info"><ClipboardCheck size={18}/><span>Written and role-based responses</span></div><div className="ava-sidebar-info"><Headphones size={18}/><span>Optional speech-to-text dictation</span></div></div>
             <div className="ava-sidebar-note"><LockKeyhole size={17}/><span>No continuous video/audio recording. AI writing feedback is advisory; a person makes recruitment decisions.</span></div>
             {screen?.assessmentStatus === 'in_progress' && <div className="ava-timer"><span>TIME REMAINING</span><strong aria-live="off" className={seconds < 300 ? 'ava-time-low' : ''}>{formatRemaining(seconds)}</strong><small>Time runs even if this tab closes.</small></div>}
@@ -249,15 +299,40 @@ export default function AvaScreening() {
               <div><span>AVA SCREENING JOURNEY</span><strong>{STEP_ILLUSTRATIONS[stage].label}</strong></div>
               <img src={STEP_ILLUSTRATIONS[stage].src} alt="" aria-hidden="true" width={112} height={112} decoding="async" />
             </div>
-            {stage === 'email' && <div className="ava-panel"><div className="ava-icon"><MailCheck /></div><p className="ava-label">STEP 01 — PRE-ASSESSMENT VERIFICATION</p><h2>Confirm your email.</h2>
-              <p>Only candidates invited by OPERAVA Talent Acquisition can access this assessment. We’ll send a one-time verification code to the address associated with your invitation.</p>
+            {stage === 'email' && <div className="ava-panel"><div className="ava-icon"><MailCheck /></div><p className="ava-label">STEP 01 — FREE APPLICANT REGISTRATION</p><h2>Register or sign in with email.</h2>
+              <p>Anyone may register for an OPERAVA role assessment. No invitation or password is required. We send a six-digit code to verify that you control the email address.</p>
               {invitation ? <><div className="ava-invitation"><ShieldCheck size={20}/> A private invitation was detected. Do not forward or share its link.</div>
                 {!otpRequested ? <button className="ava-primary" disabled={busy} onClick={() => void requestCode()}>{busy ? 'Sending code…' : 'Send verification code'}<ChevronRight size={17}/></button>
                   : <form onSubmit={(e) => { e.preventDefault(); void verifyCode() }}><label className="ava-field">Verification code<input inputMode="numeric" autoComplete="one-time-code" maxLength={6} pattern="[0-9]{6}" placeholder="6-digit code" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0,6))} required /></label>
                     <p className="ava-muted">Sent to {maskedEmail}. Expires in 10 minutes.</p><button className="ava-primary" disabled={busy || code.length !== 6}>{busy ? 'Verifying…' : 'Verify and continue'}<ChevronRight size={17}/></button>
                     <button type="button" className="ava-text-button" disabled={busy} onClick={() => void requestCode()}>Resend code (after 60 seconds)</button></form>}
                 <button className="ava-secondary" onClick={() => void copyPhoneLink()}><Smartphone size={16}/> Copy mobile verification link</button>
-              </> : <div className="ava-invitation ava-invitation--warning"><TriangleAlert size={20}/> No invitation link was supplied. Request one from <a href="mailto:talents@operavaglobal.com">Talent Acquisition</a>.</div>}
+              </> : otpRequested ? <form className="ava-form" onSubmit={e=>{e.preventDefault();void verifyPublic()}}>
+                  <div className="ava-invitation"><MailCheck size={19}/> Verification code sent to {maskedEmail||pendingEmail}.</div>
+                  <label className="ava-field">Six-digit email code<input inputMode="numeric" autoComplete="one-time-code" maxLength={6}
+                    pattern="[0-9]{6}" required placeholder="000000" value={code}
+                    onChange={e=>setCode(e.target.value.replace(/\D/g,'').slice(0,6))}/></label>
+                  <button type="submit" className="ava-primary" disabled={busy||code.length!==6}>
+                    {busy?'Verifying…':'Verify email and continue'}<ChevronRight size={16}/></button>
+                  <button className="ava-secondary" type="button" onClick={()=>{setOtpRequested(false);setCode('');setTurnstileToken('')}}
+                    disabled={busy}>Sign in with another email / resend after 60 seconds</button>
+                </form> : <form className="ava-form" onSubmit={e=>{e.preventDefault();void startPublic()}}>
+                  <label className="ava-field">Full name<input required minLength={2} maxLength={100} autoComplete="name"
+                    placeholder="Your legal full name" value={registerName} onChange={e=>setRegisterName(e.target.value)}/></label>
+                  <label className="ava-field">Email address<input required type="email" maxLength={180} autoComplete="email"
+                    placeholder="you@example.com" value={registerEmail} onChange={e=>setRegisterEmail(e.target.value)}/></label>
+                  <label className="ava-field">Assessment track<select value={registerRole}
+                    onChange={e=>setRegisterRole(e.target.value as Role)}>
+                    <option value="tech">Technology Executive</option>
+                    <option value="ops">Business Operations Executive</option>
+                    <option value="cx">Customer Experience Executive</option>
+                  </select></label>
+                  <div className="ava-human-check"><div ref={turnstileNode} aria-label="Automated abuse protection challenge" />
+                    {!turnstileKey && <p className="ava-muted">Registration is not yet available. Security verification is being configured.</p>}</div>
+                  <button className="ava-primary" type="submit" disabled={busy||!turnstileKey||!turnstileToken}>
+                    {busy?'Sending code…':'Send email verification code'}<ChevronRight size={16}/></button>
+                  <p className="ava-muted">Already have a profile? Enter the same email address and verify a new code to resume.</p>
+                </form>}
             </div>}
             {stage === 'profile' && <div className="ava-panel"><p className="ava-label">STEP 02 — CANDIDATE BACKGROUND</p><h2>Tell us about yourself.</h2><p>Complete your education, professional experience, and motivation before identity review. Your responses are saved to the secure screening record.</p>
               <form onSubmit={(e) => { e.preventDefault(); void saveProfile() }} className="ava-form">{FORM_FIELDS.map((field) => <label className="ava-field" key={field.key}>{field.label}{field.rows ? <textarea rows={field.rows} value={profile[field.key]} placeholder={field.placeholder} onChange={(e) => setProfile((old) => ({ ...old, [field.key]: e.target.value }))} /> : <input value={profile[field.key]} placeholder={field.placeholder} onChange={(e) => setProfile((old) => ({ ...old, [field.key]: e.target.value }))} />}</label>)}
@@ -266,16 +341,7 @@ export default function AvaScreening() {
                 <label className="ava-check"><input type="checkbox" checked={aiConsent} onChange={(e) => setAiConsent(e.target.checked)}/><span>Optional: I consent to AI-generated feedback on my written answers. Choosing not to consent does not prevent screening or human review.</span></label>
                 <button className="ava-primary" disabled={busy}>{busy ? 'Saving…' : 'Save profile and continue'}<ChevronRight size={17}/></button></form>
             </div>}
-            {stage === 'identity' && <div className="ava-panel"><p className="ava-label">STEP 03 — IDENTITY EVIDENCE</p><h2>Submit your document.</h2><p>Upload a clear scan or photo of your passport or government ID. Files are stored privately for authorized manual review; uploading does <strong>not</strong> automatically prove authenticity.</p>
-              <div className="ava-identity-grid"><label className="ava-field">Document type<select value={identityKind} onChange={(e) => setIdentityKind(e.target.value as 'passport' | 'national_id')}><option value="passport">Passport</option><option value="national_id">Government identity card</option></select></label>
-                <label className="ava-upload"><Camera size={26}/><strong>{identityFile?.name || 'Choose an image / document'}</strong><span>JPEG, PNG or PDF · strictly under 5 MB</span><input type="file" accept="image/jpeg,image/png,application/pdf" onChange={(e) => setIdentityFile(e.target.files?.[0] || null)}/></label></div>
-              {screen?.identityStatus === 'needs_resubmission' && <p className="ava-warning">A reviewer requested a clearer or replacement identity file. Submit a new document.</p>}
-              <button className="ava-primary" disabled={busy || !identityFile} onClick={() => void uploadIdentity()}>{busy ? 'Uploading securely…' : 'Submit for human verification'}<ChevronRight size={17}/></button>
-              <div className="ava-mini"><Smartphone size={19}/><div><strong>Using your phone?</strong><p>Open your original invitation on the phone, then complete email verification on that device. The camera can capture an ID photograph.</p></div></div>
-              <div className="ava-mini"><FileBadge size={19}/><div><strong>NFC passport scanning</strong><p>Browser NFC cannot verify passport identity. Chip authentication requires an approved identity verification provider; manual document review is available here.</p></div></div>
-            </div>}
-            {stage === 'waiting' && <div className="ava-panel"><div className="ava-icon"><ShieldCheck /></div><p className="ava-label">IDENTITY STATUS — MANUAL REVIEW</p><h2>Verification pending.</h2><p>Your evidence has been submitted to the private review queue. An authorized reviewer must approve it before your assessment becomes available.</p><div className="ava-invitation">Current status: Pending human identity review.</div><button className="ava-secondary" disabled={busy} onClick={() => void refresh()}>Check review status</button></div>}
-            {stage === 'ready' && <div className="ava-panel"><div className="ava-icon"><CheckCircle2 /></div><p className="ava-label">STEP 04 — ASSESSMENT READY</p><h2>You are ready to begin.</h2><p>Your email, identity review and candidate profile are complete. You’ll have 45 minutes to answer {screen?.total} questions, including role-specific and English communication prompts.</p><div className="ava-invitation"><CheckCircle2 size={18}/> Identity evidence approved by an authorized reviewer.</div>
+            {stage === 'ready' && <div className="ava-panel"><div className="ava-icon"><CheckCircle2 /></div><p className="ava-label">STEP 03 — ASSESSMENT READY</p><h2>You are ready to begin.</h2><p>Your email is verified and your candidate profile is saved. You have 45 minutes to answer {screen?.total} questions, including role-specific and English communication prompts.</p><div className="ava-invitation"><CheckCircle2 size={18}/> Email verified · Profile completed · No identity-document upload required.</div>
               <p className="ava-muted">Your clock starts when you select Begin. Answers are submitted one at a time; refresh or tab changes do not reset the deadline.</p><button className="ava-primary" disabled={busy} onClick={() => void beginAssessment()}>{busy ? 'Starting…' : 'Begin monitored assessment'}<ChevronRight size={17}/></button></div>}
             {stage === 'assessment' && <div className="ava-panel ava-assessment"><div className="ava-assessment-top"><span className="ava-label">QUESTION {screen?.question?.number} / {screen?.total}</span><span className="ava-badge">{screen?.question?.section === 'english' ? 'ENGLISH COMMUNICATION' : 'ROLE ASSESSMENT'}</span></div>
               <div className="ava-progress"><span style={{width:`${((screen?.answered || 0) / (screen?.total || 1)) * 100}%`}} /></div><h2>{screen?.question?.prompt || 'Loading next question…'}</h2><label className="ava-field">Your response<textarea className="ava-answer" rows={8} value={answer} maxLength={4000} onChange={(e) => { setAnswer(e.target.value); setAnswerSource('typed') }} placeholder="Write your response in your own words. You can also dictate, then review the transcript before submitting." /></label>
@@ -291,7 +357,7 @@ export default function AvaScreening() {
             {notice && <p className="ava-note" role="status"><CheckCircle2 size={16}/>{notice}</p>}
           </section>
         </div>
-        <div className="ava-app-support"><LockKeyhole size={13} aria-hidden="true" /> Private screening · For assistance, email <a href="mailto:talents@operavaglobal.com">talents@operavaglobal.com</a></div>
+        <div className="ava-app-support"><LockKeyhole size={13} aria-hidden="true" /> Secure email OTP sign-in · {screen && <button className="ava-signout" type="button" onClick={()=>void logout()}><LogOut size={14} /> Sign out</button>} For assistance, email <a href="mailto:talents@operavaglobal.com">talents@operavaglobal.com</a></div>
       </div>
     </div>
   )
