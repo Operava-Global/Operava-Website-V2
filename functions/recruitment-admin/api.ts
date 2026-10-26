@@ -7,7 +7,7 @@ type Env = AvaAccessEnv & {
 }
 // No shared reviewer secret, Access audience, or sensitive candidate data is
 // exposed to React. All reviewer actions go through this origin-only proxy.
-const ACTIONS = new Set(['invite','invitations','pendingReviews','identityDocument','reviewIdentity',
+const ACTIONS = new Set(['invite','invitations','publicApplicants','pendingReviews','identityDocument','reviewIdentity',
   'screeningResults','screeningDetail','reviewScreening'])
 export const onRequestPost: PagesFunction<Env> = async context => {
   const { request, env } = context

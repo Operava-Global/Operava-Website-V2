@@ -207,3 +207,22 @@ CREATE TABLE IF NOT EXISTS ava_screening_invitations (
 CREATE INDEX IF NOT EXISTS ava_screening_invitation_sent_idx
   ON ava_screening_invitations(sent_at DESC);
 
+-- Public self-registration maps one normalized email to one resumable assessment.
+CREATE TABLE IF NOT EXISTS ava_screening_public_accounts (
+  email TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL UNIQUE,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS ava_screening_public_account_session_idx
+  ON ava_screening_public_accounts(session_id);
+
+-- Rolling 24-hour OTP send event audit; independent of the latest send cooldown.
+CREATE TABLE IF NOT EXISTS ava_screening_public_otp_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL,
+  recorded_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ava_public_otp_by_email_time
+  ON ava_screening_public_otp_events(email, recorded_at);
+

@@ -24,7 +24,7 @@
 /sitemap.xml
   Cache-Control: public, max-age=86400
 
-# Allow explicit camera capture / dictation only on the invitation-only Ava Screening page.
+# Public candidate Ava Screening supports email OTP, with optional speech-to-text dictation.
 /ava-screening/*
   Permissions-Policy: camera=(), microphone=(self), geolocation=()
   Referrer-Policy: no-referrer
