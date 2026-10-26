@@ -3,7 +3,7 @@
  * /api/recruitment/* endpoints. Never release identity media to the public.
  */
 import {
-  clean, EMAIL_RE, escapeHtml, generateOtp, hashOtp, hmacSign, b64urlEncode,
+  clean, EMAIL_RE, escapeHtml, ensureTables, generateOtp, hashOtp, hmacSign, b64urlEncode,
   b64urlDecode, json, maskEmail, resolveFromEnv, sendEmail, timingSafeEqualStr,
   type FormEnv,
 } from '../lib/formCore'
@@ -633,10 +633,12 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const saved = await get(db, invite.id)
       return json({ ...(await state(db, env, saved!)), sessionToken })
     }
+    if(['state','applications','selectApplication'].includes(action)) await ensure(db)
     const row = await authorized(request, env, db)
     if (!row) return error('Your secure screening session is missing or expired.', 401)
     if (action === 'state') return json(await state(db, env, row))
     if (action === 'applications') {
+      await ensureTables(db)
       // The session is tied to an email confirmed through one-time code.
       // Return only verified Careers submissions under that email; never accept
       // an email address supplied by the browser for this query.
@@ -669,6 +671,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       return json({ok:true,applications})
     }
     if (action === 'selectApplication') {
+      await ensureTables(db)
       const referenceId=clean(data?.referenceId,100)
       const application=await db.prepare(`SELECT reference_id,name,payload FROM form_submissions
         WHERE reference_id=? AND lower(email)=? AND form_type='CAREERS' AND verification_status='VERIFIED'`)
