@@ -46,8 +46,9 @@ remains excluded from the browser dashboard.
 The dashboard provides:
 1. **Send Invitation** — enter applicant name, invited email and position. The
    server signs a unique 7-day invitation link and emails it via existing Amazon SES.
-2. **Invitation Tracking** — shows the most recent 100 invitations and opened,
-   email-verified, identity-pending, assessment-progress or expired state.
+2. **Invitation Tracking** — shows the most recent 100 recruiter-sent invitations.
+   **Public applicants** is a separate queue, showing OTP verification, saved profile and
+   assessment progress for up to 100 self-registered candidates.
 3. **Identity Review** — download evidence from private R2, manually inspect
    the original, then approve or ask for resubmission.
 4. **Assessment Reports** — review candidate profile and actual written answers,
