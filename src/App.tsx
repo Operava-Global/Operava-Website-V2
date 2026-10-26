@@ -80,6 +80,7 @@ export default function App() {
             <Route path="/ai-job-screening" element={<Navigate to="/careers/hiring-process" replace />} />
             {/* New, invitation-only Ava Screening. Do not promote in public navigation. */}
             <Route path="/ava-screening/*" element={<AvaScreening />} />
+            <Route path="/applicant-portal/*" element={<AvaScreening />} />
             {/* Hidden recruitment admin route. Protected at Cloudflare Access AND the Pages Function origin. */}
             <Route path="/recruitment-admin/*" element={<RecruitmentAdmin />} />
             <Route path="/academy" element={<Academy />} />
