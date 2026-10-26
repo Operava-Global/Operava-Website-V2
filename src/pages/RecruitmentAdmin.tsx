@@ -134,7 +134,7 @@ export default function RecruitmentAdmin() {
           aria-current={tab===key?'page':undefined} onClick={()=>{setTab(key);setMessage('');setError('')}}>
           <Icon size={17}/>{label}</button>)}
     </nav>
-    <main className="ra-panel">
+    <section className="ra-panel">
       {tab==='invite'&&<div className="ra-invite-layout">
         <div><p className="ava-label">01 · PRIVATE INVITATIONS</p><h2>Invite an applicant</h2>
           <p className="ra-intro">Send a unique, seven-day invitation directly through OPERAVA’s configured Amazon SES mail service. Each candidate confirms their invited email with a one-time code.</p>
@@ -187,7 +187,7 @@ export default function RecruitmentAdmin() {
         </div></>}
       {error&&<p role="alert" className="ava-alert">{error}</p>}
       {message&&<p role="status" className="ava-note"><CheckCircle2 size={17}/>{message}</p>}
-    </main>
+    </section>
     <div className="ava-app-support"><KeyRound size={14}/> Access restricted to individually authorized OPERAVA administrators. No public dashboard navigation.</div>
   </div></div>
 }
