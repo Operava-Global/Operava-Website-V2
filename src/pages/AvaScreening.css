@@ -179,3 +179,96 @@ html[data-theme="light"] .ava-screening .ava-team-art {background:radial-gradien
 .ava-application-card .ava-required-action{color:#ce9cfc!important;font-weight:800}
 .ava-application-card .ava-primary{margin:17px 0 0;width:100%}
 .ava-current-label{display:inline-block;margin-top:17px;padding:8px 10px;border:1px solid #A000F0;border-radius:7px;font-size:11px;font-weight:800}
+
+
+/* Ava Assessment V2 — focused proctored-exam console. No external UI assets.
+   Extends the approved existing standalone app shell, charcoal/Inter/#A000F0. */
+.ava-screening{--ava-purple:#A000F0;--ava-glow:rgba(160,0,240,.18)}
+.ava-app-topbar{border-bottom:1px solid var(--ava-line);background:linear-gradient(98deg,rgba(160,0,240,.045),transparent 60%)}
+.ava-app-brand strong{letter-spacing:-.065em;font-weight:900;font-size:20px}
+.ava-app-brand div span{letter-spacing:.24em;color:var(--ava-muted)}
+.ava-app-symbol{border-color:rgba(160,0,240,.56);box-shadow:0 0 23px rgba(160,0,240,.12)}
+.ava-topnav-link{font-weight:750;color:var(--ava-muted);font-size:11px;text-decoration:none;letter-spacing:.11em;text-transform:uppercase;transition:color .2s}
+.ava-topnav-link:hover,.ava-topnav-link:focus-visible{color:var(--ava-purple)}
+.ava-app-heading{padding-top:44px;padding-bottom:13px}
+.ava-app-heading h1{font-size:clamp(44px,5.5vw,74px);font-weight:900;line-height:.98}
+.ava-app-heading h1 span{text-shadow:0 4px 30px rgba(160,0,240,.20)}
+.ava-app-heading p:not(.ava-kicker){font-size:14px;max-width:780px}
+.ava-steps{background:var(--ava-card);border:1px solid var(--ava-line);border-radius:13px;overflow:hidden}
+.ava-step{min-height:60px;transition:background .2s}
+.ava-step.is-active{background:linear-gradient(110deg,rgba(160,0,240,.095),transparent)}
+.ava-step.is-active span{box-shadow:0 0 0 3px rgba(160,0,240,.10)}
+.ava-shell{gap:20px;grid-template-columns:296px minmax(0,1fr)}
+.ava-sidebar,.ava-content{border-radius:14px}
+.ava-sidebar{position:sticky;top:24px;border:1px solid var(--ava-line);background:linear-gradient(155deg,rgba(160,0,240,.07),transparent 45%),var(--ava-bg)}
+.ava-sidebar-block h2{font-size:21px}
+.ava-ref{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--ava-ink)!important;font-size:11px!important;letter-spacing:.025em;margin-top:12px}
+.ava-identity-verified,.ava-identity-pending{display:flex;gap:8px;align-items:center;margin:16px 0 0!important;font-weight:700;font-size:11px!important}
+.ava-identity-verified{color:#64d4a5!important}
+.ava-identity-pending{color:#d5a5fc!important}
+.ava-identity-verified svg,.ava-identity-pending svg{flex:none}
+.ava-content{overflow:hidden;border:1px solid var(--ava-line)}
+.ava-panel{animation:ava-reveal .32s both}
+.ava-panel h2{letter-spacing:-.04em}
+.ava-primary{transition:background .2s,box-shadow .2s,transform .2s;border-radius:9px}
+.ava-primary:hover:not(:disabled){box-shadow:0 8px 32px rgba(160,0,240,.24);transform:translateY(-1px)}
+.ava-primary:disabled,.ava-secondary:disabled{opacity:.47;cursor:not-allowed;filter:grayscale(.25)}
+.ava-readiness>h2{font-size:clamp(27px,3.3vw,40px);font-weight:900;line-height:1.06;margin:12px 0 17px}
+.ava-readiness>.ava-muted{font-size:13px;line-height:1.8;max-width:760px}
+.ava-readiness-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin:29px 0 24px}
+.ava-check-card{display:flex;flex-direction:column;align-items:flex-start;gap:15px;min-width:0;border:1px solid var(--ava-line);background:var(--ava-card);border-radius:13px;padding:22px;position:relative;overflow:hidden}
+.ava-check-card:before{content:"";position:absolute;inset:0 0 auto;height:2px;background:linear-gradient(90deg,var(--ava-purple),transparent)}
+.ava-check-icon{display:grid;place-items:center;width:48px;height:48px;border:1px solid rgba(160,0,240,.33);background:rgba(160,0,240,.085);border-radius:12px;color:#c07bf7}
+.ava-check-card h3{font-size:15px;font-weight:850;line-height:1.35;margin:0}
+.ava-check-card p{font-size:12px;line-height:1.72;color:var(--ava-muted)}
+.ava-check-card .ava-check{font-size:11px;line-height:1.7;align-items:flex-start}
+.ava-check-card .ava-check input{flex:none;margin-top:4px}
+.ava-check-card .ava-secondary{display:flex;justify-content:center;align-items:center;min-height:43px;width:100%;font-size:11px;text-align:center}
+.ava-check-card .ava-text-button{font-size:11px}
+.ava-check-card .ava-status-good,.ava-check-card .ava-status-warn{font-weight:800;font-size:11px}
+.ava-status-good{color:#61cfa5!important}
+.ava-status-warn{color:#d5a5fc!important}
+.ava-small-warning{color:#ffcc9d!important;font-size:11px!important}
+.ava-readiness-footer{display:flex;align-items:center;justify-content:space-between;gap:28px;border-top:1px solid var(--ava-line);padding-top:23px}
+.ava-readiness-footer strong{font-size:15px}
+.ava-readiness-footer p{margin-top:8px;font-size:11px;color:var(--ava-muted);line-height:1.7}
+.ava-readiness-footer .ava-primary{white-space:nowrap;margin:0}
+.ava-exam-meta{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:17px 0 23px}
+.ava-exam-meta span{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--ava-line);border-radius:20px;background:var(--ava-card);padding:8px 11px;font-size:10px;font-weight:700;color:var(--ava-muted)}
+.ava-exam-meta svg{color:#b983f6}
+.ava-assessment{position:relative}
+.ava-assessment-top{gap:16px;align-items:center}
+.ava-assessment-top .ava-label{letter-spacing:.16em}
+.ava-assessment>h2{font-size:clamp(21px,2.5vw,33px);line-height:1.35;margin:27px 0}
+.ava-answer{min-height:180px;line-height:1.85;font-size:14px;resize:vertical}
+.ava-bottom{border-top:1px solid var(--ava-line);padding-top:18px;margin-top:24px}
+.ava-bottom>span{font-size:10px;max-width:55%;line-height:1.7}
+.ava-applications{box-shadow:0 12px 40px rgba(0,0,0,.06)}
+.ava-application-card{position:relative;transition:border-color .2s,transform .2s}
+.ava-application-card:hover{border-color:rgba(160,0,240,.43);transform:translateY(-2px)}
+.ava-application-card h3{line-height:1.35}
+.ava-application-card .ava-label{word-break:break-all}
+@keyframes ava-reveal{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+html[data-theme="light"] .ava-check-icon{color:#7421ac}
+html[data-theme="light"] .ava-identity-pending,html[data-theme="light"] .ava-status-warn{color:#7e28b4!important}
+html[data-theme="light"] .ava-identity-verified,html[data-theme="light"] .ava-status-good{color:#087a55!important}
+html[data-theme="light"] .ava-small-warning{color:#8b470e!important}
+@media(max-width:1100px){.ava-readiness-grid{grid-template-columns:1fr}.ava-readiness-footer{flex-wrap:wrap}}
+@media(max-width:960px){.ava-sidebar{position:static}.ava-shell{grid-template-columns:250px minmax(0,1fr)}}
+@media(max-width:720px){
+  .ava-app-heading h1{font-size:clamp(40px,10vw,58px)}
+  .ava-app-controls{gap:10px}
+  .ava-steps .ava-step{min-height:65px}
+  .ava-shell{grid-template-columns:1fr}
+  .ava-readiness-grid{grid-template-columns:1fr}
+  .ava-readiness-footer{flex-direction:column;align-items:stretch}
+  .ava-readiness-footer .ava-primary{width:100%;white-space:normal}
+  .ava-bottom{display:flex;flex-direction:column;align-items:stretch;gap:16px}
+  .ava-bottom>span{max-width:none}
+  .ava-bottom .ava-primary{width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+  .ava-panel{animation:none}
+  .ava-primary,.ava-application-card{transition:none!important}
+  .ava-primary:hover:not(:disabled),.ava-application-card:hover{transform:none}
+}
