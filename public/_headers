@@ -23,3 +23,8 @@
 
 /sitemap.xml
   Cache-Control: public, max-age=86400
+
+# Allow explicit camera capture / dictation only on the invitation-only Ava Screening page.
+/ava-screening/*
+  Permissions-Policy: camera=(self), microphone=(self), geolocation=()
+  Cache-Control: no-store

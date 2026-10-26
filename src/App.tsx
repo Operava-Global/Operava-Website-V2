@@ -39,6 +39,7 @@ const CookiePolicy = lazy(() => import('./pages/CookiePolicy'))
 const Academy = lazy(() => import('./pages/Academy'))
 const Learning = lazy(() => import('./pages/Learning'))
 const OutsourcingRisks = lazy(() => import('./pages/OutsourcingRisks'))
+const AvaScreening = lazy(() => import('./pages/AvaScreening'))
 
 function Loading() {
   return <div className="min-h-[60vh]" aria-busy="true" />
@@ -76,6 +77,8 @@ export default function App() {
             <Route path="/careers/talent-development" element={<TalentDevelopment />} />
             <Route path="/apply" element={<Apply />} />
             <Route path="/ai-job-screening" element={<Navigate to="/careers/hiring-process" replace />} />
+            {/* New, invitation-only Ava Screening. Do not promote in public navigation. */}
+            <Route path="/ava-screening/*" element={<AvaScreening />} />
             <Route path="/academy" element={<Academy />} />
             <Route path="/learning" element={<Learning />} />
             <Route path="/learnings" element={<Learning />} />
