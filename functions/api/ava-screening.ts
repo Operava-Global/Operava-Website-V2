@@ -29,7 +29,7 @@ type Applicant = {
   identity_status: string; identity_key: string | null; identity_kind: string | null; identity_submitted: number | null;
   identity_reviewed: number | null; profile: string | null; consent_at: number | null;
   monitor_consent_at: number | null; ai_consent_at: number | null;
-  assessment_status: string; assessment_started: number | null; deadline: number | null;
+  assessment_status: string; assessment_version?: number; assessment_started: number | null; deadline: number | null;
   completed: number | null; created_at: number
 }
 type AnswerRow = { question_id: string; answer: string; source: string; review_status: string; review_json: string | null; submitted_at: number }
@@ -41,15 +41,23 @@ const OTP_MS = 10 * 60_000
 const SESSION_MS = 7 * 24 * 60 * 60_000
 const ASSESSMENT_MS = 45 * 60_000
 const LIMIT_BYTES = 5_000_000
-const allowedEvents = new Set(['focus_lost', 'focus_returned', 'visibility_hidden', 'visibility_visible', 'fullscreen_exited', 'microphone_denied'])
+const allowedEvents = new Set(['focus_lost', 'focus_returned', 'visibility_hidden', 'visibility_visible', 'fullscreen_exited', 'microphone_denied', 'microphone_muted', 'audio_interrupted', 'sound_flag'])
 const EXTRA_QUESTIONS = [
   { id: 'ava-en-1', section: 'english', topic: 'written-communication', prompt: 'Write a clear, polite email to a client explaining a missed deadline, the next action, and when they will receive an update.' },
   { id: 'ava-en-2', section: 'english', topic: 'grammar', prompt: 'Correct this sentence and explain the change: "Our team have finish the customer requests yesterday."' },
   { id: 'ava-en-3', section: 'english', topic: 'coherence', prompt: 'Describe a time you explained a complicated issue to someone unfamiliar with the topic. Keep your response clear and structured.' },
 ]
-function questions(role: Role) {
-  // Use existing, private question blueprints; never send rubric or answers to client.
-  return [...buildQuestionSet(role).filter((q) => q.section === 'position').slice(0, 7), ...EXTRA_QUESTIONS]
+function questions(role: Role, version = 1) {
+  // Preserve the ten-question track for assessments begun before this release.
+  const bank = buildQuestionSet(role)
+  return version >= 2 ? bank : [...bank.filter(q=>q.section==='position').slice(0,7),...EXTRA_QUESTIONS]
+}
+const bankFor = (row: Applicant) => questions(row.role,row.assessment_version||1)
+function roleForApplication(value:string, fallback:Role):Role {
+  if (/technolog|software|developer|engineer|\bit\b|web|cloud/i.test(value)) return 'tech'
+  if (/customer|support|service|contact.center|\bcx\b/i.test(value)) return 'cx'
+  if (/operation|administrat|business|finance|account/i.test(value)) return 'ops'
+  return fallback
 }
 function secret(env: AvaEnv) {
   const value = env.AVA_SCREENING_SECRET?.trim() || ''
@@ -134,7 +142,12 @@ async function ensure(db: D1Database) {
       email TEXT NOT NULL, recorded_at INTEGER NOT NULL)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS ava_public_otp_by_email_time
       ON ava_screening_public_otp_events(email, recorded_at)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_application_links (reference_id TEXT PRIMARY KEY, session_id TEXT NOT NULL UNIQUE, email TEXT NOT NULL, created_at INTEGER NOT NULL, FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_questions (session_id TEXT NOT NULL, question_number INTEGER NOT NULL, question_id TEXT NOT NULL, prompt TEXT NOT NULL, PRIMARY KEY(session_id,question_number), FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
   ])
+  // D1 table already exists for previous sessions; one-time additive migration.
+  try { await db.prepare('ALTER TABLE ava_screening_sessions ADD COLUMN assessment_version INTEGER NOT NULL DEFAULT 1').run() }
+  catch(e) { if(!/duplicate column/i.test(String(e))) throw e }
 }
 async function get(db: D1Database, id: string): Promise<Applicant | null> {
   return db.prepare('SELECT * FROM ava_screening_sessions WHERE id = ?').bind(id).first<Applicant>()
@@ -148,7 +161,7 @@ async function authorized(request: Request, env: AvaEnv, db: D1Database): Promis
   return timingSafeEqualStr(await digest(token), row.session_hash) ? row : null
 }
 function applicantState(row: Applicant, answers: AnswerRow[]) {
-  const bank = questions(row.role)
+  const bank = bankFor(row)
   const status = row.assessment_status === 'in_progress' && row.deadline && Date.now() > row.deadline
     ? 'time_expired' : row.assessment_status
   const done = status === 'submitted' || status === 'time_expired'
@@ -173,7 +186,7 @@ function applicantState(row: Applicant, answers: AnswerRow[]) {
     }) : [],
   }
 }
-async function state(db: D1Database, row: Applicant) {
+async function state(db: D1Database, env: AvaEnv, row: Applicant) {
   // Finalize expired assessments even when candidates close the browser before submitting.
   if (row.assessment_status === 'in_progress' && row.deadline && Date.now() >= row.deadline) {
     await db.prepare("UPDATE ava_screening_sessions SET assessment_status='time_expired', completed=? WHERE id=? AND assessment_status='in_progress' AND deadline<=?")
@@ -181,7 +194,31 @@ async function state(db: D1Database, row: Applicant) {
     row = (await get(db, row.id)) || row
   }
   const answers = (await db.prepare('SELECT question_id, answer, source, review_status, review_json, submitted_at FROM ava_screening_answers WHERE session_id = ? ORDER BY submitted_at ASC, question_id ASC').bind(row.id).all<AnswerRow>()).results || []
-  return applicantState(row, answers)
+  const result = applicantState(row, answers)
+  const link = await db.prepare('SELECT reference_id FROM ava_screening_application_links WHERE session_id=?').bind(row.id).first<{reference_id:string}>()
+  if(result.question && (row.assessment_version||1)>=2) {
+    result.question.prompt = await questionPrompt(db,env,row,result.question.number)
+  }
+  return {...result,applicationReference:link?.reference_id||null}
+}
+async function questionPrompt(db:D1Database,env:AvaEnv,row:Applicant,number:number):Promise<string> {
+  const existing=await db.prepare('SELECT prompt FROM ava_screening_questions WHERE session_id=? AND question_number=?').bind(row.id,number).first<{prompt:string}>()
+  if(existing) return existing.prompt
+  const blueprint=bankFor(row)[number-1]
+  if(!blueprint) throw new Error('QUESTION_NOT_FOUND')
+  let prompt=blueprint.prompt
+  if(env.AI) {
+    try {
+      const response=await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {messages:[
+        {role:'system',content:'Write only one fair, concise, workplace-relevant assessment question. Keep the same skill/topic as the example, without an answer, answer choices, personal attributes, private data or discriminatory content. Use 35 to 500 characters.'},
+        {role:'user',content:JSON.stringify({role:ROLES[row.role],section:blueprint.section,topic:blueprint.topic,example:blueprint.prompt,previousTopics:bankFor(row).slice(Math.max(0,number-4),number-1).map(q=>q.topic)})}],temperature:0.65,max_tokens:230}) as {response?:string}
+      const generated=String(response.response||'').trim()
+      if(generated.length>=35&&generated.length<=500&&!/[<>]/.test(generated)) prompt=generated
+    } catch { /* use the reviewed bank question if model is unavailable */ }
+  }
+  await db.prepare('INSERT OR IGNORE INTO ava_screening_questions(session_id,question_number,question_id,prompt) VALUES (?,?,?,?)').bind(row.id,number,blueprint.id,prompt).run()
+  const saved=await db.prepare('SELECT prompt FROM ava_screening_questions WHERE session_id=? AND question_number=?').bind(row.id,number).first<{prompt:string}>()
+  return saved?.prompt||prompt
 }
 function validFile(data: Uint8Array, type: string): boolean {
   if (type === 'application/pdf') return data.length >= 5 && String.fromCharCode(...data.slice(0, 5)) === '%PDF-'
@@ -326,13 +363,15 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         if (!applicant) return error('Candidate not found.', 404)
         const found = (await db.prepare('SELECT * FROM ava_screening_answers WHERE session_id=?').bind(id).all<AnswerRow>()).results || []
         const byId = new Map(found.map(a => [a.question_id, a]))
-        const answers = questions(applicant.role).map(q => {
+        const generated=(await db.prepare('SELECT question_id,prompt FROM ava_screening_questions WHERE session_id=?').bind(id).all<{question_id:string;prompt:string}>()).results||[]
+        const generatedById=new Map(generated.map(q=>[q.question_id,q.prompt]))
+        const answers = bankFor(applicant).map(q => {
           const a = byId.get(q.id)
           let advisoryReview: unknown = null
           if (a?.review_json && applicant.ai_consent_at) {
             try { advisoryReview = JSON.parse(a.review_json) } catch { /* invalid feedback ignored */ }
           }
-          return { id: q.id, section: q.section, topic: q.topic, prompt: q.prompt,
+          return { id: q.id, section: q.section, topic: q.topic, prompt: generatedById.get(q.id)||q.prompt,
             answer: a?.answer || null, source: a?.source || null,
             submittedAt: a?.submitted_at || null, advisoryReview }
         })
@@ -579,11 +618,11 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         .bind(now, await digest(sessionToken), now + SESSION_MS, invite.id, actual, now).run()
       if (!update.meta.changes) return error('Code already used or expired.', 409)
       const saved = await get(db, invite.id)
-      return json({ ...(await state(db, saved!)), sessionToken })
+      return json({ ...(await state(db, env, saved!)), sessionToken })
     }
     const row = await authorized(request, env, db)
     if (!row) return error('Your secure screening session is missing or expired.', 401)
-    if (action === 'state') return json(await state(db, row))
+    if (action === 'state') return json(await state(db, env, row))
     if (action === 'logout') {
       await db.prepare('UPDATE ava_screening_sessions SET session_hash=NULL,session_expires=NULL WHERE id=? AND session_hash=?')
         .bind(row.id,await digest(request.headers.get('Authorization')?.replace(/^Bearer\s+/i,'') || '')).run()
@@ -601,7 +640,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const now = Date.now()
       await db.prepare('UPDATE ava_screening_sessions SET profile=?, consent_at=?, monitor_consent_at=?, ai_consent_at=? WHERE id=?')
         .bind(JSON.stringify(profile), now, now, data?.aiConsent === true ? now : null, row.id).run()
-      return json(await state(db, (await get(db, row.id))!))
+      return json(await state(db, env, (await get(db, row.id))!))
     }
     if (action === 'identity') {
       if (row.assessment_status !== 'not_started') return error('Identity submission is closed after the assessment begins.', 409)
@@ -624,7 +663,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         .bind(key, String(kind), Date.now(), row.id).run()
       if (!update.meta.changes) { await env.AVA_ID_BUCKET.delete(key); return error('Identity submission state changed. Refresh and retry.', 409) }
       if (row.identity_key) await env.AVA_ID_BUCKET.delete(row.identity_key).catch(() => {})
-      return json(await state(db, (await get(db, row.id))!))
+      return json(await state(db, env, (await get(db, row.id))!))
     }
     if (action === 'begin') {
       // Public applicants can begin immediately after OTP verification + profile consent.
@@ -632,9 +671,9 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (!row.profile || !row.consent_at || !row.monitor_consent_at) return error('Complete the profile and monitoring consent before starting.', 403)
       if (row.assessment_status !== 'not_started') return error('Assessment already started or submitted.', 409)
       const now = Date.now()
-      await db.prepare("UPDATE ava_screening_sessions SET assessment_status='in_progress', assessment_started=?, deadline=? WHERE id=? AND assessment_status='not_started'")
+      await db.prepare("UPDATE ava_screening_sessions SET assessment_status='in_progress', assessment_started=?, deadline=?, assessment_version=2 WHERE id=? AND assessment_status='not_started'")
         .bind(now, now + ASSESSMENT_MS, row.id).run()
-      return json(await state(db, (await get(db, row.id))!))
+      return json(await state(db, env, (await get(db, row.id))!))
     }
     if (action === 'answer') {
       if (row.assessment_status !== 'in_progress') return error('Assessment is not active.', 409)
@@ -646,11 +685,12 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const answer = clean(data?.answer, 4000)
       const source = data?.source === 'dictation' ? 'dictation' : 'typed'
       if (answer.length < 15) return error('Please give an answer of at least 15 characters.')
-      const bank = questions(row.role)
+      const bank = bankFor(row)
       const answers = (await db.prepare('SELECT question_id FROM ava_screening_answers WHERE session_id=? ORDER BY submitted_at ASC, question_id ASC').bind(row.id).all<{question_id:string}>()).results || []
       const index = answers.length
       if (index >= bank.length) return error('All questions are already answered.', 409)
       const current = bank[index]
+      const actualPrompt=(row.assessment_version||1)>=2?await questionPrompt(db,env,row,index+1):current.prompt
       const update = await db.prepare(`INSERT OR IGNORE INTO ava_screening_answers
         (session_id, question_id, answer, source, submitted_at)
         SELECT ?,?,?,?,? WHERE EXISTS (
@@ -660,8 +700,8 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (index + 1 >= bank.length) await db.prepare("UPDATE ava_screening_sessions SET assessment_status='submitted', completed=? WHERE id=? AND assessment_status='in_progress'")
         .bind(Date.now(), row.id).run()
       // AI results are advisory. An absent/unavailable AI binding leaves "pending" rather than manufacturing scores.
-      if (row.ai_consent_at && env.AI) context.waitUntil(maybeReview(env, db, row, current.id, current.prompt, answer))
-      return json(await state(db, (await get(db, row.id))!))
+      if (row.ai_consent_at && env.AI) context.waitUntil(maybeReview(env, db, row, current.id, actualPrompt, answer))
+      return json(await state(db, env, (await get(db, row.id))!))
     }
     if (action === 'event') {
       const event = String(data?.event || '')
