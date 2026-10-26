@@ -24,7 +24,7 @@ function respond(message:string,status:number) {
 }
 function normalizeName(value:string) {
   return value.normalize('NFKC').trim().toLocaleLowerCase('en')
-    .replace(/[^\\p{L}\\p{N}]+/gu,' ').replace(/\\s+/g,' ')
+    .replace(/[^\p{L}\p{N}]+/gu,' ').replace(/\s+/g,' ')
 }
 function equalConstant(a:string,b:string) {
   if(a.length!==b.length) return false
