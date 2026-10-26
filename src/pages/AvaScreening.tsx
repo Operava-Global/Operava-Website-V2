@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { CheckCircle2, ChevronRight, ClipboardCheck, Clock3, Headphones, LockKeyhole, MailCheck, Mic, MonitorCheck, ShieldCheck, Smartphone, TriangleAlert, LogOut } from 'lucide-react'
 import { usePageMeta } from '../site/seo'
 import ThemeToggle from '../site/ThemeToggle'
@@ -60,6 +60,7 @@ const formatRemaining = (seconds: number) => `${String(Math.floor(seconds / 60))
 export default function AvaScreening() {
   usePageMeta({ title: 'Ava Assessment | Public Applicant Portal', description: 'Register and securely sign in with email OTP to complete your OPERAVA candidate profile and role assessment.' })
   const [params] = useSearchParams()
+  const navigate = useNavigate()
   const invitation = params.get('invite') || ''
   const [session, setSession] = useState(() => { try { return sessionStorage.getItem(SESSION_KEY) || '' } catch { return '' } })
   const [screen, setScreen] = useState<ScreenState | null>(null)
@@ -214,15 +215,25 @@ export default function AvaScreening() {
     }
   }
   const verifyPublic = async () => {
-    if (await perform(()=>submit('publicVerify',{email:pendingEmail,code}),'Your email is verified.')) {
+    if (await perform(()=>submit('publicVerify',{email:pendingEmail,code,
+      name:registerName.trim(),role:registerRole}),'Your email is verified.')) {
       setCode('')
     }
   }
   const logout = async () => {
     try {await submit('logout')} catch { /* expiration also invalidates the browser session */ }
     try {sessionStorage.removeItem(SESSION_KEY)} catch { /* private browsing */ }
+    recognition.current?.stop()
+    recognition.current=null
+    setIsSpeaking(false)
+    setAnswer('')
+    setAnswerSource('typed')
     setScreen(null);setSession('');sessionRef.current='';setOtpRequested(false)
+    setProfile(BLANK_PROFILE);setPrivacyConsent(false);setMonitorConsent(false);setAiConsent(false)
+    setRegisterName('');setRegisterEmail('');setPendingEmail('');setCode('')
     setTurnstileToken('');setNotice('You have signed out.')
+    // Clear legacy invitation query to offer public email OTP login for resuming.
+    if (invitation) navigate('/ava-screening/',{replace:true})
   }
   const verifyCode = async () => { if (await perform(() => submit('verifyCode', { invitation, code }), 'Email address verified.')) setCode('') }
   const saveProfile = async () => { await perform(() => submit('profile', { ...profile, privacyConsent, monitorConsent, aiConsent }), 'Profile saved securely.') }
