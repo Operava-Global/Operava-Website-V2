@@ -63,8 +63,12 @@ export const onRequestPost:PagesFunction<Env> = async ({request,env}) => {
     const parsed=JSON.parse(row.profile||'{}') as {fullName?:string}
     if(parsed.fullName)fullName=parsed.fullName
   }catch{ /* use verified applicant name */ }
+  const application=await env.SUBMISSIONS_DB.prepare(`SELECT f.name FROM ava_screening_application_links l
+    JOIN form_submissions f ON f.reference_id=l.reference_id WHERE l.session_id=? AND f.form_type='CAREERS' LIMIT 1`)
+    .bind(intent.session_id).first<{name:string}>()
   const nameMatch=typeof event.documentFullName==='string' &&
-    normalizeName(event.documentFullName)===normalizeName(fullName)
+    normalizeName(event.documentFullName)===normalizeName(fullName) &&
+    (!application?.name||normalizeName(event.documentFullName)===normalizeName(application.name))
   const score=Number(event.faceMatchScore)
   const validScore=Number.isFinite(score)&&score>=0&&score<=100
   const nfc=event.documentType==='passport'?event.passportNfcPassed===true:
