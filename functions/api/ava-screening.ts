@@ -129,6 +129,11 @@ async function ensure(db: D1Database) {
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_public_accounts (
       email TEXT PRIMARY KEY, session_id TEXT NOT NULL UNIQUE, created_at INTEGER NOT NULL,
       FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_public_otp_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL, recorded_at INTEGER NOT NULL)`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS ava_public_otp_by_email_time
+      ON ava_screening_public_otp_events(email, recorded_at)`),
   ])
 }
 async function get(db: D1Database, id: string): Promise<Applicant | null> {
@@ -387,6 +392,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
           db.prepare('DELETE FROM ava_screening_sessions WHERE id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_invitations WHERE id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_public_accounts WHERE session_id=?').bind(id),
+          db.prepare('DELETE FROM ava_screening_public_otp_events WHERE email=?').bind(applicant.email),
         ])
         return json({ ok: true, deleted: true })
       }
@@ -447,16 +453,20 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const now = Date.now()
       const match = await db.prepare('SELECT session_id FROM ava_screening_public_accounts WHERE email=?')
         .bind(email).first<{ session_id: string }>()
-      const proposedId = crypto.randomUUID()
       if (!match) {
-        // Untrusted public signup never grants reviewer privileges.
-        await db.batch([
-          db.prepare(`INSERT OR IGNORE INTO ava_screening_sessions
-            (id,email,name,role,invite_exp,created_at) VALUES (?,?,?,?,?,?)`)
-            .bind(proposedId,email,name,role,now+365*24*60*60_000,now),
-          db.prepare(`INSERT OR IGNORE INTO ava_screening_public_accounts(email,session_id,created_at)
-            VALUES (?,?,?)`).bind(email,proposedId,now),
-        ])
+        // Reuse an email-verified recruiter invitation record where one exists,
+        // so invited applicants can sign out and recover their saved assessment
+        // through the same public email OTP login form.
+        const prior=await db.prepare(`SELECT s.id FROM ava_screening_sessions s
+          WHERE s.email=? AND s.verified_at IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM ava_screening_public_accounts a WHERE a.session_id=s.id)
+          ORDER BY s.created_at DESC LIMIT 1`).bind(email).first<{id:string}>()
+        const id=prior?.id || crypto.randomUUID()
+        if (!prior) await db.prepare(`INSERT OR IGNORE INTO ava_screening_sessions
+          (id,email,name,role,invite_exp,created_at) VALUES (?,?,?,?,?,?)`)
+          .bind(id,email,name,role,now+365*24*60*60_000,now).run()
+        await db.prepare(`INSERT OR IGNORE INTO ava_screening_public_accounts(email,session_id,created_at)
+          VALUES (?,?,?)`).bind(email,id,now).run()
       }
       const account = await db.prepare('SELECT session_id FROM ava_screening_public_accounts WHERE email=?')
         .bind(email).first<{ session_id: string }>()
@@ -465,13 +475,20 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (!applicant) return error('Account temporarily unavailable.', 503)
       const code = generateOtp()
       const codeHash = await hashOtp(secret(env)!, `${account.session_id}:${code}`)
+      // Keep a genuine rolling 24-hour limit distinct from the previous send
+      // time. Reserve sends atomically to stop concurrent requests bypassing it.
+      const quota = await db.prepare(`INSERT INTO ava_screening_public_otp_events(email,recorded_at)
+        SELECT ?,? WHERE
+          (SELECT COUNT(*) FROM ava_screening_public_otp_events
+            WHERE email=? AND recorded_at>?)<5
+          AND (SELECT COALESCE(MAX(recorded_at),0) FROM ava_screening_public_otp_events
+            WHERE email=?)<=?`)
+        .bind(email,now,email,now-24*60*60_000,email,now-60_000).run()
+      if (!quota.meta.changes) return error('A code was recently requested or the daily email limit was reached. Try again later.', 429)
       const updated = await db.prepare(`UPDATE ava_screening_sessions SET
-        otp_hash=?,otp_expires=?,otp_attempts=0,otp_sent=?,
-        otp_count=CASE WHEN otp_sent<? THEN 1 ELSE otp_count+1 END
-        WHERE id=? AND otp_sent<=? AND (otp_sent<? OR otp_count<5)`)
-        .bind(codeHash,now+OTP_MS,now,now-24*60*60_000,account.session_id,
-          now-60_000,now-24*60*60_000).run()
-      if (!updated.meta.changes) return error('A code was recently requested or the daily email limit was reached. Try again later.', 429)
+        otp_hash=?,otp_expires=?,otp_attempts=0,otp_sent=?
+        WHERE id=?`).bind(codeHash,now+OTP_MS,now,account.session_id).run()
+      if (!updated.meta.changes) return error('Unable to issue a verification code. Please retry.',503)
       await sendEmail(env,{from:resolveFromEnv(env),to:[email],
         subject:'OPERAVA Ava Screening | Your sign-in code',
         text:`Hi ${applicant.name},\n\nYour Ava Assessment sign-in code is ${code}. It expires in 10 minutes. Do not share it.\n\nIf you did not request this, ignore this email.\n\nOPERAVA Talent Acquisition`,
@@ -482,7 +499,12 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
     if (action === 'publicVerify') {
       const email = clean(data?.email,180).toLowerCase()
       const code = String(data?.code || '')
-      if (!EMAIL_RE.test(email) || !/^\d{6}$/.test(code)) return error('Enter your email and six-digit code.')
+      const confirmedName=clean(data?.name,100)
+      const confirmedRole=data?.role
+      if (!EMAIL_RE.test(email) || !/^\d{6}$/.test(code) ||
+        confirmedName.length<2 || !validRole(confirmedRole)) {
+        return error('Enter your email, full name, selected assessment track and six-digit code.')
+      }
       await ensure(db)
       const account = await db.prepare('SELECT session_id FROM ava_screening_public_accounts WHERE email=?')
         .bind(email).first<{session_id:string}>()
@@ -497,11 +519,15 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (!timingSafeEqualStr(row.otp_hash,supplied)) return error('Invalid or expired verification code.',401)
       const now=Date.now()
       const sessionToken = await sign(env,'as1',{v:1,id:row.id,exp:now+SESSION_MS})
+      // A caller who has not yet proved ownership may propose provisional role/name.
+      // Only the validated code holder can confirm or correct these fields.
       const update = await db.prepare(`UPDATE ava_screening_sessions SET
         verified_at=COALESCE(verified_at,?),otp_hash=NULL,otp_expires=0,
-        session_hash=?,session_expires=?
+        session_hash=?,session_expires=?,
+        name=CASE WHEN assessment_status='not_started' THEN ? ELSE name END,
+        role=CASE WHEN assessment_status='not_started' THEN ? ELSE role END
         WHERE id=? AND otp_hash=? AND otp_expires>? AND otp_attempts<=5`)
-        .bind(now,await digest(sessionToken),now+SESSION_MS,row.id,supplied,now).run()
+        .bind(now,await digest(sessionToken),now+SESSION_MS,confirmedName,confirmedRole,row.id,supplied,now).run()
       if (!update.meta.changes) return error('Code already used or expired.',409)
       return json({...(await state(db,(await get(db,row.id))!)),sessionToken})
     }
@@ -516,7 +542,8 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         .bind(invite.id, invite.email, invite.name, invite.role, invite.exp, now).run()
       const applicant = await get(db, invite.id)
       if (!applicant || applicant.email !== invite.email || applicant.role !== invite.role || applicant.invite_exp !== invite.exp) return error('Invitation mismatch.', 401)
-      if (applicant.verified_at) return error('Already verified. Reopen this invitation in the original browser or ask Talent Acquisition to issue another.', 409)
+      // The same signed invitation may be used to request a fresh OTP until it expires.
+      // Reauthentication never restarts a submitted or in-progress assessment timer.
       if (applicant.otp_count >= 5) return error('Code request limit reached. Contact Talent Acquisition.', 429)
       if (now - applicant.otp_sent < 60_000) return error('Please wait 60 seconds before requesting another code.', 429)
       const code = generateOtp()
@@ -537,7 +564,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const code = String(data?.code || '')
       if (!invite || invite.v !== 1 || invite.exp <= Date.now() || !/^\d{6}$/.test(code)) return error('Enter a valid, current six-digit code.', 400)
       const row = await get(db, invite.id)
-      if (!row || row.verified_at || !row.otp_hash || row.otp_expires <= Date.now() || row.otp_attempts >= 5) return error('Code expired or attempts exhausted. Request a new invitation if needed.', 401)
+      if (!row || !row.otp_hash || row.otp_expires <= Date.now() || row.otp_attempts >= 5) return error('Code expired or attempts exhausted. Request a new invitation if needed.', 401)
       // Reserve an OTP attempt atomically so parallel guesses cannot bypass the limit.
       const attempt = await db.prepare(`UPDATE ava_screening_sessions SET otp_attempts=otp_attempts+1
         WHERE id=? AND verified_at IS NULL AND otp_hash=? AND otp_expires>? AND otp_attempts<5`)
@@ -547,8 +574,8 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (!timingSafeEqualStr(row.otp_hash, actual)) return error('Incorrect verification code.', 401)
       const now = Date.now()
       const sessionToken = await sign(env, 'as1', { v: 1, id: invite.id, exp: now + SESSION_MS })
-      const update = await db.prepare(`UPDATE ava_screening_sessions SET verified_at=?, otp_hash=NULL, session_hash=?,
-        session_expires=?, otp_expires=0 WHERE id=? AND verified_at IS NULL AND otp_hash=? AND otp_expires>? AND otp_attempts<=5`)
+      const update = await db.prepare(`UPDATE ava_screening_sessions SET verified_at=COALESCE(verified_at,?), otp_hash=NULL, session_hash=?,
+        session_expires=?, otp_expires=0 WHERE id=? AND otp_hash=? AND otp_expires>? AND otp_attempts<=5`)
         .bind(now, await digest(sessionToken), now + SESSION_MS, invite.id, actual, now).run()
       if (!update.meta.changes) return error('Code already used or expired.', 409)
       const saved = await get(db, invite.id)
