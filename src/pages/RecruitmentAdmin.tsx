@@ -7,9 +7,11 @@ import './AvaScreening.css'
 import './RecruitmentAdmin.css'
 
 type Role = 'tech' | 'ops' | 'cx'
-type Tab = 'invite' | 'invitations' | 'identity' | 'assessments'
+type Tab = 'invite' | 'invitations' | 'applicants' | 'identity' | 'assessments'
 type Invite = { id:string; name:string; email:string; role:Role; sent_at:number; expires_at:number; status:string }
 type Pending = { id:string; name:string; email:string; role:Role; identity_kind:string; identity_submitted:number }
+type PublicApplicant = { id:string; name:string; email:string; role:Role; created_at:number;verified_at:number|null;
+  current_status:string;has_profile:number;review_status:string }
 type Summary = { id:string; name:string; email:string; role:Role; assessment_status:string;
   answers_received:number; review_status:string; completed:number|null }
 type Detail = { applicant:{ id:string;name:string;email:string;role:Role;identityStatus:string;
@@ -38,6 +40,7 @@ export default function RecruitmentAdmin() {
   const [role,setRole]=useState<Role>('tech')
   const [invitations,setInvitations]=useState<Invite[]>([])
   const [pending,setPending]=useState<Pending[]>([])
+  const [applicants,setApplicants]=useState<PublicApplicant[]>([])
   const [results,setResults]=useState<Summary[]>([])
   const [selected,setSelected]=useState<string|null>(null)
   const [detail,setDetail]=useState<Detail|null>(null)
@@ -50,10 +53,11 @@ export default function RecruitmentAdmin() {
   const refresh=useCallback(async()=>{
     setLoading(true);setError('')
     try {
-      const [inv,ident,ass]=await Promise.all([
-        send('invitations'),send('pendingReviews'),send('screeningResults')])
+      const [inv,ident,ass,pub]=await Promise.all([
+        send('invitations'),send('pendingReviews'),send('screeningResults'),send('publicApplicants')])
       setInvitations((inv.invitations||[]) as Invite[])
       setPending((ident.pending||[]) as Pending[])
+      setApplicants((pub.applicants||[]) as PublicApplicant[])
       setResults((ass.results||[]) as Summary[])
     } catch(e) {setError(e instanceof Error?e.message:'Unable to load private screening data.')}
     finally {setLoading(false)}
@@ -129,7 +133,7 @@ export default function RecruitmentAdmin() {
     </section>
     <nav className="ra-tabs" aria-label="Private recruitment sections">
       {([['invite','Send invitation',MailPlus],['invitations','Invitation tracking',Users],
-        ['identity','Identity review',FileCheck2],['assessments','Assessment results',ClipboardList]] as const)
+        ['applicants','Public applicants',UserCheck],['identity','Identity review',FileCheck2],['assessments','Assessment results',ClipboardList]] as const)
         .map(([key,label,Icon])=><button key={key} type="button" className={tab===key?'is-active':''}
           aria-current={tab===key?'page':undefined} onClick={()=>{setTab(key);setMessage('');setError('')}}>
           <Icon size={17}/>{label}</button>)}
@@ -157,6 +161,18 @@ export default function RecruitmentAdmin() {
         <label className="ra-search"><Search size={18}/><input aria-label="Search invitations" placeholder="Search name or email" value={filter} onChange={e=>setFilter(e.target.value)}/></label>
         {invitations.filter(matches).length ? <div className="ra-table-scroll"><table className="ra-table"><thead><tr><th>Applicant</th><th>Position</th><th>Sent</th><th>Expires</th><th>Status</th></tr></thead>
         <tbody>{invitations.filter(matches).map(item=><tr key={item.id}><td><strong>{item.name}</strong><small>{item.email}</small></td><td>{ROLES[item.role]}</td><td>{date(item.sent_at)}</td><td>{date(item.expires_at)}</td><td><span className="ra-status">{item.status.replace(/_/g,' ')}</span></td></tr>)}</tbody></table></div>:<Empty>No invitations found. Use “Send invitation” to start a candidate screening.</Empty>}</>}
+      {tab==='applicants'&&<><div className="ra-section-title"><div><p className="ava-label">PUBLIC APPLICANT ACCOUNTS</p><h2>Registered candidates</h2></div><span>Latest 100 registrations</span></div>
+        <label className="ra-search"><Search size={18}/><input aria-label="Search applicant registrations"
+          placeholder="Search name or email" value={filter} onChange={e=>setFilter(e.target.value)}/></label>
+        {applicants.filter(matches).length?<div className="ra-table-scroll"><table className="ra-table">
+          <thead><tr><th>Applicant</th><th>Assessment track</th><th>Registered</th><th>Email</th><th>Profile</th><th>Assessment status</th></tr></thead>
+          <tbody>{applicants.filter(matches).map(item=><tr key={item.id}>
+            <td><strong>{item.name}</strong><small>{item.email}</small></td>
+            <td>{ROLES[item.role]}</td><td>{date(item.created_at)}</td>
+            <td>{item.verified_at?'Verified':'Unverified'}</td>
+            <td>{item.has_profile?'Completed':'Incomplete'}</td>
+            <td><span className="ra-status">{item.current_status.replace(/_/g,' ')}</span></td>
+          </tr>)}</tbody></table></div>:<Empty>No public applicants found.</Empty>}</>}
       {tab==='identity'&&<><div className="ra-section-title"><div><p className="ava-label">HUMAN VERIFICATION REQUIRED</p><h2>Identity review</h2></div><span>{pending.length} awaiting review</span></div>
         {pending.length? <div className="ra-list">{pending.map(item=><article className="ra-record" key={item.id}>
           <div className="ra-record-header"><img src="/media/ava-assessment-identity.svg" alt="" width={62} height={62}/><div><h3>{item.name}</h3><p>{item.email} · {ROLES[item.role]}</p><small>{item.identity_kind} · Submitted {date(item.identity_submitted)}</small></div></div>
