@@ -177,3 +177,20 @@ CREATE TABLE IF NOT EXISTS ava_screening_events (
   FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS ava_screening_event_idx ON ava_screening_events(session_id, occurred_at);
+CREATE TABLE IF NOT EXISTS ava_screening_manual_reviews (
+  session_id TEXT PRIMARY KEY,
+  review_status TEXT NOT NULL CHECK (review_status IN ('reviewed','follow_up_required')),
+  reviewer_note TEXT NOT NULL DEFAULT '',
+  reviewed_at INTEGER NOT NULL,
+  FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS ava_screening_review_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  session_id TEXT NOT NULL,
+  action TEXT NOT NULL,
+  detail TEXT NOT NULL DEFAULT '',
+  recorded_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ava_screening_review_events_idx
+  ON ava_screening_review_events(session_id, recorded_at);
+
