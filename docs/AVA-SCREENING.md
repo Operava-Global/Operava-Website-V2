@@ -1,6 +1,8 @@
 # Ava Screening — operational setup and trust boundaries
 
-New, separate **invitation-only** route: `/ava-screening/`. The original `/ai-job-screening` redirect and `RECRUITMENT_AVA_ENABLED` gate are unchanged. The new Ava screening API defaults to **disabled**. Do not advertise `/ava-screening/` publicly or expose reviewer credentials in frontend JavaScript.
+Public **email-OTP-only** applicant route: `/ava-screening/`. Anyone may register with name, email and role, verify a six-digit email code, complete their profile and start the assessment immediately. **No password, OAuth or recruitment invitation is required.** Existing signed recruiter invitations remain backward compatible. The original `/ai-job-screening` redirect and legacy `RECRUITMENT_AVA_ENABLED` gate are unchanged. Keep `/recruitment-admin/` protected by Cloudflare Access; never expose reviewer credentials in frontend JavaScript.
+
+Public signup uses Cloudflare Turnstile verification *server-side* before sending codes and requires an allowed browser origin. Each email is limited to one new OTP every 60 seconds, five codes per rolling 24-hour window, with a maximum of five guesses per OTP. The same email always maps to the same assessment record and may sign in again with a fresh OTP. Sessions last up to seven days and can be explicitly revoked by signing out. The identity-document requirement is **not** part of the public self-registration journey; optional manual identity review is retained for legacy recruiter-managed flows.
 
 ## Required Cloudflare Pages bindings
 
