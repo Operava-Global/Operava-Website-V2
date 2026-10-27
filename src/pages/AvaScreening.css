@@ -711,3 +711,236 @@ html[data-theme="light"] .ava-preview-login a{color:#6c27bc}
  #site-shell.ava-screening-host .ava-readiness-grid .ava-check-card{animation:none!important}
  #site-shell.ava-screening-host .ava-horizontal-scene{will-change:auto}
 }
+
+/* AVA compact white-first no-vertical-scroll assessment workspace.
+ * Stage changes and multi-record navigation are horizontal; long forms fit
+ * the available screen via the stage-local zoom measured by AvaScreening.tsx. */
+#site-shell.ava-screening-host .ava-workspace-main{
+  padding:9px clamp(9px,1.5vw,20px) 7px;
+}
+#site-shell.ava-screening-host .ava-app-heading{margin:0 0 5px}
+#site-shell.ava-screening-host .ava-app-heading h1{font-size:clamp(17px,2vw,24px);margin:0}
+#site-shell.ava-screening-host .ava-app-heading p:not(.ava-kicker){font-size:10px}
+#site-shell.ava-screening-host .ava-steps{margin:0 0 5px}
+#site-shell.ava-screening-host .ava-step{min-height:31px;padding:3px 8px;font-size:9px}
+#site-shell.ava-screening-host .ava-step span{width:22px;height:22px}
+#site-shell.ava-screening-host .ava-workspace-nav{min-height:34px;margin:0 0 5px}
+#site-shell.ava-screening-host .ava-workspace-tabs button{padding:7px 11px;font-size:10px}
+#site-shell.ava-screening-host .ava-workspace-body{
+  display:flex;
+  flex-direction:column;
+  flex:1 1 auto;
+  min-height:0;
+  height:auto;
+  padding:0;
+  overflow:hidden!important;
+  overscroll-behavior:none;
+  scrollbar-width:none;
+}
+#site-shell.ava-screening-host .ava-assessment-deck{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) clamp(190px,21vw,290px);
+  gap:12px;
+  flex:1 1 auto;
+  min-height:0;
+  height:100%;
+  width:100%;
+  overflow:hidden;
+}
+#site-shell.ava-screening-host .ava-horizontal-scene{
+  display:block;
+  min-width:0;
+  min-height:0;
+  height:100%;
+  width:100%;
+  overflow:hidden!important;
+  overscroll-behavior:none;
+  scrollbar-width:none;
+}
+#site-shell.ava-screening-host .ava-scene-fit{
+  display:block;
+  min-width:0;
+  width:100%;
+  height:max-content;
+  transform-origin:top left;
+  overflow:visible;
+}
+#site-shell.ava-screening-host .ava-scene-fit>.ava-shell,
+#site-shell.ava-screening-host .ava-scene-fit>.ava-applications{
+  min-width:0;
+  max-width:100%;
+  margin:0;
+}
+#site-shell.ava-screening-host .ava-scene-fit .ava-content{
+  padding:clamp(12px,1.55vw,23px);
+  min-height:0;
+  border-radius:9px;
+}
+#site-shell.ava-screening-host .ava-scene-fit .ava-stage-heading{
+  margin:0 0 8px;
+  padding:0 0 6px;
+  min-height:34px;
+}
+#site-shell.ava-screening-host .ava-scene-fit .ava-stage-heading img{width:40px;height:40px}
+#site-shell.ava-screening-host .ava-scene-fit .ava-panel h2{
+  font-size:clamp(23px,2.55vw,35px);
+  line-height:1.15;
+  margin:6px 0 11px;
+}
+#site-shell.ava-screening-host .ava-scene-fit .ava-panel>p:not(.ava-label):not(.ava-muted){
+  font-size:12px;
+  line-height:1.45;
+}
+#site-shell.ava-screening-host .ava-scene-fit .ava-panel .ava-muted{
+  font-size:11px;
+  line-height:1.45;
+  margin:6px 0;
+}
+#site-shell.ava-screening-host .ava-scene-fit .ava-icon{height:40px;width:40px;margin-bottom:9px}
+#site-shell.ava-screening-host .ava-scene-fit .ava-form{gap:6px;margin:7px 0}
+#site-shell.ava-screening-host .ava-scene-fit .ava-field{gap:5px;margin:7px 0;font-size:11px}
+#site-shell.ava-screening-host .ava-scene-fit .ava-field :is(input,select,textarea){
+  padding:9px 11px;
+  font-size:12px;
+  line-height:1.35;
+}
+#site-shell.ava-screening-host .ava-scene-fit .ava-field textarea{min-height:58px;max-height:none;resize:none}
+#site-shell.ava-screening-host .ava-scene-fit .ava-field .ava-answer{
+  height:clamp(93px,19dvh,175px);
+  min-height:93px;
+}
+#site-shell.ava-screening-host .ava-scene-fit .ava-check{font-size:10.5px;line-height:1.42;gap:9px}
+#site-shell.ava-screening-host .ava-scene-fit .ava-slide-progress{margin:6px 0 9px}
+#site-shell.ava-screening-host .ava-scene-fit :is(.ava-primary,.ava-secondary){
+  margin-top:7px;
+  min-height:36px;
+  padding:8px 12px;
+  font-size:10px;
+}
+#site-shell.ava-screening-host .ava-scene-fit .ava-slide-actions{margin:7px 0 0}
+#site-shell.ava-screening-host .ava-scene-fit .ava-readiness-grid{margin:9px 0}
+#site-shell.ava-screening-host .ava-scene-fit .ava-check-card{
+  padding:13px 16px;
+}
+#site-shell.ava-screening-host .ava-scene-fit .ava-check-card p{font-size:11px;line-height:1.48}
+#site-shell.ava-screening-host .ava-scene-fit .ava-readiness-footer{padding-top:9px}
+#site-shell.ava-screening-host .ava-scene-fit .ava-progress{margin:9px 0 14px}
+#site-shell.ava-screening-host .ava-scene-fit .ava-bottom{margin-top:9px;padding-top:9px}
+#site-shell.ava-screening-host .ava-scene-fit .ava-summary{margin:11px 0}
+#site-shell.ava-screening-host .ava-scene-fit .ava-summary div{padding:11px}
+#site-shell.ava-screening-host .ava-scene-fit .ava-invitation{padding:10px 12px;margin:9px 0}
+#site-shell.ava-screening-host .ava-scene-fit .ava-applications{padding:13px 16px}
+#site-shell.ava-screening-host .ava-app-support{padding:4px 2px 0;font-size:9px;flex:0 0 auto}
+#site-shell.ava-screening-host .ava-proctor-dock{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:space-between;
+  min-width:0;
+  min-height:0;
+  overflow:hidden;
+  position:relative;
+  padding:13px 7px 10px;
+  border:1px solid var(--ava-line);
+  border-radius:10px;
+  background:linear-gradient(165deg,rgba(160,0,240,.06),transparent 34%),var(--ava-bg);
+}
+#site-shell.ava-screening-host .ava-proctor-dock-title{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  font-size:9px;
+  letter-spacing:.09em;
+  font-weight:800;
+  color:var(--ava-ink);
+}
+#site-shell.ava-screening-host .ava-proctor-live{
+  width:7px;height:7px;border-radius:100%;
+  background:#00bdbb;box-shadow:0 0 0 4px rgba(0,189,187,.13);
+  animation:ava-proctor-light 3s ease-in-out infinite;
+}
+#site-shell.ava-screening-host .ava-proctor-character{
+  display:grid;
+  place-items:center;
+  flex:1 1 auto;
+  min-height:0;
+  width:100%;
+  padding:5px 2px;
+  isolation:isolate;
+}
+#site-shell.ava-screening-host .ava-proctor-character:before{
+  content:"";position:absolute;width:78%;aspect-ratio:1;top:20%;
+  border-radius:50%;z-index:-1;opacity:.55;
+  background:radial-gradient(circle,rgba(0,207,240,.18),rgba(160,0,240,.07) 50%,transparent 70%);
+  animation:ava-proctor-halo 6.6s ease-in-out infinite alternate;
+}
+#site-shell.ava-screening-host .ava-proctor-character img{
+  display:block;
+  width:auto;
+  height:100%;
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  filter:drop-shadow(0 15px 15px rgba(3,149,187,.18));
+  animation:ava-proctor-float 5.5s ease-in-out infinite;
+}
+#site-shell.ava-screening-host .ava-proctor-caption{
+  width:100%;
+  padding:10px 9px 0;
+  text-align:center;
+  border-top:1px solid var(--ava-line);
+}
+#site-shell.ava-screening-host .ava-proctor-caption strong{
+  display:block;font-size:11px;color:var(--ava-ink);line-height:1.3;
+}
+#site-shell.ava-screening-host .ava-proctor-caption p{
+  color:var(--ava-muted);font-size:10px;line-height:1.45;margin:5px 0 0;
+}
+#site-shell.ava-screening-host .ava-record-pager{
+  display:flex;gap:9px;align-items:center;justify-content:center;
+  margin-top:8px;flex-wrap:wrap;
+}
+#site-shell.ava-screening-host .ava-record-pager span{font-size:11px;font-variant-numeric:tabular-nums;color:var(--ava-muted)}
+#site-shell.ava-screening-host .ava-record-pager .ava-secondary{margin:0}
+@keyframes ava-proctor-float{0%,100%{transform:translateY(2px)}50%{transform:translateY(-9px)}}
+@keyframes ava-proctor-halo{from{transform:scale(.85);opacity:.35}to{transform:scale(1.1);opacity:.7}}
+@keyframes ava-proctor-light{0%,100%{opacity:.4}50%{opacity:1}}
+@media(max-width:850px){
+ #site-shell.ava-screening-host .ava-assessment-deck{grid-template-columns:minmax(0,1fr) 125px;gap:7px}
+ #site-shell.ava-screening-host .ava-proctor-dock{padding:6px 3px}
+ #site-shell.ava-screening-host .ava-proctor-dock-title{font-size:7px;letter-spacing:0}
+ #site-shell.ava-screening-host .ava-proctor-caption{padding:5px 2px 0}
+ #site-shell.ava-screening-host .ava-proctor-caption strong{font-size:9px}
+ #site-shell.ava-screening-host .ava-proctor-caption p{font-size:8px}
+ #site-shell.ava-screening-host .ava-app-heading{display:none}
+ #site-shell.ava-screening-host .ava-app-support{display:none}
+}
+@media(max-width:520px){
+ #site-shell.ava-screening-host .ava-assessment-deck{grid-template-columns:minmax(0,1fr) 79px;gap:4px}
+ #site-shell.ava-screening-host .ava-proctor-dock-title span:last-child{display:none}
+ #site-shell.ava-screening-host .ava-proctor-caption{display:none}
+ #site-shell.ava-screening-host .ava-proctor-character{padding:2px 0}
+ #site-shell.ava-screening-host .ava-proctor-dock{border-radius:7px}
+ #site-shell.ava-screening-host .ava-scene-fit .ava-content{padding:8px}
+ #site-shell.ava-screening-host .ava-scene-fit .ava-panel h2{font-size:21px}
+ #site-shell.ava-screening-host .ava-scene-fit .ava-panel>p:not(.ava-label):not(.ava-muted){font-size:11px}
+ #site-shell.ava-screening-host .ava-app-topbar .ava-access-label{display:none}
+ #site-shell.ava-screening-host .ava-app-topbar{height:48px;min-height:48px}
+ #site-shell.ava-screening-host .ava-screening>.ava-wrap{grid-template-rows:48px minmax(0,1fr)}
+ #site-shell.ava-screening-host .ava-workspace-main{padding:5px 5px 0}
+ #site-shell.ava-screening-host .ava-workspace-nav{margin-bottom:2px}
+}
+@media(max-height:670px){
+ #site-shell.ava-screening-host .ava-app-heading,
+ #site-shell.ava-screening-host .ava-steps,
+ #site-shell.ava-screening-host .ava-app-support{display:none}
+ #site-shell.ava-screening-host .ava-workspace-main{padding-top:3px}
+ #site-shell.ava-screening-host .ava-workspace-nav{margin-bottom:3px}
+ #site-shell.ava-screening-host .ava-proctor-caption p{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+ #site-shell.ava-screening-host .ava-proctor-live,
+ #site-shell.ava-screening-host .ava-proctor-character img,
+ #site-shell.ava-screening-host .ava-proctor-character:before{animation:none!important}
+}
