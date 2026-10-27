@@ -790,8 +790,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         const position=String(data.position||data.positionTitle||data.Position||data.role||data.jobTitle||'Careers application').slice(0,140)
         const assessmentStatus=item.assessment_status==='in_progress'&&item.deadline&&item.deadline<=Date.now()
           ? 'time_expired' : item.assessment_status||'not_started'
-        const requiredAction=assessmentStatus==='not_started'
-          ? item.profile?'Complete Assessment':'Complete Profile & Assessment'
+        const requiredAction=assessmentStatus==='not_started'?'Complete Assessment'
           : assessmentStatus==='in_progress'?'Continue Assessment':null
         return {referenceId:item.reference_id,position,submittedAt:item.created_at,
           applicationStatus:item.status||'VERIFIED',assessmentStatus,
