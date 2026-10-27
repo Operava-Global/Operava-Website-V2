@@ -693,7 +693,6 @@ export default function AvaScreening() {
                   <div className="ava-slide-actions"><button type="button" className="ava-primary" onClick={()=>setReadyPage(1)}>Next: proctor permissions <ChevronRight size={17}/></button></div>
                 </article>}
                 {readyPage===1 && <article className="ava-check-card">
-                <article className="ava-check-card">
                   <div className="ava-check-icon"><MonitorCheck size={24}/></div>
                   <h3>02 · Grant proctor permissions</h3>
                   <p>Record your entire screen, webcam and microphone throughout the assessment. If permission is denied, revoked, or storage is interrupted, you cannot begin or continue. Use the tests below to check your browser without uploading media.</p>
