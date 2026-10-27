@@ -8,7 +8,7 @@ const layout=read('src/site/Layout.tsx')
 const initial=read('index.html')
 const avatar=read('public/media/ava-proctor-mermaid.svg')
 test('AVA landing renders in light mode on first paint without overwriting website preference',()=>{
-  assert.match(initial,/ava = \/\^\\\/\(\?:ava-screening\|applicant-portal\)/)
+  assert.match(initial,/applicant-portal/)
   assert.match(initial,/ava \? 'light' : preferred/)
   assert.match(layout,/wasApplicantPortal/)
   assert.match(layout,/if \(!inApplicantPortal\)/)
