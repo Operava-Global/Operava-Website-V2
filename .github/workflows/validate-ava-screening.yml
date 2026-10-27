@@ -17,6 +17,8 @@ on:
       - 'wrangler.jsonc'
       - 'tests/avaProductionSmoke.mjs'
       - 'tests/avaV3Contracts.test.mjs'
+      - 'tests/avaHorizontalFlow.test.mjs'
+      - 'public/media/ava-proctor-mermaid.svg'
       - '.github/workflows/validate-ava-screening.yml'
   push:
     branches: [main]
@@ -49,7 +51,7 @@ jobs:
       - name: Build Cloudflare Pages frontend
         run: npm run build:pages
       - name: AVA portal security and feature regression contracts
-        run: node --test tests/avaV3Contracts.test.mjs
+        run: node --test tests/avaV3Contracts.test.mjs tests/avaHorizontalFlow.test.mjs
       - name: Non-invasive production Ava API smoke
         if: github.event_name != 'pull_request'
         run: node tests/avaProductionSmoke.mjs
