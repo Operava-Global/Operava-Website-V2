@@ -56,11 +56,7 @@ The dashboard provides:
 4. **Assessment Reports** — review candidate profile and actual written answers,
    and save human review or follow-up notes. No automated hire/reject result.
 
-New 30-question assessments must remain on a draft/preview release until a certified ID/liveness/NFC provider, private proctor recording storage, retention policies,
-32+ character Ava-specific secrets, retention schedule, review permissions and
-full synthetic end-to-end tests are verified and approved. The existing live public Ava v1 is a separate release: do not merge this fail-closed v2 into production until the prerequisites are satisfied. A successful website
-build or Cloudflare Access deployment does *not* prove invitation mail or ID
-upload flows function. The initial allowlist is intentionally narrow.
+Ava V2 code was merged into main on 26 October 2026 and the website was deployed successfully; however the certified live ID provider, proctor R2 storage and controlled applicant flows have NOT been activated or verified. New assessments fail closed until their configured prerequisites are available. V3 onboarding improvements remain in a separate development PR until private document storage, retention, reviewer permissions, integration tests and required security/privacy approvals are complete. A successful site build or Cloudflare Access deployment does *not* prove end-to-end email, NFC, liveness, or recorded assessments work.
 
 ## Reviewer operations
 
