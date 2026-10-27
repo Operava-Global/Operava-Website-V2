@@ -74,3 +74,24 @@ html[data-theme="light"] .ra-workspace .ra-report-detail{background:#f1ecf8}
 @media(max-width:900px){.ra-invite-layout{grid-template-columns:1fr}.ra-illustration{max-width:620px}.ra-review-layout{grid-template-columns:1fr}.ra-report-list{flex-direction:row;max-height:none;overflow:auto}.ra-report{min-width:215px}}
 @media(max-width:650px){.ra-head{align-items:start;flex-direction:column;padding:28px 0 20px}.ra-metrics{gap:8px}.ra-metrics>div{display:flex;min-height:100px;flex-direction:column;gap:3px;padding:13px}.ra-metrics svg{width:18px;height:18px}.ra-metrics strong{font-size:22px}.ra-metrics span{font-size:9px}.ra-tabs button{padding:13px 12px;font-size:10px}.ra-panel{padding:24px 16px}.ra-section-title{align-items:start;flex-direction:column;gap:0}.ra-record{padding:15px}.ra-record-header{align-items:start}.ra-report-detail{padding:16px}}
 @media(prefers-reduced-motion:reduce){.ra-workspace *, .ra-workspace *:before,.ra-workspace *:after{transition:none!important;animation:none!important}}
+
+/* Authorized document request/review UX. */
+.ra-onboarding-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;
+  border:1px solid var(--ra-border);border-radius:12px;background:var(--ava-card);padding:22px;margin:25px 0 32px}
+.ra-onboarding-form .ava-field{min-width:0}
+.ra-onboarding-form .ava-field:nth-child(3){grid-column:1 / -1}
+.ra-onboarding-form>.ava-primary{grid-column:1 / -1;justify-self:start}
+.ra-onboarding-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,350px),1fr));gap:15px}
+.ra-onboarding-list .ra-record{margin:0;min-width:0}
+.ra-onboarding-actions{display:flex;flex-direction:column;align-items:stretch;gap:11px;margin-top:18px}
+.ra-onboarding-actions .ava-field{min-width:0}
+.ra-onboarding-actions button{display:flex;align-items:center;justify-content:center;gap:9px}
+@media(max-width:680px){.ra-onboarding-form{grid-template-columns:1fr;padding:16px}
+ .ra-onboarding-form .ava-field:nth-child(3),.ra-onboarding-form>.ava-primary{grid-column:auto}}
+
+.ra-proctor-report{margin:21px 0;border:1px solid var(--ra-border);border-radius:11px;padding:20px;background:var(--ra-surface)}
+.ra-proctor-report h4{font-size:15px;font-weight:850;margin-bottom:11px}
+.ra-proctor-events{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+.ra-proctor-events span{font-size:11px;border:1px solid var(--ra-border);background:var(--ava-card);border-radius:8px;padding:8px 10px;white-space:normal}
+.ra-proctor-segments{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.ra-proctor-segments .ava-secondary{display:inline-flex;gap:7px;align-items:center;font-size:10px;margin:0}

@@ -272,3 +272,15 @@ html[data-theme="light"] .ava-small-warning{color:#8b470e!important}
   .ava-primary,.ava-application-card{transition:none!important}
   .ava-primary:hover:not(:disabled),.ava-application-card:hover{transform:none}
 }
+
+/* Private per-application onboarding document workspace. */
+.ava-document-context{margin:15px 0 0;color:var(--ava-muted);font-size:12px}
+.ava-document-context strong{color:var(--ava-ink);font-family:ui-monospace,monospace}
+.ava-document-empty{margin:18px 0 0;line-height:1.75}
+.ava-document-card{display:flex;flex-direction:column;gap:11px;min-width:0}
+.ava-document-card h3{margin:0;font-size:16px}
+.ava-document-card .ava-field{width:100%;min-width:0}
+.ava-document-card .ava-field input[type=file]{width:100%;min-width:0;font-size:11px;max-width:100%}
+.ava-document-card .ava-primary{width:100%;margin-top:6px;justify-content:center}
+.ava-current-actions{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.ava-current-actions .ava-required-action{font-size:11px;font-weight:700}

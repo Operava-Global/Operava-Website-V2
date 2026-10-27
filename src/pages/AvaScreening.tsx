@@ -29,6 +29,16 @@ type ScreenState = {
   reviewProgress: { reviewed: number; pending: number; total: number }
   reviewResults: { questionId: string; review: { relevance: number; grammar: number; clarity: number; coherence: number; feedback: string } | null }[]
 }
+type OnboardingRecord = {
+  id:string; document_type:string; request_note:string; status:string;
+  original_name:string|null;requested_at:number;submitted_at:number|null;
+  reviewed_at:number|null;review_note:string|null
+}
+const ONBOARDING_LABELS:Record<string,string> = {
+  education_certificate:'Education certificate', employment_reference:'Employment reference',
+  proof_of_address:'Proof of address', signed_agreement:'Signed agreement',
+  tax_details:'Tax / payroll form', other:'Requested documentation',
+}
 type ApplicationRecord = {
   referenceId: string; position: string; submittedAt: string; applicationStatus: string;
   assessmentStatus: string; reviewStatus: string; profileComplete: boolean;
@@ -37,6 +47,7 @@ type ApplicationRecord = {
 type ApiPayload = ScreenState & {
   error?: string; sessionToken?: string; maskedEmail?: string; turnstileSiteKey?: string;
   applicationReference?: string | null; applications?: ApplicationRecord[]; verificationUrl?: string
+  documents?: OnboardingRecord[]; configured?: boolean
 }
 type SpeechResult = { results: ArrayLike<ArrayLike<{ transcript: string }>> }
 type SpeechClient = {
@@ -80,6 +91,10 @@ export default function AvaScreening() {
   const [screen, setScreen] = useState<ScreenState | null>(null)
   const [applications, setApplications] = useState<ApplicationRecord[]>([])
   const [applicationsError, setApplicationsError] = useState('')
+  const [documents,setDocuments] = useState<OnboardingRecord[]>([])
+  const [onboardingConfigured,setOnboardingConfigured] = useState(false)
+  const [selectedDocuments,setSelectedDocuments] = useState<Record<string,File|null>>({})
+  const [onboardingError,setOnboardingError] = useState('')
   const [otpRequested, setOtpRequested] = useState(false)
   const [registerName,setRegisterName] = useState('')
   const [registerEmail,setRegisterEmail] = useState('')
@@ -194,6 +209,42 @@ export default function AvaScreening() {
   useEffect(() => {
     if (screen?.applicant.email) void loadApplications()
   }, [screen?.applicant.email,screen?.assessmentStatus,session,loadApplications])
+  const loadOnboarding = useCallback(async () => {
+    if(!sessionRef.current)return
+    try{
+      const data=await submit('onboardingDocuments')
+      setDocuments(data.documents||[])
+      setOnboardingConfigured(Boolean(data.configured))
+      setOnboardingError('')
+    }catch(e){
+      setOnboardingError(e instanceof Error?e.message:'Document status unavailable.')
+    }
+  },[submit])
+  useEffect(()=>{
+    if(screen?.applicant.email)void loadOnboarding()
+  },[screen?.applicant.email,screen?.applicationReference,session,loadOnboarding])
+  const uploadOnboarding = async (documentId:string) => {
+    const file=selectedDocuments[documentId]
+    if(!file||file.type!=='application/pdf'||!file.name.toLowerCase().endsWith('.pdf')||file.size>=5_000_000){
+      setOnboardingError('Choose a valid PDF under 5 MB.');return
+    }
+    setBusy(true);setOnboardingError('')
+    try{
+      const data=new FormData()
+      data.append('documentId',documentId)
+      data.append('document',file)
+      const response=await fetch(API+'?action=submitOnboardingDocument',{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{Authorization:`Bearer ${sessionRef.current}`},body:data
+      })
+      const result=await response.json().catch(()=>({})) as {ok?:boolean;error?:string}
+      if(!response.ok||!result.ok)throw Error(result.error||'Secure document upload failed.')
+      setSelectedDocuments(prev=>({...prev,[documentId]:null}))
+      await loadOnboarding()
+      setNotice('Your document is securely submitted for recruiter review.')
+    }catch(e){setOnboardingError(e instanceof Error?e.message:'Unable to submit document.')}
+    finally{setBusy(false)}
+  }
   useEffect(() => { setSpeechAvailable(Boolean(detectSpeech())) }, [])
   useEffect(() => {
     if (!screen?.deadline || screen.assessmentStatus !== 'in_progress') return
@@ -274,7 +325,7 @@ export default function AvaScreening() {
     setIsSpeaking(false)
     setAnswer('')
     setAnswerSource('typed')
-    setScreen(null);setApplications([]);setSession('');sessionRef.current='';setOtpRequested(false)
+    setScreen(null);setApplications([]);setDocuments([]);setOnboardingConfigured(false);setSelectedDocuments({});setSession('');sessionRef.current='';setOtpRequested(false)
     setProfile(BLANK_PROFILE);setPrivacyConsent(false);setMonitorConsent(false);setAiConsent(false)
     setRegisterName('');setRegisterEmail('');setPendingEmail('');setCode('')
     setTurnstileToken('');setNotice('You have signed out.')
@@ -587,18 +638,52 @@ export default function AvaScreening() {
             {applications.map(item => <article key={item.referenceId} className="ava-application-card">
               <p className="ava-label">{item.referenceId}</p>
               <h3>{item.position}</h3>
-              <p>Application: <strong>{item.applicationStatus}</strong></p>
+              <p>Application: <strong>{item.applicationStatus === 'VERIFIED' ? 'Application received' : item.applicationStatus}</strong></p>
               <p>Assessment: <strong>{item.assessmentStatus.replace(/_/g,' ')}</strong></p>
               <p>Recruitment: <strong>{item.reviewStatus.replace(/_/g,' ')}</strong></p>
               {item.requiredAction && <p className="ava-required-action">Required action: {item.requiredAction}</p>}
               {item.isSelected
-                ? <span className="ava-current-label">Current application</span>
+                ? <div className="ava-current-actions"><span className="ava-current-label">Current application</span>{item.requiredAction && <span className="ava-required-action">{item.profileComplete ? item.requiredAction : 'Required action · Complete profile to unlock assessment'}</span>}</div>
                 : <button className="ava-primary" type="button" disabled={busy} onClick={() => void openApplication(item.referenceId)}>
                   {item.requiredAction || 'View application'} <ChevronRight size={16}/>
                 </button>}
             </article>)}
           </div>
           <p className="ava-muted">Verification and recruitment statuses are controlled by OPERAVA reviewers. Assessment submission does not automatically determine employment eligibility. Passport NFC and certified face-liveness verification are not yet available; do not submit identity photos through email.</p>
+        </section>}
+        {screen && stage !== 'assessment' && <section className="ava-applications" aria-label="Required onboarding documents">
+          <div className="ava-applications-header">
+            <div>
+              <p className="ava-label">DOCUMENT CENTER · PRIVATE APPLICATION RECORD</p>
+              <h2>Onboarding &amp; documents</h2>
+              <p>Recruitment may request additional documentation after assessment review. Only the applicant signed into this application can submit the requested PDF.</p>
+            </div>
+            <button type="button" className="ava-secondary" onClick={()=>void loadOnboarding()}>Refresh documents</button>
+          </div>
+          {screen.applicationReference && <p className="ava-document-context">Selected application · <strong>{screen.applicationReference}</strong></p>}
+          {onboardingError && <p role="alert" className="ava-alert">{onboardingError}</p>}
+          {!documents.length && <p className="ava-muted ava-document-empty">No onboarding documents have been requested for this application. When Talent Acquisition needs one, it will appear here with a required action.</p>}
+          <div className="ava-application-grid">
+            {documents.map(doc=><article key={doc.id} className="ava-application-card ava-document-card">
+              <p className="ava-label">{ONBOARDING_LABELS[doc.document_type]||'Requested document'}</p>
+              <h3>{doc.status==='approved'?'Document accepted':doc.status==='submitted'?'Submitted for review':doc.status==='resubmission_required'?'Resubmission required':'Required action · Upload document'}</h3>
+              {doc.request_note && <p>Recruitment request: {doc.request_note}</p>}
+              {doc.review_note && <p>Reviewer response: {doc.review_note}</p>}
+              {doc.original_name && <p>File submitted: {doc.original_name}</p>}
+              {(doc.status==='requested'||doc.status==='resubmission_required') && <>
+                <p className="ava-muted">Onboarding paperwork only (PDF, max 5 MB). Government ID and passport verification use the separate live mobile capture process.</p>
+                <label className="ava-field">Requested PDF
+                  <input type="file" accept=".pdf,application/pdf" disabled={!onboardingConfigured||busy}
+                    onChange={e=>setSelectedDocuments(prev=>({...prev,[doc.id]:e.target.files?.[0]||null}))}/>
+                </label>
+                <button type="button" className="ava-primary"
+                  disabled={!onboardingConfigured||busy||!selectedDocuments[doc.id]}
+                  onClick={()=>void uploadOnboarding(doc.id)}>Submit document securely <ChevronRight size={16}/></button>
+                {!onboardingConfigured && <p className="ava-small-warning">Secure document storage is not configured. Contact Talent Acquisition; never email sensitive documents.</p>}
+              </>}
+              {doc.status==='approved' && <p className="ava-status-good">Approved by Talent Acquisition</p>}
+            </article>)}
+          </div>
         </section>}
         <div className="ava-app-support"><LockKeyhole size={13} aria-hidden="true" /> Secure email OTP sign-in · {screen && <button className="ava-signout" type="button" onClick={()=>void logout()}><LogOut size={14} /> Sign out</button>} For assistance, email <a href="mailto:talents@operavaglobal.com">talents@operavaglobal.com</a></div>
       </div>

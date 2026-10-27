@@ -8,6 +8,7 @@
 type Env = { SUBMISSIONS_DB?: D1Database; AVA_IDV_WEBHOOK_SECRET?: string }
 type ProviderEvent = {
   reference?: string
+  eventId?: string
   status?: string
   timestamp?: number
   documentType?: string
@@ -48,12 +49,15 @@ export const onRequestPost:PagesFunction<Env> = async ({request,env}) => {
   try {event=JSON.parse(body) as ProviderEvent}
   catch{return respond('Invalid event.',400)}
   if(!event.reference||typeof event.reference!=='string'||event.reference.length>200||
+    !event.eventId||typeof event.eventId!=='string'||event.eventId.length>128||
     typeof event.timestamp!=='number'||Math.abs(Date.now()-event.timestamp)>300_000)
     return respond('Invalid or expired event.',400)
   const intent=await env.SUBMISSIONS_DB.prepare(
     'SELECT session_id FROM ava_screening_identity_intents WHERE vendor_reference=?'
   ).bind(event.reference).first<{session_id:string}>()
   if(!intent) return respond('Unknown verification reference.',404)
+  await env.SUBMISSIONS_DB.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_provider_events (
+    event_id TEXT PRIMARY KEY, session_id TEXT NOT NULL,received_at INTEGER NOT NULL)`).run()
   const row=await env.SUBMISSIONS_DB.prepare(
     'SELECT name,profile,identity_status FROM ava_screening_sessions WHERE id=?'
   ).bind(intent.session_id).first<{name:string;profile:string|null;identity_status:string}>()
@@ -80,6 +84,9 @@ export const onRequestPost:PagesFunction<Env> = async ({request,env}) => {
     'SELECT status FROM ava_screening_identity_attestations WHERE session_id=?'
   ).bind(intent.session_id).first<{status:string}>()
   if(previous?.status==='verified')return respond('Already verified.',200)
+  const reserved=await env.SUBMISSIONS_DB.prepare('INSERT OR IGNORE INTO ava_screening_provider_events(event_id,session_id,received_at) VALUES (?,?,?)')
+    .bind(event.eventId,intent.session_id,Date.now()).run()
+  if(!reserved.meta.changes)return respond('Duplicate provider event.',200)
   await env.SUBMISSIONS_DB.prepare(`INSERT INTO ava_screening_identity_attestations
     (session_id,vendor_reference,face_score,liveness_pass,document_authentic,
       document_name_match,passport_nfc_pass,status,checked_at)
