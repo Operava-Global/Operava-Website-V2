@@ -79,7 +79,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     return (
       <div
         id="site-shell"
-        className="app-shell ava-app-host min-h-screen flex flex-col"
+        className={`app-shell ava-app-host ${pathname.startsWith('/recruitment-admin') ? 'ava-admin-host' : 'ava-screening-host'} min-h-screen flex flex-col`}
         style={{ paddingTop: 'var(--safe-area-inset-top)', boxSizing: 'border-box' }}
       >
         <a
