@@ -1,17 +1,26 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { BadgeCheck, CheckCircle2, ClipboardList, FileCheck2, FileDown, KeyRound, LockKeyhole,
-  MailPlus, RefreshCcw, Search, ShieldCheck, UserCheck, Users, XCircle } from 'lucide-react'
+  MailPlus, RefreshCcw, Search, ShieldCheck, UserCheck, Users, XCircle, FilePlus2 } from 'lucide-react'
 import ThemeToggle from '../site/ThemeToggle'
 import { usePageMeta } from '../site/seo'
 import './AvaScreening.css'
 import './RecruitmentAdmin.css'
 
 type Role = 'tech' | 'ops' | 'cx'
-type Tab = 'invite' | 'invitations' | 'applicants' | 'identity' | 'assessments'
+type Tab = 'invite' | 'invitations' | 'applicants' | 'identity' | 'assessments' | 'onboarding'
 type Invite = { id:string; name:string; email:string; role:Role; sent_at:number; expires_at:number; status:string }
 type Pending = { id:string; name:string; email:string; role:Role; identity_kind:string; identity_submitted:number }
 type PublicApplicant = { id:string; name:string; email:string; role:Role; created_at:number;verified_at:number|null;
   current_status:string;has_profile:number;review_status:string }
+type OnboardingCandidate={id:string;name:string;email:string;assessment_status:string;application_reference:string|null}
+type OnboardingDocument={id:string;session_id:string;name:string;email:string;
+  application_reference:string|null;document_type:string;request_note:string;status:string;
+  requested_at:number;submitted_at:number|null;original_name:string|null;review_note:string|null}
+const DOCUMENT_TYPES:Record<string,string> = {
+  education_certificate:'Education certificate', employment_reference:'Employment reference',
+  proof_of_address:'Proof of address', signed_agreement:'Signed agreement',
+  tax_details:'Tax / payroll form', other:'Other onboarding documentation'
+}
 type Summary = { id:string; name:string; email:string; role:Role; assessment_status:string;
   answers_received:number; review_status:string; completed:number|null }
 type Detail = { applicant:{ id:string;name:string;email:string;role:Role;identityStatus:string;
@@ -42,6 +51,13 @@ export default function RecruitmentAdmin() {
   const [pending,setPending]=useState<Pending[]>([])
   const [applicants,setApplicants]=useState<PublicApplicant[]>([])
   const [results,setResults]=useState<Summary[]>([])
+  const [onboardingCandidates,setOnboardingCandidates]=useState<OnboardingCandidate[]>([])
+  const [onboardingDocuments,setOnboardingDocuments]=useState<OnboardingDocument[]>([])
+  const [onboardingConfigured,setOnboardingConfigured]=useState(false)
+  const [onboardingApplicant,setOnboardingApplicant]=useState('')
+  const [onboardingType,setOnboardingType]=useState('education_certificate')
+  const [onboardingNote,setOnboardingNote]=useState('')
+  const [reviewNote,setReviewNote]=useState('')
   const [selected,setSelected]=useState<string|null>(null)
   const [detail,setDetail]=useState<Detail|null>(null)
   const [note,setNote]=useState('')
@@ -53,12 +69,16 @@ export default function RecruitmentAdmin() {
   const refresh=useCallback(async()=>{
     setLoading(true);setError('')
     try {
-      const [inv,ident,ass,pub]=await Promise.all([
-        send('invitations'),send('pendingReviews'),send('screeningResults'),send('publicApplicants')])
+      const [inv,ident,ass,pub,docs,candidates]=await Promise.all([
+        send('invitations'),send('pendingReviews'),send('screeningResults'),send('publicApplicants'),
+        send('onboardingQueue'),send('onboardingCandidates')])
       setInvitations((inv.invitations||[]) as Invite[])
       setPending((ident.pending||[]) as Pending[])
       setApplicants((pub.applicants||[]) as PublicApplicant[])
       setResults((ass.results||[]) as Summary[])
+      setOnboardingDocuments((docs.documents||[]) as OnboardingDocument[])
+      setOnboardingConfigured(Boolean(docs.configured))
+      setOnboardingCandidates((candidates.candidates||[]) as OnboardingCandidate[])
     } catch(e) {setError(e instanceof Error?e.message:'Unable to load private screening data.')}
     finally {setLoading(false)}
   },[])
@@ -112,6 +132,41 @@ export default function RecruitmentAdmin() {
     void act(async()=>{await send('reviewScreening',{id:selected,status,note});await openDetail(selected)},
       status==='reviewed'?'Human review recorded.':'Candidate flagged for manual follow-up.')
   }
+  const requestOnboarding=(event:FormEvent)=>{
+    event.preventDefault()
+    if(!onboardingApplicant)return
+    void act(async()=>{
+      await send('requestOnboardingDocument',{
+        id:onboardingApplicant,documentType:onboardingType,note:onboardingNote
+      })
+      setOnboardingNote('')
+    },'The document request now appears in the applicant portal.')
+  }
+  const reviewOnboarding=(documentId:string,decision:'approved'|'resubmission_required')=>{
+    if(decision==='resubmission_required'&&reviewNote.trim().length<10){
+      setError('Enter a meaningful reason (at least 10 characters) before requesting resubmission.')
+      return
+    }
+    if(!window.confirm('Save this onboarding document review?'))return
+    void act(()=>send('reviewOnboardingDocument',{documentId,decision,note:reviewNote.trim()}),
+      decision==='approved'?'Document approved.':'Resubmission requested in applicant portal.')
+  }
+  const downloadOnboarding=async(documentId:string)=>{
+    setBusy(true);setError('')
+    try{
+      const res=await fetch(API,{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'downloadOnboardingDocument',documentId})
+      })
+      if(!res.ok)throw Error('Private document unavailable or access denied.')
+      const file=await res.blob(),url=URL.createObjectURL(file),link=document.createElement('a')
+      link.href=url;link.download='operava-onboarding-document.pdf'
+      document.body.appendChild(link);link.click();link.remove()
+      window.setTimeout(()=>URL.revokeObjectURL(url),30000)
+    }catch(e){setError(e instanceof Error?e.message:'Unable to retrieve private document.')}
+    finally{setBusy(false)}
+  }
   const query=filter.toLowerCase().trim()
   const matches=(item:{name:string;email:string;id:string})=>!query||
     [item.name,item.email,item.id].some(value=>value.toLowerCase().includes(query))
@@ -133,7 +188,7 @@ export default function RecruitmentAdmin() {
     </section>
     <nav className="ra-tabs" aria-label="Private recruitment sections">
       {([['invite','Send invitation',MailPlus],['invitations','Invitation tracking',Users],
-        ['applicants','Public applicants',UserCheck],['identity','Identity review',FileCheck2],['assessments','Assessment results',ClipboardList]] as const)
+        ['applicants','Public applicants',UserCheck],['identity','Identity review',FileCheck2],['assessments','Assessment results',ClipboardList],['onboarding','Onboarding docs',FilePlus2]] as const)
         .map(([key,label,Icon])=><button key={key} type="button" className={tab===key?'is-active':''}
           aria-current={tab===key?'page':undefined} onClick={()=>{setTab(key);setMessage('');setError('')}}>
           <Icon size={17}/>{label}</button>)}
@@ -180,6 +235,52 @@ export default function RecruitmentAdmin() {
           <div className="ra-actions"><button disabled={busy} className="ava-secondary" onClick={()=>void download(item.id)}><FileDown size={15}/>Download private evidence</button>
           <button disabled={busy} className="ava-primary" onClick={()=>identity(item,'approved')}><BadgeCheck size={15}/>Approve document</button>
           <button disabled={busy} className="ava-secondary" onClick={()=>identity(item,'needs_resubmission')}><XCircle size={15}/>Request resubmission</button></div></article>)}</div>:<Empty>No identity documents are pending a human review.</Empty>}</>}
+      {tab==='onboarding'&&<>
+        <div className="ra-section-title"><div>
+          <p className="ava-label">PRIVATE RECRUITMENT · ONBOARDING</p><h2>Request &amp; review documents</h2>
+        </div><span>{onboardingDocuments.length} requests</span></div>
+        <p className="ra-intro">Request documentation only after assessment completion. Requests and human decisions synchronize with the candidate's selected application. ID/passport verification is handled separately through certified live phone capture.</p>
+        {!onboardingConfigured && <p className="ava-alert" role="status">Private onboarding storage is not yet configured. Requests can be created, but applicants cannot upload until secure storage is activated.</p>}
+        <form className="ra-onboarding-form" onSubmit={requestOnboarding}>
+          <label className="ava-field">Applicant / application
+            <select required value={onboardingApplicant} onChange={e=>setOnboardingApplicant(e.target.value)}>
+              <option value="">Select verified applicant</option>
+              {onboardingCandidates.filter(candidate=>['submitted','time_expired'].includes(candidate.assessment_status)).map(candidate=>
+                <option key={candidate.id} value={candidate.id}>{candidate.name} · {candidate.application_reference||'AVA screening'} · {candidate.email}</option>
+              )}
+            </select>
+          </label>
+          <label className="ava-field">Documentation required
+            <select value={onboardingType} onChange={e=>setOnboardingType(e.target.value)}>
+              {Object.entries(DOCUMENT_TYPES).map(([key,label])=><option key={key} value={key}>{label}</option>)}
+            </select>
+          </label>
+          <label className="ava-field">Instructions / reason
+            <textarea rows={2} maxLength={500} placeholder="Specify the requested document and any next steps." value={onboardingNote} onChange={e=>setOnboardingNote(e.target.value)}/>
+          </label>
+          <button type="submit" className="ava-primary" disabled={busy||!onboardingApplicant}><FilePlus2 size={16}/>Request document</button>
+        </form>
+        <div className="ra-section-title"><div><p className="ava-label">DOCUMENT REVIEW QUEUE</p><h3>Submitted &amp; requested</h3></div></div>
+        {!onboardingDocuments.length?<Empty>No onboarding document requests yet.</Empty>:
+        <div className="ra-onboarding-list">{onboardingDocuments.map(doc=><article key={doc.id} className="ra-record">
+          <div className="ra-record-header"><FileCheck2 size={25}/><div>
+            <h3>{doc.name} · {DOCUMENT_TYPES[doc.document_type]||doc.document_type}</h3>
+            <p>{doc.email} · {doc.application_reference||'AVA screening'}</p>
+            <small>{new Date(doc.requested_at).toLocaleString()} · {doc.status.replace(/_/g,' ')}</small>
+          </div></div>
+          {doc.request_note && <p>Request: {doc.request_note}</p>}
+          {doc.original_name && <p>Received: {doc.original_name}</p>}
+          {doc.review_note && <p>Reviewer response: {doc.review_note}</p>}
+          {doc.status==='submitted' && <div className="ra-onboarding-actions">
+            <button type="button" className="ava-secondary" disabled={busy} onClick={()=>void downloadOnboarding(doc.id)}><FileDown size={16}/>Download private PDF</button>
+            <label className="ava-field">Optional review note / required resubmission reason
+              <input type="text" maxLength={500} value={reviewNote} onChange={e=>setReviewNote(e.target.value)} placeholder="Document review notes"/>
+            </label>
+            <button type="button" className="ava-primary" disabled={busy} onClick={()=>reviewOnboarding(doc.id,'approved')}><BadgeCheck size={16}/>Approve document</button>
+            <button type="button" className="ava-secondary" disabled={busy} onClick={()=>reviewOnboarding(doc.id,'resubmission_required')}><XCircle size={16}/>Request resubmission</button>
+          </div>}
+        </article>)}</div>}
+      </>}
       {tab==='assessments'&&<><div className="ra-section-title"><div><p className="ava-label">HUMAN-REVIEWED SCREENING</p><h2>Assessment reports</h2></div><span>{results.length} available · Latest 100</span></div>
         <label className="ra-search"><Search size={18}/><input aria-label="Search assessment reports" placeholder="Search name or email" value={filter} onChange={e=>setFilter(e.target.value)}/></label>
         <div className="ra-review-layout"><div className="ra-report-list">
