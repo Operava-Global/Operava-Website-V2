@@ -637,10 +637,28 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const match = await db.prepare('SELECT session_id FROM ava_screening_public_accounts WHERE email=?')
         .bind(email).first<{ session_id: string }>()
       if(loginOnly&&!match) {
-        // Do not disclose whether a registered account exists; Turnstile was
-        // already validated and no new applicant/account is created by login.
-        return json({ok:true,maskedEmail:maskEmail(email),
-          message:'If the email has an applicant account, a code will be sent.'})
+        // Verified Careers submissions are eligible for their existing
+        // application portal without a second independent registration.
+        // Never derive identity from an unverified form or browser input.
+        await ensureTables(db)
+        const existing=await db.prepare(`SELECT name,payload FROM form_submissions
+          WHERE lower(email)=? AND form_type='CAREERS' AND verification_status='VERIFIED'
+          ORDER BY id DESC LIMIT 1`).bind(email).first<{name:string;payload:string}>()
+        if(!existing) {
+          // Do not reveal whether an email has an Ava or Careers account.
+          return json({ok:true,maskedEmail:maskEmail(email),
+            message:'If this address has an applicant account, a code will be sent.'})
+        }
+        const id=crypto.randomUUID(),now=Date.now()
+        let fields:Record<string,unknown>={}
+        try {fields=JSON.parse(existing.payload||'{}')}catch{/* older forms */}
+        const position=String(fields.position||fields.positionTitle||fields.Position||fields.role||fields.jobTitle||'')
+        await db.prepare(`INSERT OR IGNORE INTO ava_screening_sessions
+          (id,email,name,role,invite_exp,created_at) VALUES (?,?,?,?,?,?)`)
+          .bind(id,email,existing.name||'Applicant',roleForApplication(position,'tech'),
+            now+365*24*60*60_000,now).run()
+        await db.prepare(`INSERT OR IGNORE INTO ava_screening_public_accounts
+          (email,session_id,created_at) VALUES (?,?,?)`).bind(email,id,now).run()
       }
       if (!match) {
         // Reuse an email-verified recruiter invitation record where one exists,
