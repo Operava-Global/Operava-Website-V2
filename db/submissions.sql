@@ -226,3 +226,74 @@ CREATE TABLE IF NOT EXISTS ava_screening_public_otp_events (
 CREATE INDEX IF NOT EXISTS ava_public_otp_by_email_time
   ON ava_screening_public_otp_events(email, recorded_at);
 
+
+-- Ava V2+ per-submission assessments, certified identity events and onboarding workflow.
+-- Existing Ava v1 sessions are migrated safely by functions/api/ava-screening.ts ensure().
+CREATE TABLE IF NOT EXISTS ava_screening_application_links (
+  reference_id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL UNIQUE,
+  email TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS ava_screening_questions (
+  session_id TEXT NOT NULL,
+  question_number INTEGER NOT NULL,
+  question_id TEXT NOT NULL,
+  prompt TEXT NOT NULL,
+  PRIMARY KEY(session_id, question_number),
+  FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS ava_screening_identity_intents (
+  session_id TEXT PRIMARY KEY,
+  vendor_reference TEXT NOT NULL UNIQUE,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS ava_screening_identity_attestations (
+  session_id TEXT PRIMARY KEY,
+  vendor_reference TEXT NOT NULL UNIQUE,
+  face_score REAL NOT NULL,
+  liveness_pass INTEGER NOT NULL,
+  document_authentic INTEGER NOT NULL,
+  document_name_match INTEGER NOT NULL,
+  passport_nfc_pass INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  checked_at INTEGER NOT NULL,
+  FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS ava_screening_provider_events (
+  event_id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  received_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS ava_screening_proctor_evidence (
+  session_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  chunk_id TEXT NOT NULL,
+  object_key TEXT NOT NULL,
+  recorded_at INTEGER NOT NULL,
+  PRIMARY KEY(session_id,kind,chunk_id),
+  FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS ava_proctor_evidence_latest
+  ON ava_screening_proctor_evidence(session_id,kind,recorded_at DESC);
+CREATE TABLE IF NOT EXISTS ava_screening_onboarding_documents (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  document_type TEXT NOT NULL,
+  request_note TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'requested',
+  original_name TEXT,
+  content_type TEXT,
+  object_key TEXT,
+  requested_at INTEGER NOT NULL,
+  submitted_at INTEGER,
+  reviewed_at INTEGER,
+  review_note TEXT,
+  FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS ava_onboarding_session_idx
+  ON ava_screening_onboarding_documents(session_id,requested_at DESC);
+CREATE INDEX IF NOT EXISTS ava_onboarding_status_idx
+  ON ava_screening_onboarding_documents(status,requested_at DESC);
