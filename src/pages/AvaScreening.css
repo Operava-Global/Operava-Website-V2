@@ -284,3 +284,99 @@ html[data-theme="light"] .ava-small-warning{color:#8b470e!important}
 .ava-document-card .ava-primary{width:100%;margin-top:6px;justify-content:center}
 .ava-current-actions{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
 .ava-current-actions .ava-required-action{font-size:11px;font-weight:700}
+
+/* Clear existing applicant login vs new profile registration, preserving Ava theme. */
+.ava-entry-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0 22px}
+.ava-entry-options button{border:1px solid var(--ava-line);border-radius:10px;padding:14px 9px;
+  font:inherit;font-size:11px;font-weight:800;color:var(--ava-muted);background:var(--ava-card);
+  cursor:pointer;transition:border-color .2s,background .2s,color .2s}
+.ava-entry-options button.is-active{border-color:#A000F0;background:rgba(160,0,240,.12);color:var(--ava-ink)}
+.ava-entry-options button:focus-visible{outline:2px solid #A000F0;outline-offset:2px}
+.ava-preview-login{align-items:flex-start}
+.ava-preview-login a{font-weight:850;color:#bd83ff;text-decoration:underline;text-underline-offset:3px}
+html[data-theme="light"] .ava-preview-login a{color:#6c27bc}
+@media(max-width:420px){.ava-entry-options{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.ava-entry-options button{transition:none}}
+
+
+/*
+ * Bolekpad-inspired application workspace for AVA:
+ * full-width, compact toolbar + app tabs, no permanent sidebar and no
+ * outer document scroll on spacious desktops. Long forms, zoom and mobile
+ * always keep keyboard-accessible internal or normal document scrolling.
+ */
+@media (min-width: 851px) and (min-height: 680px) {
+  #site-shell.ava-app-host{height:100dvh;min-height:0;overflow:hidden}
+  #site-shell.ava-app-host>main{height:100%;flex:1;min-height:0;overflow:hidden}
+  .ava-screening{height:100%;min-height:0;overflow:hidden;padding:0}
+  .ava-screening>.ava-wrap{height:100%;width:100%;max-width:none;min-height:0;display:flex;
+    flex-direction:column;padding:0 clamp(16px,2.2vw,36px) 14px}
+  .ava-screening .ava-workspace-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+    scrollbar-gutter:stable;padding:10px 2px 12px}
+  .ava-screening .ava-shell{grid-template-columns:minmax(0,1fr);gap:0}
+  .ava-screening .ava-sidebar{display:none}
+  .ava-screening .ava-content{padding:clamp(20px,2.3vw,36px);min-height:0}
+  .ava-screening .ava-panel{max-width:100%}
+  .ava-screening .ava-panel.ava-readiness{max-width:1200px}
+  .ava-screening .ava-applications{margin-top:0}
+  .ava-screening .ava-app-topbar{min-height:61px;flex:none}
+  .ava-screening .ava-app-heading{padding:16px 0 3px;align-items:center;flex:none}
+  .ava-screening .ava-app-heading h1{font-size:clamp(26px,2.8vw,39px);margin:5px 0 6px}
+  .ava-screening .ava-app-heading p:not(.ava-kicker){font-size:11px}
+  .ava-screening .ava-kicker{font-size:9px}
+  .ava-screening .ava-steps{margin:10px 0 8px;flex:none}
+  .ava-screening .ava-step{min-height:42px;padding:6px 12px;font-size:10px}
+  .ava-screening .ava-step span{width:26px;height:26px}
+  .ava-screening .ava-stage-heading{margin:-14px 0 18px}
+  .ava-screening .ava-stage-heading img{width:59px;height:59px}
+  .ava-screening .ava-app-support{padding:13px 6px}
+}
+.ava-screening .ava-wrap{max-width:none;width:100%}
+.ava-screening .ava-workspace-body{min-width:0}
+.ava-workspace-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  min-width:0;border-bottom:1px solid var(--ava-line);background:var(--bg,#1b1b21)}
+.ava-workspace-tabs{display:flex;align-items:center;gap:6px;min-width:0;overflow-x:auto;scrollbar-width:thin}
+.ava-workspace-tabs button{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:13px 15px;color:var(--ava-muted);font:inherit;font-size:11px;font-weight:760;
+  white-space:nowrap;cursor:pointer;border:1px solid transparent;border-bottom:2px solid transparent;
+  border-radius:8px 8px 0 0;transition:background .18s,border-color .18s}
+.ava-workspace-tabs button:hover:not(:disabled){background:var(--ava-bg);color:var(--ava-ink)}
+.ava-workspace-tabs button.is-active{color:var(--ava-ink);background:var(--ava-bg);
+  border-color:var(--ava-line);border-bottom-color:#A000F0}
+.ava-workspace-tabs button:disabled{opacity:.42;cursor:not-allowed}
+.ava-workspace-tabs button:focus-visible,.ava-workspace-user button:focus-visible{
+  outline:2px solid #A000F0;outline-offset:3px}
+.ava-tab-count{display:grid;place-items:center;min-width:19px;height:19px;padding:0 4px;
+  background:#A000F0;border-radius:6px;color:#fff;font-size:10px;font-weight:900}
+.ava-workspace-user{display:flex;align-items:center;gap:13px;min-width:0}
+.ava-workspace-user>span{font-size:11px;color:var(--ava-muted);max-width:220px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.ava-workspace-user button{display:flex;align-items:center;gap:6px;white-space:nowrap;
+  padding:9px 11px;border:1px solid var(--ava-line);background:var(--ava-bg);
+  color:var(--ava-ink);font:inherit;font-size:11px;font-weight:750;border-radius:9px;cursor:pointer}
+.ava-workspace-user button:hover{border-color:#A000F0}
+.ava-screening .ava-application-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,295px),1fr))}
+.ava-screening .ava-applications{border-radius:12px}
+.ava-screening .ava-content,.ava-screening .ava-sidebar,.ava-screening .ava-applications{
+  box-shadow:none}
+.ava-screening .ava-app-heading-state{font-size:10px}
+.ava-screening .ava-team-art{display:none}
+.ava-screening .ava-stage-heading{min-width:0}
+@media (max-width:850px), (max-height:679px){
+  #site-shell.ava-app-host{height:auto;min-height:100dvh;overflow:visible}
+  #site-shell.ava-app-host>main{overflow:visible;height:auto}
+  .ava-screening{min-height:100dvh;height:auto;overflow:visible}
+  .ava-screening .ava-workspace-body{overflow:visible}
+  .ava-screening .ava-shell{grid-template-columns:1fr}
+  .ava-screening .ava-sidebar{display:none}
+  .ava-screening .ava-content{padding:22px}
+  .ava-screening .ava-wrap{padding:0 14px 22px}
+  .ava-workspace-nav{flex-wrap:wrap;padding-bottom:4px}
+  .ava-workspace-tabs{width:100%}
+  .ava-workspace-tabs button{font-size:10px;padding:11px 10px}
+  .ava-workspace-user{width:100%;justify-content:space-between;padding:5px 2px}
+  .ava-screening .ava-app-heading-state{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  .ava-workspace-tabs button{transition:none}
+}

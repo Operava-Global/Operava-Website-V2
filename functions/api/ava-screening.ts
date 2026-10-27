@@ -623,8 +623,9 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const email = clean(data?.email, 180).toLowerCase()
       const name = clean(data?.name, 100)
       const role = data?.role
-      if (!EMAIL_RE.test(email) || name.length < 2 || !validRole(role)) {
-        return error('Enter your full name, a valid email, and an assessment track.')
+      const loginOnly=data?.loginOnly===true
+      if (!EMAIL_RE.test(email) || (!loginOnly && (name.length < 2 || !validRole(role)))) {
+        return error('Enter a valid email address and, when registering, your legal name and assessment track.')
       }
       if (request.headers.get('Origin') !== new URL(request.url).origin ||
         !type.toLowerCase().startsWith('application/json')) return error('Invalid request origin.', 403)
@@ -635,6 +636,30 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const now = Date.now()
       const match = await db.prepare('SELECT session_id FROM ava_screening_public_accounts WHERE email=?')
         .bind(email).first<{ session_id: string }>()
+      if(loginOnly&&!match) {
+        // Verified Careers submissions are eligible for their existing
+        // application portal without a second independent registration.
+        // Never derive identity from an unverified form or browser input.
+        await ensureTables(db)
+        const existing=await db.prepare(`SELECT name,payload FROM form_submissions
+          WHERE lower(email)=? AND form_type='CAREERS' AND verification_status='VERIFIED'
+          ORDER BY id DESC LIMIT 1`).bind(email).first<{name:string;payload:string}>()
+        if(!existing) {
+          // Do not reveal whether an email has an Ava or Careers account.
+          return json({ok:true,maskedEmail:maskEmail(email),
+            message:'If this address has an applicant account, a code will be sent.'})
+        }
+        const id=crypto.randomUUID(),now=Date.now()
+        let fields:Record<string,unknown>={}
+        try {fields=JSON.parse(existing.payload||'{}')}catch{/* older forms */}
+        const position=String(fields.position||fields.positionTitle||fields.Position||fields.role||fields.jobTitle||'')
+        await db.prepare(`INSERT OR IGNORE INTO ava_screening_sessions
+          (id,email,name,role,invite_exp,created_at) VALUES (?,?,?,?,?,?)`)
+          .bind(id,email,existing.name||'Applicant',roleForApplication(position,'tech'),
+            now+365*24*60*60_000,now).run()
+        await db.prepare(`INSERT OR IGNORE INTO ava_screening_public_accounts
+          (email,session_id,created_at) VALUES (?,?,?)`).bind(email,id,now).run()
+      }
       if (!match) {
         // Reuse an email-verified recruiter invitation record where one exists,
         // so invited applicants can sign out and recover their saved assessment
@@ -683,9 +708,10 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const code = String(data?.code || '')
       const confirmedName=clean(data?.name,100)
       const confirmedRole=data?.role
+      const loginOnly=data?.loginOnly===true
       if (!EMAIL_RE.test(email) || !/^\d{6}$/.test(code) ||
-        confirmedName.length<2 || !validRole(confirmedRole)) {
-        return error('Enter your email, full name, selected assessment track and six-digit code.')
+        (!loginOnly&&(confirmedName.length<2||!validRole(confirmedRole)))) {
+        return error('Enter a valid email, six-digit code and the required registration fields.')
       }
       await ensure(db)
       const account = await db.prepare('SELECT session_id FROM ava_screening_public_accounts WHERE email=?')
@@ -709,9 +735,11 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         name=CASE WHEN assessment_status='not_started' AND identity_status!='approved' THEN ? ELSE name END,
         role=CASE WHEN assessment_status='not_started' THEN ? ELSE role END
         WHERE id=? AND otp_hash=? AND otp_expires>? AND otp_attempts<=5`)
-        .bind(now,await digest(sessionToken),now+SESSION_MS,confirmedName,confirmedRole,row.id,supplied,now).run()
+        .bind(now,await digest(sessionToken),now+SESSION_MS,
+          loginOnly?row.name:confirmedName,loginOnly?row.role:confirmedRole,
+          row.id,supplied,now).run()
       if (!update.meta.changes) return error('Code already used or expired.',409)
-      return json({...(await state(db,(await get(db,row.id))!)),sessionToken})
+      return json({...(await state(db,env,(await get(db,row.id))!)),sessionToken})
     }
     if (action === 'requestCode') {
       const inviteRaw = String(data?.invitation || '')
