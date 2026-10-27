@@ -637,3 +637,9 @@ html[data-theme="light"] .ava-preview-login a{color:#6c27bc}
   #site-shell.ava-screening-host .ava-screening *::before,
   #site-shell.ava-screening-host .ava-screening *::after{scroll-behavior:auto;transition:none}
 }
+
+/* Pre-assessment permission diagnostics: voluntary, short-lived and local-only. */
+.ava-permission-tests{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;width:100%}
+.ava-permission-tests .ava-secondary{width:100%;min-width:0;margin:0;padding:10px 8px;min-height:45px}
+.ava-permission-tests+.ava-muted{font-size:11px;line-height:1.6}
+@media(max-width:680px){.ava-permission-tests{grid-template-columns:1fr}}
