@@ -176,6 +176,7 @@ async function ensure(db: D1Database) {
       FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS ava_onboarding_session_idx ON ava_screening_onboarding_documents(session_id,requested_at DESC)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS ava_onboarding_status_idx ON ava_screening_onboarding_documents(status,requested_at DESC)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_provider_events (event_id TEXT PRIMARY KEY, session_id TEXT NOT NULL,received_at INTEGER NOT NULL)`),
   ])
   // D1 table already exists for previous sessions; one-time additive migration.
   try { await db.prepare('ALTER TABLE ava_screening_sessions ADD COLUMN assessment_version INTEGER NOT NULL DEFAULT 1').run() }
@@ -563,6 +564,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
           db.prepare('DELETE FROM ava_screening_proctor_evidence WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_identity_attestations WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_identity_intents WHERE session_id=?').bind(id),
+          db.prepare('DELETE FROM ava_screening_provider_events WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_questions WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_application_links WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_answers WHERE session_id=?').bind(id),
