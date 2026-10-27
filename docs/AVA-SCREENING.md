@@ -174,3 +174,67 @@ These features are coded but *not yet fully operating* without external services
 Do not claim that new applicants can pass identity verification or start a
 recorded exam until the provider and private R2 bindings have been confirmed
 in the actual Cloudflare **production** environment.
+
+## Identity and proctoring readiness hardening (October 2026)
+
+### Provisioned infrastructure
+
+The isolated Cloudflare R2 bucket `operava-ava-proctor-evidence` has been
+created in the APAC region and is bound in Cloudflare Pages as
+`AVA_PROCTOR_BUCKET`. It has **no public r2.dev access** and uses an R2
+lifecycle rule expiring `ava-proctor/` recording objects 30 days after
+creation (plus automatic abort of incomplete multipart uploads after one day).
+The R2 binding is also declared in `wrangler.jsonc`. The R2 lifecycle is a
+technical maximum, **not** a completed HR/legal retention-policy approval.
+The final processing notice, storage location assessment and any stricter
+required retention period need an owner/privacy review before applicants are
+invited to record. Do not expose a public bucket endpoint.
+
+### Consent, permission and capture sequence
+
+1. The applicant first completes email OTP, profile, monitoring notice and
+   signed, **certified live identity** verification. A verified badge requires
+   independent provider-attested liveness, authenticity, matching legal name,
+   a 95% calibrated face-match score, and NFC for passports. The existing
+   generic provider adapter needs a provider-specific contract, three secure
+   `AVA_IDV_*` configuration values and real certification checks.
+   **These values are currently absent and the identity step cannot pass**;
+   never substitute plain OCR, a manual photo, mock events or a local selfie.
+2. From a directly clicked diagnostic button, the applicant may separately
+   test camera + microphone and entire-screen capture. The browser requests
+   access and stops those short-lived test streams immediately. **No diagnostic
+   media is transmitted or saved**. Phone browsers that do not support
+   `getDisplayMedia` must use a supported desktop browser for the assessment;
+   the actual mobile phone remains the required live ID/passport workflow.
+3. With an actual provider-verified identity and the R2 binding in place, the
+   applicant affirmatively checks the recording-consent box and clicks **Allow
+   screen, webcam & mic**. Only after all three browser permissions are
+   granted does the client POST `proctorConsent` with a confirmed boolean.
+   The server persists `proctor_consent_at` in D1; no local/test permission
+   action records applicant consent. The server must reject any recording
+   uploads without this timestamp and an authentic verified attestation.
+4. Only then do `MediaRecorder` streams begin sending 8-second chunks to
+   private R2. Both camera-with-audio and whole-screen tracks must
+   successfully upload initial chunks before the server allows `begin`.
+   During the exam the server rejects answers when recent recorded chunks
+   are missing. Revoked permissions stop both media streams and candidate
+   progression until recording is re-established. All recorded anomalies
+   need human review. Browser-level capture is not proof of another person's
+   absence or a full device/extension lockdown.
+
+**Activation state:** Private proctor storage/permissions can be checked now,
+but certified ID verification is not configured. New assessments remain
+intentionally blocked. No real ID-passport-NFC authenticity or face-liveness
+provider has been onboarded and tested; a fully passed identity verification
+must not be claimed until that work is complete.
+
+### Validation
+
+Test independently in Chrome/Edge on supported desktop OSes, with physical
+webcam and microphone, with screen sharing granted and denied, muted tracks,
+revoked permissions, refreshed page, and disconnected upload. Verify the R2
+bucket access policy and lifecycle, reviewer-only retrieval, D1 consent
+timestamp and human review. Test phone camera permission and the vendor's
+certified passport NFC flow using approved synthetic/demo identities. Complete
+privacy-policy/biometric consent and accessibility accommodations before
+collecting real applicants' data.
