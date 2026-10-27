@@ -97,5 +97,5 @@ test('AVA uses Bolekpad viewport-locked outer shell on all screen sizes',()=>{
   assert.match(css,/overflow-y:auto/)
   assert.match(css,/overscroll-behavior:contain/)
   assert.match(css,/@media \(max-width:767px\)/)
-  assert.match(css,/padding-bottom.*env\(safe-area-inset-bottom/)
+  assert.match(css,/env\(safe-area-inset-bottom,0px\)/)
 })
