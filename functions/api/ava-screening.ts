@@ -325,7 +325,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
     const data = type.includes('multipart/form-data') ? null : await requestData(request)
     const action = String(data?.action || (type.includes('multipart/form-data') ? (['proctorChunk','submitOnboardingDocument'].includes(new URL(request.url).searchParams.get('action')||'') ? new URL(request.url).searchParams.get('action') : 'identity') : ''))
     // The reviewer key is NEVER accepted as an applicant session and is not present in frontend code.
-    if (['invite', 'invitations', 'publicApplicants', 'reviewIdentity', 'pendingReviews', 'identityDocument', 'screeningResults', 'screeningDetail', 'reviewScreening', 'deleteScreening', 'onboardingCandidates', 'onboardingQueue', 'requestOnboardingDocument', 'reviewOnboardingDocument', 'downloadOnboardingDocument'].includes(action)) {
+    if (['invite', 'invitations', 'publicApplicants', 'reviewIdentity', 'pendingReviews', 'identityDocument', 'screeningResults', 'screeningDetail', 'reviewScreening', 'deleteScreening', 'onboardingCandidates', 'onboardingQueue', 'requestOnboardingDocument', 'reviewOnboardingDocument', 'downloadOnboardingDocument', 'listProctorEvidence', 'downloadProctorEvidence'].includes(action)) {
       const reviewerKey = env.AVA_REVIEWER_SECRET || ''
       if (reviewerKey.length < REQUIRED_SECRET_LENGTH || reviewerKey === secret(env) || !timingSafeEqualStr(request.headers.get('X-AVA-Reviewer-Key') || '', reviewerKey)) {
         return error('Reviewer authorization required.', 403)
@@ -394,6 +394,30 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         return new Response(blob.body,{headers:{
           'Content-Type':'application/pdf','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',
           'Content-Disposition':'attachment; filename="operava-onboarding-document.pdf"',
+        }})
+      }
+      if (action === 'listProctorEvidence') {
+        const id=clean(data?.id,80),applicant=await get(db,id)
+        if(!applicant)return error('Candidate not found.',404)
+        const rows=await db.prepare(`SELECT chunk_id,kind,recorded_at FROM ava_screening_proctor_evidence
+          WHERE session_id=? ORDER BY recorded_at DESC LIMIT 50`).bind(id).all()
+        const counts=await db.prepare(`SELECT kind,COUNT(*) AS count FROM ava_screening_proctor_evidence
+          WHERE session_id=? GROUP BY kind`).bind(id).all()
+        return json({ok:true,segments:rows.results||[],counts:counts.results||[]})
+      }
+      if (action === 'downloadProctorEvidence') {
+        if(!env.AVA_PROCTOR_BUCKET)return error('Private recording storage is not configured.',503)
+        const id=clean(data?.id,80),chunkId=clean(data?.chunkId,80)
+        const evidence=await db.prepare('SELECT object_key,kind FROM ava_screening_proctor_evidence WHERE session_id=? AND chunk_id=?')
+          .bind(id,chunkId).first<{object_key:string;kind:string}>()
+        if(!evidence)return error('Recording segment not found.',404)
+        const object=await env.AVA_PROCTOR_BUCKET.get(evidence.object_key)
+        if(!object)return error('Recording segment unavailable.',404)
+        const mime=object.httpMetadata?.contentType||'application/octet-stream'
+        const ext=mime.includes('mp4')?'mp4':'webm'
+        return new Response(object.body,{headers:{
+          'Content-Type':mime,'X-Content-Type-Options':'nosniff','Cache-Control':'no-store',
+          'Content-Disposition':`attachment; filename="operava-proctor-${evidence.kind}.${ext}"`,
         }})
       }
       if (action === 'publicApplicants') {
@@ -526,7 +550,21 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
           if (!env.AVA_ID_BUCKET) return error('Private ID storage unavailable; cannot safely finish deletion.', 503)
           await env.AVA_ID_BUCKET.delete(applicant.identity_key)
         }
+        const recordings=(await db.prepare('SELECT object_key FROM ava_screening_proctor_evidence WHERE session_id=?')
+          .bind(id).all<{object_key:string}>()).results||[]
+        const paperwork=(await db.prepare('SELECT object_key FROM ava_screening_onboarding_documents WHERE session_id=? AND object_key IS NOT NULL')
+          .bind(id).all<{object_key:string}>()).results||[]
+        if(recordings.length&&!env.AVA_PROCTOR_BUCKET)return error('Recording storage is unavailable; deletion cannot finish safely.',503)
+        if(paperwork.length&&!env.AVA_ONBOARDING_BUCKET)return error('Onboarding storage is unavailable; deletion cannot finish safely.',503)
+        for(const media of recordings)await env.AVA_PROCTOR_BUCKET!.delete(media.object_key)
+        for(const document of paperwork)await env.AVA_ONBOARDING_BUCKET!.delete(document.object_key)
         await db.batch([
+          db.prepare('DELETE FROM ava_screening_onboarding_documents WHERE session_id=?').bind(id),
+          db.prepare('DELETE FROM ava_screening_proctor_evidence WHERE session_id=?').bind(id),
+          db.prepare('DELETE FROM ava_screening_identity_attestations WHERE session_id=?').bind(id),
+          db.prepare('DELETE FROM ava_screening_identity_intents WHERE session_id=?').bind(id),
+          db.prepare('DELETE FROM ava_screening_questions WHERE session_id=?').bind(id),
+          db.prepare('DELETE FROM ava_screening_application_links WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_answers WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_events WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_manual_reviews WHERE session_id=?').bind(id),
