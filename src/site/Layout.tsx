@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import SiteHeader from './SiteHeader'
 import SiteFooter from './SiteFooter'
@@ -71,6 +71,22 @@ export default function Layout({ children }: { children: ReactNode }) {
   useRevealObserver(pathname)
   useScrollManager(pathname, hash)
   useSpotlight()
+  const wasApplicantPortal = useRef(false)
+  useEffect(() => {
+    const inApplicantPortal = /^\\/(?:ava-screening|applicant-portal)(?:\\/|$)/.test(pathname)
+    if (inApplicantPortal === wasApplicantPortal.current) return
+    wasApplicantPortal.current = inApplicantPortal
+    // Opt in to white on portal entry. Restore the stored marketing-site
+    // preference on exit; do not persist this portal-specific default.
+    let appearance: 'light' | 'dark' = 'light'
+    if (!inApplicantPortal) {
+      try { appearance = localStorage.getItem('operava-theme') === 'light' ? 'light' : 'dark' }
+      catch { appearance = 'dark' }
+    }
+    document.documentElement.dataset.theme = appearance
+    document.documentElement.style.colorScheme = appearance
+    window.dispatchEvent(new Event('operava-theme-change'))
+  }, [pathname])
 
   // Ava Screening is a focused assessment application, not a marketing page.
   // Retain the shared design tokens and accessible main landmark, while keeping
