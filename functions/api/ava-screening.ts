@@ -19,6 +19,7 @@ type AvaEnv = FormEnv & {
   AVA_TURNSTILE_SECRET?: string
   AVA_ID_BUCKET?: R2Bucket
   AVA_PROCTOR_BUCKET?: R2Bucket
+  AVA_ONBOARDING_BUCKET?: R2Bucket
   AVA_IDV_API_URL?: string
   AVA_IDV_API_KEY?: string
   AVA_IDV_WEBHOOK_SECRET?: string
@@ -45,6 +46,20 @@ const OTP_MS = 10 * 60_000
 const SESSION_MS = 7 * 24 * 60 * 60_000
 const ASSESSMENT_MS = 45 * 60_000
 const LIMIT_BYTES = 5_000_000
+const DOCUMENT_TYPES: Record<string,string> = {
+  education_certificate:'Education certificate',
+  employment_reference:'Employment reference',
+  proof_of_address:'Proof of address',
+  signed_agreement:'Signed agreement',
+  tax_details:'Tax / payroll form',
+  other:'Other requested document',
+}
+type OnboardingDocument = {
+  id:string; session_id:string; document_type:string; request_note:string;
+  status:string; original_name:string|null; content_type:string|null;
+  object_key:string|null; requested_at:number; submitted_at:number|null;
+  reviewed_at:number|null; review_note:string|null
+}
 const allowedEvents = new Set(['focus_lost', 'focus_returned', 'visibility_hidden', 'visibility_visible', 'fullscreen_exited', 'microphone_denied', 'microphone_muted', 'audio_interrupted', 'sound_flag'])
 const EXTRA_QUESTIONS = [
   { id: 'ava-en-1', section: 'english', topic: 'written-communication', prompt: 'Write a clear, polite email to a client explaining a missed deadline, the next action, and when they will receive an update.' },
@@ -152,6 +167,14 @@ async function ensure(db: D1Database) {
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_identity_intents (session_id TEXT PRIMARY KEY, vendor_reference TEXT NOT NULL UNIQUE, created_at INTEGER NOT NULL, FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_proctor_evidence (session_id TEXT NOT NULL, kind TEXT NOT NULL, chunk_id TEXT NOT NULL, object_key TEXT NOT NULL, recorded_at INTEGER NOT NULL, PRIMARY KEY(session_id,kind,chunk_id), FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS ava_proctor_evidence_latest ON ava_screening_proctor_evidence(session_id,kind,recorded_at DESC)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_onboarding_documents (
+      id TEXT PRIMARY KEY, session_id TEXT NOT NULL, document_type TEXT NOT NULL,
+      request_note TEXT NOT NULL DEFAULT '',status TEXT NOT NULL DEFAULT 'requested',
+      original_name TEXT, content_type TEXT, object_key TEXT,
+      requested_at INTEGER NOT NULL,submitted_at INTEGER,reviewed_at INTEGER,review_note TEXT,
+      FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS ava_onboarding_session_idx ON ava_screening_onboarding_documents(session_id,requested_at DESC)`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS ava_onboarding_status_idx ON ava_screening_onboarding_documents(status,requested_at DESC)`),
   ])
   // D1 table already exists for previous sessions; one-time additive migration.
   try { await db.prepare('ALTER TABLE ava_screening_sessions ADD COLUMN assessment_version INTEGER NOT NULL DEFAULT 1').run() }
@@ -212,7 +235,8 @@ async function state(db: D1Database, env: AvaEnv, row: Applicant) {
     verifiedApplicantProfile:row.identity_status==='approved' && attestation?.status==='verified',
     identityVerification:attestation?.status||'required',faceMatchScore:attestation?.status==='verified'?attestation.face_score:null,
     identityProviderAvailable:Boolean(env.AVA_IDV_API_URL&&env.AVA_IDV_API_KEY&&env.AVA_IDV_WEBHOOK_SECRET),
-    recordingStorageReady:Boolean(env.AVA_PROCTOR_BUCKET)}
+    recordingStorageReady:Boolean(env.AVA_PROCTOR_BUCKET),
+    onboardingStorageReady:Boolean(env.AVA_ONBOARDING_BUCKET)}
 }
 async function questionPrompt(db:D1Database,env:AvaEnv,row:Applicant,number:number):Promise<string> {
   const existing=await db.prepare('SELECT prompt FROM ava_screening_questions WHERE session_id=? AND question_number=?').bind(row.id,number).first<{prompt:string}>()
@@ -298,14 +322,79 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
   try {
     const type = request.headers.get('Content-Type') || ''
     const data = type.includes('multipart/form-data') ? null : await requestData(request)
-    const action = String(data?.action || (type.includes('multipart/form-data') ? (new URL(request.url).searchParams.get('action') === 'proctorChunk' ? 'proctorChunk' : 'identity') : ''))
+    const action = String(data?.action || (type.includes('multipart/form-data') ? (['proctorChunk','submitOnboardingDocument'].includes(new URL(request.url).searchParams.get('action')||'') ? new URL(request.url).searchParams.get('action') : 'identity') : ''))
     // The reviewer key is NEVER accepted as an applicant session and is not present in frontend code.
-    if (['invite', 'invitations', 'publicApplicants', 'reviewIdentity', 'pendingReviews', 'identityDocument', 'screeningResults', 'screeningDetail', 'reviewScreening', 'deleteScreening'].includes(action)) {
+    if (['invite', 'invitations', 'publicApplicants', 'reviewIdentity', 'pendingReviews', 'identityDocument', 'screeningResults', 'screeningDetail', 'reviewScreening', 'deleteScreening', 'onboardingCandidates', 'onboardingQueue', 'requestOnboardingDocument', 'reviewOnboardingDocument', 'downloadOnboardingDocument'].includes(action)) {
       const reviewerKey = env.AVA_REVIEWER_SECRET || ''
       if (reviewerKey.length < REQUIRED_SECRET_LENGTH || reviewerKey === secret(env) || !timingSafeEqualStr(request.headers.get('X-AVA-Reviewer-Key') || '', reviewerKey)) {
         return error('Reviewer authorization required.', 403)
       }
       await ensure(db)
+      if (action === 'onboardingCandidates') {
+        const items=await db.prepare(`SELECT s.id,s.name,s.email,s.assessment_status,
+          l.reference_id AS application_reference
+          FROM ava_screening_sessions s
+          LEFT JOIN ava_screening_application_links l ON l.session_id=s.id
+          WHERE s.verified_at IS NOT NULL
+          ORDER BY s.created_at DESC LIMIT 150`).all()
+        return json({ok:true,candidates:items.results||[]})
+      }
+      if (action === 'onboardingQueue') {
+        const items=await db.prepare(`SELECT d.*,s.name,s.email,l.reference_id AS application_reference
+          FROM ava_screening_onboarding_documents d
+          JOIN ava_screening_sessions s ON s.id=d.session_id
+          LEFT JOIN ava_screening_application_links l ON l.session_id=s.id
+          ORDER BY d.requested_at DESC LIMIT 150`).all()
+        return json({ok:true,documents:(items.results||[]).map(({object_key,...record})=>record),
+          configured:Boolean(env.AVA_ONBOARDING_BUCKET)})
+      }
+      if (action === 'requestOnboardingDocument') {
+        const id=clean(data?.id,80),typeCode=String(data?.documentType||'')
+        const note=clean(data?.note,500)
+        if(!id||!Object.hasOwn(DOCUMENT_TYPES,typeCode))return error('Select a candidate and an approved document category.')
+        const applicant=await get(db,id)
+        if(!applicant||!applicant.verified_at)return error('Verified applicant not found.',404)
+        if(!['submitted','time_expired'].includes(applicant.assessment_status))return error('Onboarding documents can be requested after the assessment is complete.',409)
+        const count=await db.prepare('SELECT COUNT(*) AS n FROM ava_screening_onboarding_documents WHERE session_id=?')
+          .bind(id).first<{n:number}>()
+        if((count?.n||0)>=12)return error('Document request limit reached for this application.',409)
+        const uid=crypto.randomUUID(),now=Date.now()
+        await db.batch([
+          db.prepare('INSERT INTO ava_screening_onboarding_documents (id,session_id,document_type,request_note,status,requested_at) VALUES (?,?,?,?,?,?)')
+            .bind(uid,id,typeCode,note,'requested',now),
+          db.prepare('INSERT INTO ava_screening_review_events(session_id,action,detail,recorded_at) VALUES (?,?,?,?)')
+            .bind(id,'onboarding_document_requested',typeCode,now),
+        ])
+        return json({ok:true,documentId:uid})
+      }
+      if (action === 'reviewOnboardingDocument') {
+        const id=clean(data?.documentId,80),decision=String(data?.decision||'')
+        const note=clean(data?.note,500)
+        if(!id||!['approved','resubmission_required'].includes(decision))return error('Invalid document review action.')
+        if(decision==='resubmission_required'&&note.length<10)return error('Include a reason for resubmission.')
+        const item=await db.prepare("SELECT * FROM ava_screening_onboarding_documents WHERE id=? AND status='submitted'")
+          .bind(id).first<OnboardingDocument>()
+        if(!item)return error('Submitted document not found.',404)
+        const now=Date.now()
+        const result=await db.prepare("UPDATE ava_screening_onboarding_documents SET status=?,review_note=?,reviewed_at=? WHERE id=? AND status='submitted'")
+          .bind(decision,note,now,id).run()
+        if(!result.meta.changes)return error('Document status has changed. Refresh.',409)
+        await db.prepare('INSERT INTO ava_screening_review_events(session_id,action,detail,recorded_at) VALUES (?,?,?,?)')
+          .bind(item.session_id,'onboarding_document_review',decision,now).run()
+        return json({ok:true,status:decision})
+      }
+      if (action === 'downloadOnboardingDocument') {
+        if(!env.AVA_ONBOARDING_BUCKET)return error('Private document storage is not configured.',503)
+        const doc=await db.prepare("SELECT * FROM ava_screening_onboarding_documents WHERE id=? AND status IN ('submitted','approved','resubmission_required')")
+          .bind(clean(data?.documentId,80)).first<OnboardingDocument>()
+        if(!doc?.object_key)return error('Document not available.',404)
+        const blob=await env.AVA_ONBOARDING_BUCKET.get(doc.object_key)
+        if(!blob)return error('Stored document is not available.',404)
+        return new Response(blob.body,{headers:{
+          'Content-Type':'application/pdf','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',
+          'Content-Disposition':'attachment; filename="operava-onboarding-document.pdf"',
+        }})
+      }
       if (action === 'publicApplicants') {
         const offset=Math.min(10000,Math.max(0,Math.floor(Number(data?.offset)||0)))
         const result=await db.prepare(`SELECT s.id,s.name,s.email,s.role,s.created_at,s.verified_at,
@@ -700,6 +789,47 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       await db.prepare('UPDATE ava_screening_sessions SET session_hash=?,session_expires=? WHERE id=?')
         .bind(await digest(sessionToken),now+SESSION_MS,selected.id).run()
       return json({...await state(db,env,(await get(db,selected.id))!),sessionToken})
+    }
+    if (action === 'onboardingDocuments') {
+      const docs=await db.prepare(`SELECT id,document_type,request_note,status,original_name,
+        requested_at,submitted_at,reviewed_at,review_note
+        FROM ava_screening_onboarding_documents WHERE session_id=?
+        ORDER BY requested_at DESC LIMIT 24`).bind(row.id).all()
+      return json({ok:true,documents:docs.results||[],configured:Boolean(env.AVA_ONBOARDING_BUCKET),
+        documentTypes:DOCUMENT_TYPES})
+    }
+    if (action === 'submitOnboardingDocument') {
+      if(!env.AVA_ONBOARDING_BUCKET)return error('Secure onboarding upload storage has not been configured.',503)
+      if(!type.toLowerCase().includes('multipart/form-data'))return error('Expected a private PDF submission.',415)
+      const bytes=await readLimitedBody(request,LIMIT_BYTES+100_000)
+      const form=await new Response(bytes.buffer as ArrayBuffer,{headers:{'Content-Type':type}}).formData()
+      const documentId=clean(form.get('documentId'),80),file=form.get('document')
+      const item=await db.prepare('SELECT * FROM ava_screening_onboarding_documents WHERE id=? AND session_id=?')
+        .bind(documentId,row.id).first<OnboardingDocument>()
+      if(!item||!['requested','resubmission_required'].includes(item.status))return error('No pending document request for this application.',409)
+      if(!(file instanceof File)||file.size<100||file.size>=LIMIT_BYTES||file.type!=='application/pdf'||
+        !file.name.toLowerCase().endsWith('.pdf'))return error('Choose a valid PDF under 5 MB.',400)
+      const contents=new Uint8Array(await file.arrayBuffer())
+      if(!validFile(contents,'application/pdf'))return error('The PDF signature is invalid.',400)
+      const key=`ava-onboarding/${row.id}/${documentId}/${crypto.randomUUID()}.pdf`
+      await env.AVA_ONBOARDING_BUCKET.put(key,contents,{
+        httpMetadata:{contentType:'application/pdf'},
+        customMetadata:{category:'recruitment-onboarding',documentType:item.document_type}})
+      const now=Date.now()
+      try {
+        const result=await db.prepare(`UPDATE ava_screening_onboarding_documents
+          SET status='submitted',original_name=?,content_type='application/pdf',
+          object_key=?,submitted_at=?,review_note=NULL,reviewed_at=NULL
+          WHERE id=? AND session_id=? AND status IN ('requested','resubmission_required')`)
+          .bind(clean(file.name,140),key,now,documentId,row.id).run()
+        if(!result.meta.changes) {
+          await env.AVA_ONBOARDING_BUCKET.delete(key)
+          return error('Document request changed. Refresh the portal.',409)
+        }
+      }catch(e){await env.AVA_ONBOARDING_BUCKET.delete(key).catch(()=>{});throw e}
+      if(item.object_key&&item.object_key!==key)
+        await env.AVA_ONBOARDING_BUCKET.delete(item.object_key).catch(()=>{})
+      return json({ok:true,documentId,status:'submitted'})
     }
     if (action === 'logout') {
       await db.prepare('UPDATE ava_screening_sessions SET session_hash=NULL,session_expires=NULL WHERE id=? AND session_hash=?')
