@@ -643,3 +643,71 @@ html[data-theme="light"] .ava-preview-login a{color:#6c27bc}
 .ava-permission-tests .ava-secondary{width:100%;min-width:0;margin:0;padding:10px 8px;min-height:45px}
 .ava-permission-tests+.ava-muted{font-size:11px;line-height:1.6}
 @media(max-width:680px){.ava-permission-tests{grid-template-columns:1fr}}
+
+/* Bolekpad-inspired lateral AVA wizard. Only the active pane owns overflow,
+   preserving keyboard access to long consent text and short mobile viewports. */
+#site-shell.ava-screening-host .ava-workspace-body{
+  flex:1 1 auto;
+  overflow:hidden;
+  scrollbar-width:none;
+  padding:2px 1px 0;
+}
+#site-shell.ava-screening-host .ava-horizontal-scene{
+  display:flex;flex:1 1 auto;flex-direction:column;min-width:0;min-height:0;
+  overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
+  width:100%;scrollbar-width:thin;scrollbar-color:var(--ava-line) transparent;
+  will-change:transform,opacity;
+}
+#site-shell.ava-screening-host .ava-horizontal-scene>.ava-shell,
+#site-shell.ava-screening-host .ava-horizontal-scene>.ava-applications{
+  width:100%;max-width:100%;flex:1 0 auto;
+}
+#site-shell.ava-screening-host .ava-form-slide{max-width:800px!important}
+#site-shell.ava-screening-host .ava-form-slide .ava-form{max-width:760px}
+.ava-slide-progress{display:flex;gap:7px;max-width:220px;margin:17px 0 20px}
+.ava-slide-progress span{height:4px;flex:1;border-radius:5px;background:var(--ava-line);transition:background .3s ease}
+.ava-slide-progress span.is-complete{background:#A000F0}
+.ava-slide-actions{display:flex;align-items:center;gap:10px;justify-content:flex-start;flex-wrap:wrap;margin:20px 0 4px}
+.ava-slide-actions .ava-primary,.ava-slide-actions .ava-secondary{margin:0;min-height:43px}
+#site-shell.ava-screening-host .ava-readiness-grid{display:block;max-width:920px;margin:14px 0}
+#site-shell.ava-screening-host .ava-readiness-grid .ava-check-card{max-width:920px;animation:ava-side-enter .55s cubic-bezier(.22,1,.36,1) both}
+#site-shell.ava-screening-host .ava-readiness>.ava-muted{max-width:860px;margin-bottom:0}
+#site-shell.ava-screening-host .ava-readiness-footer{max-width:920px}
+.ava-assessor-guide{display:flex;align-items:center;gap:14px;min-width:0;
+  padding:10px 16px 10px 7px;margin:0 0 17px;
+  background:linear-gradient(96deg,rgba(160,0,240,.09),transparent 80%);
+  border:1px solid var(--ava-line);border-radius:9px}
+.ava-assessor-guide img{width:76px;height:95px;object-fit:contain;object-position:top center;flex:none;
+  filter:drop-shadow(0 7px 12px rgba(0,162,203,.24))}
+.ava-assessor-guide div{display:flex;flex-direction:column;gap:6px}
+.ava-assessor-guide strong{color:var(--ava-ink);font-size:14px;letter-spacing:.01em}
+.ava-assessor-guide span{color:var(--ava-muted);font-size:12px;line-height:1.5}
+.ava-proctor-reconnect{max-width:650px;padding:25px;background:var(--ava-card);
+  border:1px solid var(--ava-line);border-left:3px solid #A000F0;border-radius:8px}
+.ava-proctor-reconnect>svg{color:#A000F0}
+.ava-proctor-reconnect h2{font-size:clamp(23px,3vw,32px);margin:12px 0}
+.ava-proctor-reconnect p{line-height:1.7;color:var(--ava-muted);font-size:13px;margin:9px 0}
+.ava-proctor-reconnect .ava-check{margin:16px 0}
+.ava-proctor-reconnect .ava-primary{margin:12px 0}
+@keyframes ava-side-enter{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:translateX(0)}}
+@media(min-width:1100px) and (min-height:810px){
+ #site-shell.ava-screening-host .ava-horizontal-scene{scrollbar-width:none}
+ #site-shell.ava-screening-host .ava-content{padding:20px 27px}
+ #site-shell.ava-screening-host .ava-form-slide .ava-field textarea{min-height:76px}
+ #site-shell.ava-screening-host .ava-readiness-grid .ava-check-card{padding:18px 22px}
+}
+@media(max-width:767px){
+ #site-shell.ava-screening-host .ava-horizontal-scene{scrollbar-width:thin}
+ .ava-assessor-guide{padding:5px 9px;margin-bottom:12px}
+ .ava-assessor-guide img{width:54px;height:73px}
+ .ava-assessor-guide strong{font-size:12px}
+ .ava-assessor-guide span{font-size:10px}
+ .ava-slide-actions{justify-content:stretch}
+ .ava-slide-actions button{flex:1 1 auto}
+ .ava-proctor-reconnect{padding:16px}
+}
+@media(prefers-reduced-motion:reduce){
+ .ava-slide-progress span{transition:none}
+ #site-shell.ava-screening-host .ava-readiness-grid .ava-check-card{animation:none!important}
+ #site-shell.ava-screening-host .ava-horizontal-scene{will-change:auto}
+}
