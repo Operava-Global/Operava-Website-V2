@@ -98,6 +98,7 @@ export default function AvaScreening() {
   const [onboardingError,setOnboardingError] = useState('')
   const [otpRequested, setOtpRequested] = useState(false)
   const [entryMode,setEntryMode] = useState<'login'|'register'>('login')
+  const [workspaceView,setWorkspaceView] = useState<'assessment'|'applications'|'documents'>('assessment')
   const [registerName,setRegisterName] = useState('')
   const [registerEmail,setRegisterEmail] = useState('')
   const [registerRole,setRegisterRole] = useState<Role>('tech')
@@ -198,6 +199,9 @@ export default function AvaScreening() {
     }
   }, [submit])
   useEffect(() => { if (session) void refresh() }, [session, refresh])
+  useEffect(() => {
+    if(screen?.applicant.email) setWorkspaceView(screen.assessmentStatus==='in_progress'?'assessment':'applications')
+  },[screen?.applicant.email])
   const loadApplications = useCallback(async () => {
     if (!sessionRef.current) return
     try {
@@ -327,7 +331,7 @@ export default function AvaScreening() {
     setIsSpeaking(false)
     setAnswer('')
     setAnswerSource('typed')
-    setScreen(null);setApplications([]);setDocuments([]);setOnboardingConfigured(false);setSelectedDocuments({});setSession('');sessionRef.current='';setOtpRequested(false)
+    setWorkspaceView('assessment');setScreen(null);setApplications([]);setDocuments([]);setOnboardingConfigured(false);setSelectedDocuments({});setSession('');sessionRef.current='';setOtpRequested(false)
     setProfile(BLANK_PROFILE);setPrivacyConsent(false);setMonitorConsent(false);setAiConsent(false)
     setRegisterName('');setRegisterEmail('');setPendingEmail('');setCode('')
     setEntryMode('login');setTurnstileToken('');setNotice('You have signed out.')
@@ -337,7 +341,7 @@ export default function AvaScreening() {
   const openApplication = async (referenceId: string) => {
     const opened = await perform(() => submit('selectApplication', { referenceId }),
       'Application selected. Complete your profile and assessment if required.')
-    if (opened) await loadApplications()
+    if (opened) {setWorkspaceView('assessment');await loadApplications()}
   }
   const verifyCode = async () => { if (await perform(() => submit('verifyCode', { invitation, code }), 'Email address verified.')) setCode('') }
   const saveProfile = async () => { await perform(() => submit('profile', { ...profile, privacyConsent, monitorConsent, aiConsent }), 'Profile saved securely.') }
@@ -516,10 +520,32 @@ export default function AvaScreening() {
             <h1>AVA <span>ASSESSMENT</span></h1>
             <p>Secure applicant sign-in, applications, assessments and recruitment status — one place.</p>
           </div>
-          <div className="ava-app-heading-state"><ShieldCheck size={17} /><span>Open registration · Secure email verification</span></div>
+          <div className="ava-app-heading-state"><ShieldCheck size={17} /><span>{screen ? screen.verifiedApplicantProfile?'Verified Applicant Profile':'Email-verified applicant workspace':'Secure email verification'}</span></div>
         </div>
         <div className="ava-steps" aria-label="Screening stages">{STEPS.map((label, i) => <div className={`ava-step ${i <= stageIndex ? 'is-active' : ''}`} key={label}><span>{i < stageIndex ? <CheckCircle2 size={15} /> : String(i + 1).padStart(2, '0')}</span><strong>{label}</strong></div>)}</div>
-        <div className="ava-shell">
+        {screen && <nav className="ava-workspace-nav" aria-label="Applicant workspace views">
+          <div className="ava-workspace-tabs">
+            <button type="button" className={workspaceView==='applications'&&stage!=='assessment'?'is-active':''}
+              disabled={stage==='assessment'} aria-current={workspaceView==='applications'&&stage!=='assessment'?'page':undefined}
+              onClick={()=>setWorkspaceView('applications')}><ClipboardList size={16}/> My Applications
+              {applications.filter(item=>item.requiredAction).length>0 && <span className="ava-tab-count">{applications.filter(item=>item.requiredAction).length}</span>}
+            </button>
+            <button type="button" className={workspaceView==='assessment'||stage==='assessment'?'is-active':''}
+              aria-current={workspaceView==='assessment'||stage==='assessment'?'page':undefined}
+              onClick={()=>setWorkspaceView('assessment')}><ClipboardCheck size={16}/> Ava Assessment</button>
+            <button type="button" className={workspaceView==='documents'&&stage!=='assessment'?'is-active':''}
+              disabled={stage==='assessment'} aria-current={workspaceView==='documents'&&stage!=='assessment'?'page':undefined}
+              onClick={()=>setWorkspaceView('documents')}><FileCheck2 size={16}/> Documents
+              {documents.filter(doc=>doc.status==='requested'||doc.status==='resubmission_required').length>0 &&
+                <span className="ava-tab-count">{documents.filter(doc=>doc.status==='requested'||doc.status==='resubmission_required').length}</span>}
+            </button>
+          </div>
+          <div className="ava-workspace-user"><span>{screen.applicant.email}</span>
+            <button type="button" onClick={()=>void logout()}><LogOut size={14}/> Sign out</button>
+          </div>
+        </nav>}
+        <div className="ava-workspace-body">
+        {(workspaceView==='assessment'||!screen||stage==='assessment') && <div className="ava-shell">
           <aside className="ava-sidebar" aria-label="Assessment guidance">
             {stage !== 'assessment' && stage !== 'finished' && <div className="ava-team-art"><img src="/media/ava-assessment-team.svg" alt="Connected Operava professionals, secure assessment and teamwork" width={660} height={400} decoding="async" /></div>}
             <div className="ava-sidebar-block"><p className="ava-label">APPLICANT WORKSPACE</p><h2>{screen?.applicant.roleTitle || 'Application access'}</h2><p>{screen?.applicant.email || 'Sign in with an email one-time code to manage recruitment applications.'}</p>{screen && <p className={screen.verifiedApplicantProfile?'ava-identity-verified':'ava-identity-pending'}><ShieldCheck size={14}/>{screen.verifiedApplicantProfile?'Verified Applicant Profile':'Identity verification required'}</p>}{screen?.applicationReference && <p className="ava-ref">APPLICATION · {screen.applicationReference}</p>}</div>
@@ -634,8 +660,8 @@ export default function AvaScreening() {
             {error && <p className="ava-alert" role="alert"><TriangleAlert size={16}/>{error}</p>}
             {notice && <p className="ava-note" role="status"><CheckCircle2 size={16}/>{notice}</p>}
           </section>
-        </div>
-        {screen && stage !== 'assessment' && <section className="ava-applications" aria-label="Your Careers applications">
+        </div>}
+        {screen && stage !== 'assessment' && workspaceView==='applications' && <section className="ava-applications" aria-label="Your Careers applications">
           <div className="ava-applications-header">
             <div><p className="ava-label">MY APPLICATIONS · VERIFIED ACCOUNT</p>
               <h2>Track your applications</h2>
@@ -662,7 +688,7 @@ export default function AvaScreening() {
           </div>
           <p className="ava-muted">Verification and recruitment statuses are controlled by OPERAVA reviewers. Assessment submission does not automatically determine employment eligibility. Passport NFC and certified face-liveness verification are not yet available; do not submit identity photos through email.</p>
         </section>}
-        {screen && stage !== 'assessment' && <section className="ava-applications" aria-label="Required onboarding documents">
+        {screen && stage !== 'assessment' && workspaceView==='documents' && <section className="ava-applications" aria-label="Required onboarding documents">
           <div className="ava-applications-header">
             <div>
               <p className="ava-label">DOCUMENT CENTER · PRIVATE APPLICATION RECORD</p>
@@ -696,7 +722,8 @@ export default function AvaScreening() {
             </article>)}
           </div>
         </section>}
-        <div className="ava-app-support"><LockKeyhole size={13} aria-hidden="true" /> Secure email OTP sign-in · {screen && <button className="ava-signout" type="button" onClick={()=>void logout()}><LogOut size={14} /> Sign out</button>} For assistance, email <a href="mailto:talents@operavaglobal.com">talents@operavaglobal.com</a></div>
+        <div className="ava-app-support"><LockKeyhole size={13} aria-hidden="true" /> Secure email OTP sign-in · For assistance, email <a href="mailto:talents@operavaglobal.com">talents@operavaglobal.com</a></div>
+        </div>
       </div>
     </div>
   )
