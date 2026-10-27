@@ -12,6 +12,8 @@ type Invite = { id:string; name:string; email:string; role:Role; sent_at:number;
 type Pending = { id:string; name:string; email:string; role:Role; identity_kind:string; identity_submitted:number }
 type PublicApplicant = { id:string; name:string; email:string; role:Role; created_at:number;verified_at:number|null;
   current_status:string;has_profile:number;review_status:string }
+type ProctorSegment={chunk_id:string;kind:string;recorded_at:number}
+type ProctorCount={kind:string;count:number}
 type OnboardingCandidate={id:string;name:string;email:string;assessment_status:string;application_reference:string|null}
 type OnboardingDocument={id:string;session_id:string;name:string;email:string;
   application_reference:string|null;document_type:string;request_note:string;status:string;
@@ -58,6 +60,8 @@ export default function RecruitmentAdmin() {
   const [onboardingType,setOnboardingType]=useState('education_certificate')
   const [onboardingNote,setOnboardingNote]=useState('')
   const [reviewNote,setReviewNote]=useState('')
+  const [proctorSegments,setProctorSegments]=useState<ProctorSegment[]>([])
+  const [proctorCounts,setProctorCounts]=useState<ProctorCount[]>([])
   const [selected,setSelected]=useState<string|null>(null)
   const [detail,setDetail]=useState<Detail|null>(null)
   const [note,setNote]=useState('')
@@ -121,8 +125,16 @@ export default function RecruitmentAdmin() {
   }
   const openDetail=async(id:string)=>{
     setBusy(true);setError('');setDetail(null);setSelected(id)
-    try {const value=await send('screeningDetail',{id});const item=value as unknown as Detail;
-      setDetail(item);setNote(item.manualReview?.reviewer_note||'')}
+    setProctorSegments([]);setProctorCounts([])
+    try {
+      const [value,recordings]=await Promise.all([
+        send('screeningDetail',{id}),send('listProctorEvidence',{id})
+      ])
+      const item=value as unknown as Detail
+      setDetail(item);setNote(item.manualReview?.reviewer_note||'')
+      setProctorSegments((recordings.segments||[]) as ProctorSegment[])
+      setProctorCounts((recordings.counts||[]) as ProctorCount[])
+    }
     catch(e){setError(e instanceof Error?e.message:'Unable to open candidate report.')}
     finally{setBusy(false)}
   }
@@ -150,6 +162,22 @@ export default function RecruitmentAdmin() {
     if(!window.confirm('Save this onboarding document review?'))return
     void act(()=>send('reviewOnboardingDocument',{documentId,decision,note:reviewNote.trim()}),
       decision==='approved'?'Document approved.':'Resubmission requested in applicant portal.')
+  }
+  const downloadProctor=async(chunkId:string)=>{
+    if(!selected)return
+    setBusy(true);setError('')
+    try {
+      const response=await fetch(API,{method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'downloadProctorEvidence',id:selected,chunkId})})
+      if(!response.ok)throw Error('Secure recording segment unavailable or access denied.')
+      const media=await response.blob(),url=URL.createObjectURL(media)
+      const anchor=document.createElement('a')
+      anchor.href=url;anchor.download='operava-proctor-segment.'+(media.type.includes('mp4')?'mp4':'webm')
+      document.body.appendChild(anchor);anchor.click();anchor.remove()
+      window.setTimeout(()=>URL.revokeObjectURL(url),30000)
+    }catch(e){setError(e instanceof Error?e.message:'Recording could not be downloaded.')}
+    finally{setBusy(false)}
   }
   const downloadOnboarding=async(documentId:string)=>{
     setBusy(true);setError('')
@@ -291,6 +319,19 @@ export default function RecruitmentAdmin() {
           <div className="ra-report-detail">{detail?<><div className="ra-section-title"><div><p className="ava-label">CANDIDATE REPORT</p><h3>{detail.applicant.name}</h3></div><img src="/media/ava-assessment-complete.svg" alt="" width={64} height={64}/></div>
             <p className="ra-intro">{detail.applicant.email} · {ROLES[detail.applicant.role]} · {detail.applicant.assessmentStatus.replace(/_/g,' ')}</p>
             <div className="ra-detail-profile"><strong>Background</strong>{Object.entries(detail.applicant.profile).filter(([key])=>key!=='fullName').map(([key,value])=><div key={key}><span>{key}</span><p>{String(value||'—')}</p></div>)}</div>
+            <div className="ra-proctor-report">
+              <h4>Assessment integrity · Human review</h4>
+              <p className="ra-footnote">Browser focus and sound events are only context for reviewer inspection—not proof of misconduct. Capture must be consented and authorized.</p>
+              <div className="ra-proctor-events">{detail.monitoringEventCounts.length
+                ? detail.monitoringEventCounts.map(event=><span key={event.event_type}>{event.event_type.replace(/_/g,' ')} · {event.count}</span>)
+                : <span>No monitoring events recorded</span>}</div>
+              <p className="ra-footnote">Private recorded segments: {proctorCounts.map(x=>x.kind+' '+x.count).join(' · ')||'None stored'}. Showing the latest 50 segments.</p>
+              <div className="ra-proctor-segments">{proctorSegments.map(segment=><button
+                type="button" className="ava-secondary" key={segment.chunk_id} disabled={busy}
+                onClick={()=>void downloadProctor(segment.chunk_id)}>
+                <FileDown size={14}/>{segment.kind} · {date(segment.recorded_at)}
+              </button>)}</div>
+            </div>
             <h4>Candidate responses</h4>{detail.answers.map((item,index)=><article className="ra-answer" key={item.id}>
               <span>QUESTION {index+1} · {item.section.toUpperCase()}</span><h5>{item.prompt}</h5>
               <p>{item.answer||'No response submitted.'}</p>
