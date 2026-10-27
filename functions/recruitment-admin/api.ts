@@ -9,7 +9,7 @@ type Env = AvaAccessEnv & {
 // exposed to React. All reviewer actions go through this origin-only proxy.
 const ACTIONS = new Set(['invite','invitations','publicApplicants','pendingReviews','identityDocument','reviewIdentity',
   'screeningResults','screeningDetail','reviewScreening',
-  'onboardingCandidates','onboardingQueue','requestOnboardingDocument','reviewOnboardingDocument','downloadOnboardingDocument'])
+  'onboardingCandidates','onboardingQueue','requestOnboardingDocument','reviewOnboardingDocument','downloadOnboardingDocument','listProctorEvidence','downloadProctorEvidence'])
 export const onRequestPost: PagesFunction<Env> = async context => {
   const { request, env } = context
   const principal = await accessIdentity(request, env)
