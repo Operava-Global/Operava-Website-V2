@@ -148,6 +148,7 @@ CREATE TABLE IF NOT EXISTS ava_screening_sessions (
   profile TEXT,
   consent_at INTEGER,
   monitor_consent_at INTEGER,
+  proctor_consent_at INTEGER,
   ai_consent_at INTEGER,
   assessment_status TEXT NOT NULL DEFAULT 'not_started',
   assessment_started INTEGER,

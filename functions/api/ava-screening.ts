@@ -34,7 +34,7 @@ type Applicant = {
   verified_at: number | null; session_hash: string | null; session_expires: number | null;
   identity_status: string; identity_key: string | null; identity_kind: string | null; identity_submitted: number | null;
   identity_reviewed: number | null; profile: string | null; consent_at: number | null;
-  monitor_consent_at: number | null; ai_consent_at: number | null;
+  monitor_consent_at: number | null; ai_consent_at: number | null; proctor_consent_at?: number | null;
   assessment_status: string; assessment_version?: number; assessment_started: number | null; deadline: number | null;
   completed: number | null; created_at: number
 }
@@ -181,6 +181,8 @@ async function ensure(db: D1Database) {
   // D1 table already exists for previous sessions; one-time additive migration.
   try { await db.prepare('ALTER TABLE ava_screening_sessions ADD COLUMN assessment_version INTEGER NOT NULL DEFAULT 1').run() }
   catch(e) { if(!/duplicate column/i.test(String(e))) throw e }
+  try { await db.prepare('ALTER TABLE ava_screening_sessions ADD COLUMN proctor_consent_at INTEGER').run() }
+  catch(e) { if(!/duplicate column/i.test(String(e))) throw e }
 }
 async function get(db: D1Database, id: string): Promise<Applicant | null> {
   return db.prepare('SELECT * FROM ava_screening_sessions WHERE id = ?').bind(id).first<Applicant>()
@@ -207,6 +209,7 @@ function applicantState(row: Applicant, answers: AnswerRow[]) {
     identityStatus: row.identity_status, identityKind: row.identity_kind,
     profile, consentGiven: Boolean(row.consent_at && row.monitor_consent_at),
     aiConsentGiven: Boolean(row.ai_consent_at),
+    proctorConsentGiven: Boolean(row.proctor_consent_at),
     assessmentStatus: status, deadline: row.deadline, total: bank.length, answered: index,
     question: !done && status === 'in_progress' && index < bank.length ? {
       number: index + 1, section: bank[index].section, prompt: bank[index].prompt,
@@ -791,7 +794,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const saved = await get(db, invite.id)
       return json({ ...(await state(db, env, saved!)), sessionToken })
     }
-    if(['state','applications','selectApplication','onboardingDocuments','submitOnboardingDocument'].includes(action)) await ensure(db)
+    if(['state','applications','selectApplication','onboardingDocuments','submitOnboardingDocument','proctorConsent','proctorChunk'].includes(action)) await ensure(db)
     const row = await authorized(request, env, db)
     if (!row) return error('Your secure screening session is missing or expired.', 401)
     if (action === 'state') return json(await state(db, env, row))
@@ -948,6 +951,21 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (row.identity_key) await env.AVA_ID_BUCKET.delete(row.identity_key).catch(() => {})
       return json(await state(db, env, (await get(db, row.id))!))
     }
+    if (action === 'proctorConsent') {
+      if(row.assessment_status!=='not_started'&&row.assessment_status!=='in_progress')
+        return error('Assessment recording consent is closed.',409)
+      if(!row.profile||!row.consent_at||!row.monitor_consent_at)
+        return error('Complete your profile and monitoring consent first.',403)
+      if(!env.AVA_PROCTOR_BUCKET)return error('Private recording storage is unavailable.',503)
+      const attestation=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status='verified'")
+        .bind(row.id).first()
+      if(row.identity_status!=='approved'||!attestation)return error('Live identity verification must pass before recording.',403)
+      if(data?.recordingConsent!==true)
+        return error('Explicit camera, microphone and screen recording consent is required.',403)
+      await db.prepare('UPDATE ava_screening_sessions SET proctor_consent_at=? WHERE id=? AND assessment_status IN (\'not_started\',\'in_progress\')')
+        .bind(Date.now(),row.id).run()
+      return json({ok:true,proctorConsentGiven:true})
+    }
     if (action === 'identityStart') {
       if (!row.profile || !row.consent_at || !row.monitor_consent_at) return error('Complete the applicant profile and required consents first.',403)
       if (!env.AVA_IDV_API_URL || !env.AVA_IDV_API_KEY || !env.AVA_IDV_WEBHOOK_SECRET) return error('Certified live identity verification is not configured. Contact Talent Acquisition.',503)
@@ -973,7 +991,9 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
     }
     if (action === 'proctorChunk') {
       if(!env.AVA_PROCTOR_BUCKET) return error('Private assessment recording storage is unavailable.',503)
-      if(!row.consent_at||!row.monitor_consent_at||!row.profile) return error('Profile and monitoring consent are required.',403)
+      if(!row.consent_at||!row.monitor_consent_at||!row.profile||!row.proctor_consent_at) return error('Explicit screen, camera and microphone recording consent is required.',403)
+      const attestation=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status='verified'").bind(row.id).first()
+      if(row.identity_status!=='approved'||!attestation)return error('Certified identity verification must complete before recording.',403)
       if(row.assessment_status!=='not_started'&&row.assessment_status!=='in_progress') return error('Assessment is not accepting recordings.',409)
       if(!type.includes('multipart/form-data')) return error('Expected a live recording segment.',415)
       const raw=await readLimitedBody(request, LIMIT_BYTES+100_000)
@@ -1005,6 +1025,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (row.assessment_status !== 'not_started') return error('Assessment already started or submitted.', 409)
       const verified=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status='verified'").bind(row.id).first()
       if(row.identity_status!=='approved'||!verified) return error('Live identity and document verification must pass before the assessment.',403)
+      if(!row.proctor_consent_at)return error('Explicit camera, microphone and screen recording consent is required.',403)
       if(!env.AVA_PROCTOR_BUCKET) return error('Secure live proctor recording is not configured.',503)
       const evidence=await db.prepare("SELECT kind,MAX(recorded_at) AS last_seen FROM ava_screening_proctor_evidence WHERE session_id=? GROUP BY kind")
         .bind(row.id).all<{kind:string;last_seen:number}>()
@@ -1024,6 +1045,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         return error('Assessment time has elapsed. Submitted answers remain saved.', 409)
       }
       if((row.assessment_version||1)>=2) {
+        if(!row.proctor_consent_at)return error('Proctoring consent is required for this assessment.',403)
         const segments=await db.prepare("SELECT kind,MAX(recorded_at) AS last_seen FROM ava_screening_proctor_evidence WHERE session_id=? GROUP BY kind")
           .bind(row.id).all<{kind:string;last_seen:number}>()
         const recent=new Map((segments.results||[]).map(x=>[x.kind,x.last_seen]))

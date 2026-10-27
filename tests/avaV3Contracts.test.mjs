@@ -99,3 +99,37 @@ test('AVA uses Bolekpad viewport-locked outer shell on all screen sizes',()=>{
   assert.match(css,/@media \(max-width:767px\)/)
   assert.match(css,/env\(safe-area-inset-bottom,0px\)/)
 })
+
+test('AVA assessment recording requires separate explicit consent and verified identity',()=>{
+  const schema=read('db/submissions.sql')
+  assert.match(backend,/action === 'proctorConsent'/)
+  assert.match(backend,/data\?\.recordingConsent!==true/)
+  assert.match(backend,/proctor_consent_at/)
+  assert.match(backend,/Certified identity verification must complete before recording/)
+  assert.match(backend,/Live identity verification must pass before recording/)
+  assert.match(backend,/if\(!row\.proctor_consent_at\)/)
+  assert.match(schema,/proctor_consent_at INTEGER/)
+  assert.match(applicant,/submit\('proctorConsent',\{recordingConsent:true\}\)/)
+  assert.match(applicant,/captureActive\.current=false/)
+  assert.match(applicant,/if\(!captureActive\.current\|\|!blob\.size\)return/)
+})
+
+test('Local device permission checks never transmit or persist test media',()=>{
+  assert.match(applicant,/const checkCameraMic = async/)
+  assert.match(applicant,/const checkScreenShare = async/)
+  assert.match(applicant,/getUserMedia\(\{video:true,audio:true\}\)/)
+  assert.match(applicant,/getDisplayMedia\(\{video:true,audio:false\}\)/)
+  assert.match(applicant,/stream\.getTracks\(\)\.forEach\(track=>track\.stop\(\)\)/)
+  assert.match(applicant,/selected!==.monitor./)
+  assert.match(applicant,/displaySurface/)
+  assert.match(applicant,/Local device permission diagnostics/)
+  assert.match(applicant,/!screen\?\.verifiedApplicantProfile/)
+})
+
+test('Private R2 proctor binding is declared and remains an identity-gated resource',()=>{
+  const wrangler=read('wrangler.jsonc')
+  assert.match(wrangler,/"binding": "AVA_PROCTOR_BUCKET"/)
+  assert.match(wrangler,/"bucket_name": "operava-ava-proctor-evidence"/)
+  assert.match(backend,/if\(!env\.AVA_PROCTOR_BUCKET\)/)
+  assert.match(backend,/row\.identity_status!=='approved'/)
+})
