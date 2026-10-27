@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { CheckCircle2, ChevronRight, ClipboardCheck, ClipboardList, FileCheck2, Clock3, Headphones, LockKeyhole, MailCheck, Mic, MonitorCheck, ShieldCheck, Smartphone, TriangleAlert, LogOut } from 'lucide-react'
 import { usePageMeta } from '../site/seo'
 import ThemeToggle from '../site/ThemeToggle'
@@ -87,6 +87,7 @@ const formatRemaining = (seconds: number) => `${String(Math.floor(seconds / 60))
 
 export default function AvaScreening() {
   usePageMeta({ title: 'Ava Assessment | Public Applicant Portal', description: 'Register and securely sign in with email OTP to complete your OPERAVA candidate profile and role assessment.' })
+  const reduceMotion = useReducedMotion()
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const invitation = params.get('invite') || ''
@@ -601,8 +602,8 @@ export default function AvaScreening() {
         <div className="ava-workspace-body">
         <AnimatePresence mode="wait" initial={false}>
         <motion.div key={`${stage}-${stage==='profile'?profilePage:stage==='ready'?readyPage:workspaceView}-${screen?.question?.number||0}`}
-          className="ava-horizontal-scene" initial={{opacity:0,x:'14%'}} animate={{opacity:1,x:0}} exit={{opacity:0,x:'-14%'}}
-          transition={{duration:0.65,ease:[0.22,1,0.36,1]}}>
+          className="ava-horizontal-scene" initial={{opacity:0,x:reduceMotion?0:'14%'}} animate={{opacity:1,x:0}} exit={{opacity:0,x:reduceMotion?0:'-14%'}}
+          transition={{duration:reduceMotion?0:0.65,ease:[0.22,1,0.36,1]}}>
         {(workspaceView==='assessment'||!screen||stage==='assessment') && <div className="ava-shell">
           <aside className="ava-sidebar" aria-label="Assessment guidance">
             {stage !== 'assessment' && stage !== 'finished' && <div className="ava-team-art"><img src="/media/ava-assessment-team.svg" alt="Connected Operava professionals, secure assessment and teamwork" width={660} height={400} decoding="async" /></div>}
