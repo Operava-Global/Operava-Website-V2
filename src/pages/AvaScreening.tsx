@@ -17,6 +17,7 @@ type ScreenState = {
   faceMatchScore?: number | null
   identityProviderAvailable?: boolean
   recordingStorageReady?: boolean
+  proctorConsentGiven?: boolean
   applicationReference?: string | null
   profile: Partial<Profile>
   consentGiven: boolean
@@ -130,6 +131,10 @@ export default function AvaScreening() {
   const [proctorBusy,setProctorBusy] = useState(false)
   const [proctorSaved,setProctorSaved] = useState({camera:false,screen:false})
   const [recordingConsent,setRecordingConsent] = useState(false)
+  const [permissionTest,setPermissionTest] = useState<'idle'|'testing'|'camera-ok'|'screen-ok'|'unsupported'>('idle')
+  const [cameraChecked,setCameraChecked] = useState(false)
+  const [screenChecked,setScreenChecked] = useState(false)
+  const captureActive = useRef(false)
   const [identityBusy,setIdentityBusy] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
   const consentRef = useRef(false)
@@ -333,7 +338,7 @@ export default function AvaScreening() {
     setIsSpeaking(false)
     setAnswer('')
     setAnswerSource('typed')
-    setWorkspaceView('assessment');setScreen(null);setApplications([]);setDocuments([]);setOnboardingConfigured(false);setSelectedDocuments({});setSession('');sessionRef.current='';setOtpRequested(false)
+    stopCapture();setWorkspaceView('assessment');setScreen(null);setApplications([]);setDocuments([]);setOnboardingConfigured(false);setSelectedDocuments({});setSession('');sessionRef.current='';setOtpRequested(false)
     setProfile(BLANK_PROFILE);setPrivacyConsent(false);setMonitorConsent(false);setAiConsent(false)
     setRegisterName('');setRegisterEmail('');setPendingEmail('');setCode('')
     setEntryMode('login');setTurnstileToken('');setNotice('You have signed out.')
@@ -347,6 +352,36 @@ export default function AvaScreening() {
   }
   const verifyCode = async () => { if (await perform(() => submit('verifyCode', { invitation, code }), 'Email address verified.')) setCode('') }
   const saveProfile = async () => { await perform(() => submit('profile', { ...profile, privacyConsent, monitorConsent, aiConsent }), 'Profile saved securely.') }
+  // Diagnostic permissions checks never send or retain any media.
+  // Every request runs from a direct button gesture and stops all tracks.
+  const checkCameraMic = async () => {
+    setError('');setPermissionTest('testing');setCameraChecked(false)
+    try {
+      if(!navigator.mediaDevices?.getUserMedia)throw Error('Camera and microphone require a supported HTTPS browser.')
+      const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true})
+      try {
+        if(!stream.getVideoTracks().length||!stream.getAudioTracks().length)
+          throw Error('Camera and microphone must both be enabled.')
+        setCameraChecked(true);setPermissionTest('camera-ok')
+        setNotice('Camera and microphone were accessible. No diagnostic recording was saved.')
+      } finally {stream.getTracks().forEach(track=>track.stop())}
+    } catch(e){setPermissionTest('unsupported');setError(e instanceof Error?e.message:'Camera or microphone permission was denied.')}
+  }
+  const checkScreenShare = async () => {
+    setError('');setPermissionTest('testing');setScreenChecked(false)
+    try {
+      if(!navigator.mediaDevices?.getDisplayMedia)throw Error('This browser cannot share a screen. Try a supported desktop browser.')
+      const stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false})
+      try {
+        const track=stream.getVideoTracks()[0]
+        if(!track)throw Error('A display capture must be selected.')
+        const selected=track.getSettings().displaySurface
+        if(selected&&selected!=='monitor')throw Error('Select the entire screen, not one application or browser tab.')
+        setScreenChecked(true);setPermissionTest('screen-ok')
+        setNotice('Screen sharing is supported. The diagnostic capture was stopped immediately; no recording was saved.')
+      } finally {stream.getTracks().forEach(track=>track.stop())}
+    } catch(e){setPermissionTest('unsupported');setError(e instanceof Error?e.message:'Screen recording permission was denied.')}
+  }
   const requestIdentity = async () => {
     setIdentityBusy(true);setError('')
     try {
@@ -356,6 +391,7 @@ export default function AvaScreening() {
     finally{setIdentityBusy(false)}
   }
   const stopCapture = () => {
+    captureActive.current=false
     for(const recorder of recorders.current) {if(recorder.state!=='inactive'){try{recorder.stop()}catch{ /* already stopped */ }}}
     recorders.current=[]
     captures.current?.screen.getTracks().forEach(t=>t.stop())
@@ -382,7 +418,9 @@ export default function AvaScreening() {
     recorders.current.length===2&&recorders.current.every(r=>r.state==='recording'))
   const startCapture = async () => {
     if(!recordingConsent){setError('Explicit recording consent is required.');return}
+    if(!screen?.verifiedApplicantProfile){setError('Complete certified live identity verification before starting recording.');return}
     if(!screen?.recordingStorageReady){setError('Secure private recording storage is not yet configured.');return}
+    if(captures.current)stopCapture()
     setProctorBusy(true);setError('');setProctorSaved({camera:false,screen:false})
     let display:MediaStream|null=null,webcam:MediaStream|null=null
     try {
@@ -393,19 +431,27 @@ export default function AvaScreening() {
       webcam=await navigator.mediaDevices.getUserMedia({video:true,audio:true})
       if(!display.getVideoTracks().length||!webcam.getVideoTracks().length||!webcam.getAudioTracks().length)
         throw Error('Screen, webcam, and microphone permissions are all required.')
+      const surface=display.getVideoTracks()[0]?.getSettings().displaySurface
+      if(surface&&surface!=='monitor')
+        throw Error('Please select your entire display, not a single browser tab or window.')
+      // The server records the applicant's explicit, authenticated consent only
+      // after the browser actually granted the three media permissions.
+      await submit('proctorConsent',{recordingConsent:true})
       captures.current={screen:display,camera:webcam}
+      captureActive.current=true
       const onLost=()=>{
-        setProctorReady(false)
-        setError('A required recording device was stopped or revoked. Restore all permissions to continue.')
+        if(!captureActive.current)return
+        stopCapture()
+        setError('Screen, webcam or microphone permission ended. Recording stopped; restore all permissions before continuing.')
       }
       for(const track of [...display.getTracks(),...webcam.getTracks()]){
         track.addEventListener('ended',onLost,{once:true})
-        if(track.kind==='audio')track.addEventListener('mute',onLost)
+        track.addEventListener('mute',onLost)
       }
       const mime=['video/webm;codecs=vp8,opus','video/webm','video/mp4'].find(x=>MediaRecorder.isTypeSupported(x))
       if(!mime)throw Error('Recording is not supported with a secure video format in this browser.')
       const sendChunk=(kind:'camera'|'screen',blob:Blob)=>{
-        if(!blob.size)return
+        if(!captureActive.current||!blob.size)return
         const form=new FormData()
         form.append('kind',kind)
         form.append('chunk',new File([blob],kind+'.recording',{type:blob.type||mime}))
@@ -457,7 +503,7 @@ export default function AvaScreening() {
     } finally{setProctorBusy(false)}
   }
   const beginAssessment = async () => {
-    if(!proctorReady||!proctorSaved.camera||!proctorSaved.screen||!isCaptureLive()){
+    if(!screen?.verifiedApplicantProfile||!proctorReady||!proctorSaved.camera||!proctorSaved.screen||!isCaptureLive()){
       setError('Allow screen, webcam and microphone recording and wait until both streams are securely saved.')
       return
     }
@@ -467,7 +513,7 @@ export default function AvaScreening() {
     }
   }
   const sendAnswer = async () => {
-    if(screen?.total===30&&(!proctorReady||!isCaptureLive())){
+    if(screen?.total===30&&(!proctorReady||!proctorSaved.camera||!proctorSaved.screen||!isCaptureLive())){
       setError('Screen, webcam and microphone recording must remain active before answering.')
       return
     }
@@ -622,7 +668,7 @@ export default function AvaScreening() {
                   <div className="ava-check-icon"><ShieldCheck size={24}/></div>
                   <h3>01 · Verify your identity</h3>
                   <p>Complete a live selfie and government ID or passport scan on your phone. For passports, a certified provider must validate the NFC chip. Your verified profile requires liveness, ID authenticity, matching name and at least 95% face similarity.</p>
-                  <p className={screen?.verifiedApplicantProfile?'ava-status-good':'ava-status-warn'}>{screen?.verifiedApplicantProfile?'Verified Applicant Profile · Approved':'Required · Not yet verified'}</p>
+                  <p className={screen?.verifiedApplicantProfile?'ava-status-good':'ava-status-warn'}>{screen?.verifiedApplicantProfile?'Verified Applicant Profile · Approved':screen?.identityVerification==='manual_review'?'Identity needs human review':'Required · Not yet verified'}</p>
                   {!screen?.verifiedApplicantProfile && <button type="button" className="ava-secondary" disabled={identityBusy||!screen?.identityProviderAvailable} onClick={() => void requestIdentity()}>
                     <Smartphone size={16}/>{identityBusy?'Sending link…':'Email my secure phone verification link'}
                   </button>}
@@ -632,16 +678,22 @@ export default function AvaScreening() {
                 <article className="ava-check-card">
                   <div className="ava-check-icon"><MonitorCheck size={24}/></div>
                   <h3>02 · Grant proctor permissions</h3>
-                  <p>Record your screen, webcam and microphone throughout the assessment. If a capture stream stops or recording segments fail to save, the assessment cannot start or continue.</p>
+                  <p>Record your entire screen, webcam and microphone throughout the assessment. If permission is denied, revoked, or storage is interrupted, you cannot begin or continue. Use the tests below to check your browser without uploading media.</p>
+                  <div className="ava-permission-tests" aria-label="Local device permission diagnostics">
+                    <button type="button" className="ava-secondary" disabled={proctorBusy||permissionTest==='testing'} onClick={()=>void checkCameraMic()}><Mic size={16}/>{cameraChecked?'Camera & mic: checked':'Test camera & microphone'}</button>
+                    <button type="button" className="ava-secondary" disabled={proctorBusy||permissionTest==='testing'} onClick={()=>void checkScreenShare()}><MonitorCheck size={16}/>{screenChecked?'Screen: checked':'Test full-screen sharing'}</button>
+                  </div>
+                  <p className="ava-muted">These tests stop capture immediately and never upload media. Permission may need to be granted again when you start the exam.</p>
                   <label className="ava-check"><input type="checkbox" checked={recordingConsent} onChange={e=>setRecordingConsent(e.target.checked)}/>
                     <span>I explicitly consent to screen, webcam and microphone recording for proctoring, restricted reviewer access and approved retention.</span></label>
-                  <button type="button" className="ava-secondary" disabled={proctorBusy||!recordingConsent||!screen?.recordingStorageReady} onClick={() => void startCapture()}>
+                  <button type="button" className="ava-secondary" disabled={proctorBusy||!recordingConsent||!screen?.recordingStorageReady||!screen?.verifiedApplicantProfile} onClick={() => void startCapture()}>
                     <Mic size={16}/>{proctorBusy?'Requesting permissions…':proctorReady?'Restart recording':'Allow screen, webcam & mic'}
                   </button>
                   <p className={proctorReady&&proctorSaved.camera&&proctorSaved.screen?'ava-status-good':'ava-status-warn'}>
                     {proctorReady&&proctorSaved.camera&&proctorSaved.screen?'Both recordings saved · Capture active':'Required · Live recording not ready'}
                   </p>
                   {!screen?.recordingStorageReady && <p className="ava-small-warning">Private recording storage is not configured. Capture remains disabled for your privacy.</p>}
+                  {!screen?.verifiedApplicantProfile && <p className="ava-small-warning">Certified identity verification must pass before starting continuous recording. Use the local permission diagnostics above to check device compatibility.</p>}
                   {proctorReady && <button type="button" className="ava-text-button" onClick={stopCapture}>Stop recording</button>}
                 </article>
               </div>
