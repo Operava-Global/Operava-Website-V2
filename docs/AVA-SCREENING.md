@@ -119,3 +119,62 @@ Identity and personal data require an approved data-retention/deletion policy, r
 - `proctorChunk` accepts only streamed recordings by an authenticated profile holder and saves the associated private R2 key. The server checks recently stored screen and camera segments before and during assessment. Configure strict file retention, authorized access, deletion, cost quotas, abuse rate limits and support/appeals before production.
 - These new recording and identity requirements intentionally **block** new assessment starts on environments lacking an external verification provider or private proctor R2 binding. Existing sessions with assessment_version 1 retain their ten-question bank and saved work.
 - **Do not merge or deploy V2** until the external provider, signed callbacks, secure R2 buckets, retention policy, data-protection/biometric consent, accessibility alternatives and controlled live tests have been approved. Document explicit lawful basis and access/deletion procedures for recordings and biometric identity signals.
+
+
+## V3 applicant portal, document-center and protected review enhancements
+
+The applicant profile and status route remains `/applicant-portal`, backed by the
+existing verified Careers application reference and Ava OTP session. Each application
+can carry its own profile, assessment and onboarding requirements. Incomplete records
+show **Required action — Complete Assessment** or **Complete Profile & Assessment**.
+
+Recruitment Admin remains access-gated at `/recruitment-admin`. Authorized reviewers
+can request individual onboarding documents **after** the assessment is submitted,
+see what is pending, download protected PDFs, approve them or request resubmission.
+Candidates see their own requests, instructions, submission and review status. This
+workflow is distinct from live government ID or passport verification: **no ID/passport
+file-upload bypass is exposed to applicants**. The old manual ID upload API is
+disabled unless `AVA_LEGACY_ID_UPLOAD_ENABLED=true` is explicitly and separately set.
+
+To enable private onboarding submission, bind an isolated R2 bucket named
+`AVA_ONBOARDING_BUCKET` in Cloudflare Pages; do not publish or expose a public
+R2 domain. Uploads accept PDF only, smaller than 5 MB, with a signature and format
+check. The API enforces an OTP-verified session and an exact application-specific
+request ID. Applicant access never lists or downloads another applicant's documents.
+Restricted recruiter downloads require the Cloudflare Access-protected origin proxy.
+
+To enable assessment proctoring, the existing separate `AVA_PROCTOR_BUCKET` binding
+must be configured. Reviewers can access saved per-session recording segments and
+browser sound/focus flags through the same Access-protected admin proxy; do not
+present a sound-activity flag as proof of misconduct, speaker recognition, or
+a determination by AI. A retention policy, applicant notice/consent record, audit,
+segmented deletion and storage quotas are required before real processing.
+
+The identity-provider callback now requires a **unique provider eventId** inside the
+signed payload, in addition to the signed vendor reference and recent timestamp.
+The `ava_screening_provider_events` D1 table blocks repeat delivery of the same
+event. Before integrating a specific vendor, implement its exact payload/signature
+mapping, authoritative document/NFC and face-liveness result semantics, event IDs
+and a secure webhook secret; replay protection alone does not certify identity.
+Do not activate or change credentials until the real provider is selected and
+its contract is verified.
+
+## Outstanding production activation gates
+
+These features are coded but *not yet fully operating* without external services:
+
+- Choose and contract a certified live document/NFC/face-liveness verification
+  provider with a calibrated face-match threshold and appeal path.
+- Bind **separate private** R2 buckets for `AVA_PROCTOR_BUCKET` and
+  `AVA_ONBOARDING_BUCKET`; define object-lifecycle retention and reviewer
+  access audits. Existing older assessments remain distinct.
+- Approve applicant notices, biometrics/voice/video processing, retention,
+  accessibility alternatives, human-review protocols and secure deletion,
+  and complete a controlled end-to-end test with permitted test identities.
+- Test direct calls, failed permissions, expired codes, concurrent uploads,
+  unauthorized/cross-account access, onboarding resubmissions, signed webhook
+  replay, timeouts and large upload rejection.
+
+Do not claim that new applicants can pass identity verification or start a
+recorded exam until the provider and private R2 bindings have been confirmed
+in the actual Cloudflare **production** environment.
