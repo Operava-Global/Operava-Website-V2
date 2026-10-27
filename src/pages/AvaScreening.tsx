@@ -206,7 +206,9 @@ export default function AvaScreening() {
     if (!sessionRef.current) return
     try {
       const result = await submit('applications')
-      setApplications(result.applications || [])
+      const items=result.applications||[]
+      setApplications(items)
+      if(!items.length)setWorkspaceView(prev=>prev==='applications'?'assessment':prev)
       setApplicationsError('')
     } catch (e) {
       setApplicationsError(e instanceof Error ? e.message : 'Application status is unavailable.')
