@@ -328,6 +328,14 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
     const type = request.headers.get('Content-Type') || ''
     const data = type.includes('multipart/form-data') ? null : await requestData(request)
     const action = String(data?.action || (type.includes('multipart/form-data') ? (['proctorChunk','submitOnboardingDocument'].includes(new URL(request.url).searchParams.get('action')||'') ? new URL(request.url).searchParams.get('action') : 'identity') : ''))
+    // Reject browser requests issued from other origins, including consented
+    // recording uploads. Server-to-server reviewer calls can omit Origin.
+    const origin = request.headers.get('Origin')
+    const fetchSite = request.headers.get('Sec-Fetch-Site')
+    if ((origin && origin !== new URL(request.url).origin) ||
+        (fetchSite && !['same-origin','none'].includes(fetchSite))) {
+      return error('Cross-origin assessment requests are not permitted.',403)
+    }
     // The reviewer key is NEVER accepted as an applicant session and is not present in frontend code.
     if (['invite', 'invitations', 'publicApplicants', 'reviewIdentity', 'pendingReviews', 'identityDocument', 'screeningResults', 'screeningDetail', 'reviewScreening', 'deleteScreening', 'onboardingCandidates', 'onboardingQueue', 'requestOnboardingDocument', 'reviewOnboardingDocument', 'downloadOnboardingDocument', 'listProctorEvidence', 'downloadProctorEvidence'].includes(action)) {
       const reviewerKey = env.AVA_REVIEWER_SECRET || ''
@@ -969,13 +977,22 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
     if (action === 'identityStart') {
       if (!row.profile || !row.consent_at || !row.monitor_consent_at) return error('Complete the applicant profile and required consents first.',403)
       if (!env.AVA_IDV_API_URL || !env.AVA_IDV_API_KEY || !env.AVA_IDV_WEBHOOK_SECRET) return error('Certified live identity verification is not configured. Contact Talent Acquisition.',503)
+      const recentIntent=await db.prepare('SELECT created_at FROM ava_screening_identity_intents WHERE session_id=?')
+        .bind(row.id).first<{created_at:number}>()
+      if(recentIntent && Date.now()-recentIntent.created_at<60_000)
+        return error('A verification link was recently requested. Check your email before retrying.',429)
+      let legalName=row.name
+      try {
+        const identityProfile=JSON.parse(row.profile) as {fullName?:string}
+        if(identityProfile.fullName?.trim())legalName=identityProfile.fullName.trim()
+      } catch { /* Profile presence was verified above. */ }
       // Provider adapter: never send face/ID photos to the general application API.
       // Credentials must only be available as Cloudflare encrypted secrets.
       const endpoint=new URL(env.AVA_IDV_API_URL)
       if(endpoint.protocol!=='https:') return error('Identity provider configuration is unsafe.',503)
       const external=await fetch(endpoint.toString(),{
         method:'POST',headers:{Authorization:`Bearer ${env.AVA_IDV_API_KEY}`,'Content-Type':'application/json'},
-        body:JSON.stringify({reference:row.id,subject:{name:row.name},workflow:'live-face-document-passport-nfc',
+        body:JSON.stringify({reference:row.id,subject:{name:legalName},workflow:'live-face-document-passport-nfc',
           callbackUrl:new URL('/api/ava-identity-callback',request.url).toString()})
       })
       if(!external.ok) return error('Identity verification provider is unavailable.',503)
@@ -995,6 +1012,8 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const attestation=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status='verified'").bind(row.id).first()
       if(row.identity_status!=='approved'||!attestation)return error('Certified identity verification must complete before recording.',403)
       if(row.assessment_status!=='not_started'&&row.assessment_status!=='in_progress') return error('Assessment is not accepting recordings.',409)
+      if(row.assessment_status==='in_progress'&&(!row.deadline||Date.now()>=row.deadline))
+        return error('Assessment time elapsed. Recording upload has closed.',409)
       if(!type.includes('multipart/form-data')) return error('Expected a live recording segment.',415)
       const raw=await readLimitedBody(request, LIMIT_BYTES+100_000)
       const form=await new Response(raw.buffer as ArrayBuffer,{headers:{'Content-Type':type}}).formData()
@@ -1046,6 +1065,11 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       }
       if((row.assessment_version||1)>=2) {
         if(!row.proctor_consent_at)return error('Proctoring consent is required for this assessment.',403)
+        const verified=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status='verified'")
+          .bind(row.id).first()
+        if(row.identity_status!=='approved'||!verified)
+          return error('Identity verification must remain approved throughout the assessment.',403)
+        if(!env.AVA_PROCTOR_BUCKET)return error('Private assessment recording storage is unavailable.',503)
         const segments=await db.prepare("SELECT kind,MAX(recorded_at) AS last_seen FROM ava_screening_proctor_evidence WHERE session_id=? GROUP BY kind")
           .bind(row.id).all<{kind:string;last_seen:number}>()
         const recent=new Map((segments.results||[]).map(x=>[x.kind,x.last_seen]))
