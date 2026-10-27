@@ -954,6 +954,13 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const kind=form.get('kind')
       const chunk=form.get('chunk')
       if(kind!=='screen'&&kind!=='camera') return error('Unknown recording track.')
+      // Avoid unbounded media storage. A 45-minute session at 8-second chunks
+      // should remain well below 400 segments per track; reject excessive calls.
+      const quota=await db.prepare(`SELECT COUNT(*) AS total,COALESCE(MAX(recorded_at),0) AS newest
+        FROM ava_screening_proctor_evidence WHERE session_id=? AND kind=?`)
+        .bind(row.id,kind).first<{total:number;newest:number}>()
+      if((quota?.total||0)>=420)return error('Recording storage limit reached; contact Talent Acquisition.',429)
+      if(quota?.newest&&Date.now()-quota.newest<3000)return error('Recording segments arrived too quickly.',429)
       if(!(chunk instanceof File)||chunk.size<100||chunk.size>=LIMIT_BYTES||!['video/webm','video/mp4','audio/webm'].includes(chunk.type.split(';')[0].trim().toLowerCase())) return error('Invalid recording segment.')
       const id=crypto.randomUUID(),key=`ava-proctor/${row.id}/${kind}/${id}`
       const bytes=await chunk.arrayBuffer()
