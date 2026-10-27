@@ -44,7 +44,7 @@ test('Applicant identity cannot self-attest and live capture has hard gates',()=
   assert.match(backend,/identityStart/)
   assert.match(backend,/Only certified live mobile ID capture is permitted/)
   assert.match(backend,/if\(row\.identity_status!=='approved'\|\|!verified\)/)
-  assert.match(backend,/AVА_SCREENING_PROCTOR_DOES_NOT_EXIST|AVA_PROCTOR_BUCKET/)
+  assert.match(backend,/AVA_PROCTOR_BUCKET/)
   assert.match(callback,/event\.livenessPassed===true/)
   assert.match(callback,/event\.documentAuthentic===true/)
   assert.match(callback,/score>=95/)
