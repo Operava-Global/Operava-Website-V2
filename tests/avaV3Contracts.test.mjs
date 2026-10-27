@@ -65,3 +65,29 @@ test('Proctor recording metadata and actual media stay behind Access',()=>{
   assert.match(backend,/DELETE FROM ava_screening_proctor_evidence/)
   assert.match(backend,/DELETE FROM ava_screening_onboarding_documents/)
 })
+
+test('OTP-verified public sign-in passes production dependencies and supports existing Careers accounts',()=>{
+  // OTP issuance and verification must be server-controlled; the browser cannot
+  // promote an arbitrary email into a trusted session.
+  assert.match(backend,/return json\(\{\.\.\.\(await state\(db,env,\(await get\(db,row\.id\)\)!\)\),sessionToken\}\)/)
+  assert.match(backend,/if\(loginOnly&&!match\)/)
+  assert.match(backend,/f\.verification_status='VERIFIED'|verification_status='VERIFIED'/)
+  assert.match(backend,/roleForApplication\(position,'tech'\)/)
+  assert.match(backend,/loginOnly\?row\.name:confirmedName/)
+  assert.match(backend,/loginOnly\?row\.role:confirmedRole/)
+  assert.match(applicant,/entryMode==='login'/)
+  assert.match(applicant,/loginOnly:entryMode==='login'/)
+  assert.match(applicant,/IS_PREVIEW/)
+})
+
+test('Bolekpad-inspired layout remains accessible on desktop and mobile',()=>{
+  const css=read('src/pages/AvaScreening.css')
+  assert.match(applicant,/ava-workspace-nav/)
+  assert.match(applicant,/ava-workspace-body/)
+  assert.match(applicant,/aria-label="Applicant workspace views"/)
+  assert.match(css,/min-width: 851px/)
+  assert.match(css,/height:100dvh/)
+  assert.match(css,/overflow-y:auto/)
+  assert.match(css,/max-width:850px/)
+  assert.match(css,/overflow:visible/)
+})
