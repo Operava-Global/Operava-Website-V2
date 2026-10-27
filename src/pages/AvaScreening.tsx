@@ -514,8 +514,10 @@ export default function AvaScreening() {
             <Link className="ava-topnav-link" to="/careers">Careers</Link>
             <span className="ava-access-label"><LockKeyhole size={13} /> PRIVATE WORKSPACE · OTP SIGN-IN</span>
             <ThemeToggle />
+            {screen && <button type="button" className="ava-header-signout" aria-label="Sign out of applicant portal" title="Sign out" onClick={()=>void logout()}><LogOut size={16}/></button>}
           </div>
         </header>
+        <div className="ava-workspace-main">
         <div className="ava-app-heading">
           <div>
             <p className="ava-kicker"><span className="ava-dot" /> SECURE CANDIDATE WORKSPACE</p>
@@ -732,6 +734,7 @@ export default function AvaScreening() {
           </div>
         </section>}
         <div className="ava-app-support"><LockKeyhole size={13} aria-hidden="true" /> Secure email OTP sign-in · For assistance, email <a href="mailto:talents@operavaglobal.com">talents@operavaglobal.com</a></div>
+        </div>
         </div>
       </div>
     </div>
