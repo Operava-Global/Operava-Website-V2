@@ -680,7 +680,14 @@ export default function AvaScreening() {
               <p>Recruitment: <strong>{item.reviewStatus.replace(/_/g,' ')}</strong></p>
               {item.requiredAction && <p className="ava-required-action">Required action: {item.requiredAction}</p>}
               {item.isSelected
-                ? <div className="ava-current-actions"><span className="ava-current-label">Current application</span>{item.requiredAction && <span className="ava-required-action">{item.profileComplete ? item.requiredAction : 'Required action · Complete profile to unlock assessment'}</span>}</div>
+                ? <div className="ava-current-actions"><span className="ava-current-label">Current application</span>
+                    {item.requiredAction && <>
+                      <span className="ava-required-action">{item.profileComplete ? 'Required action · '+item.requiredAction : 'Required action · Complete profile to unlock assessment'}</span>
+                      <button type="button" className="ava-primary" onClick={()=>setWorkspaceView('assessment')}>
+                        {item.profileComplete ? item.requiredAction : 'Complete Profile & Assessment'} <ChevronRight size={16}/>
+                      </button>
+                    </>}
+                  </div>
                 : <button className="ava-primary" type="button" disabled={busy} onClick={() => void openApplication(item.referenceId)}>
                   {item.requiredAction || 'View application'} <ChevronRight size={16}/>
                 </button>}
