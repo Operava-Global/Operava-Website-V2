@@ -284,3 +284,16 @@ html[data-theme="light"] .ava-small-warning{color:#8b470e!important}
 .ava-document-card .ava-primary{width:100%;margin-top:6px;justify-content:center}
 .ava-current-actions{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
 .ava-current-actions .ava-required-action{font-size:11px;font-weight:700}
+
+/* Clear existing applicant login vs new profile registration, preserving Ava theme. */
+.ava-entry-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0 22px}
+.ava-entry-options button{border:1px solid var(--ava-line);border-radius:10px;padding:14px 9px;
+  font:inherit;font-size:11px;font-weight:800;color:var(--ava-muted);background:var(--ava-card);
+  cursor:pointer;transition:border-color .2s,background .2s,color .2s}
+.ava-entry-options button.is-active{border-color:#A000F0;background:rgba(160,0,240,.12);color:var(--ava-ink)}
+.ava-entry-options button:focus-visible{outline:2px solid #A000F0;outline-offset:2px}
+.ava-preview-login{align-items:flex-start}
+.ava-preview-login a{font-weight:850;color:#bd83ff;text-decoration:underline;text-underline-offset:3px}
+html[data-theme="light"] .ava-preview-login a{color:#6c27bc}
+@media(max-width:420px){.ava-entry-options{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.ava-entry-options button{transition:none}}
