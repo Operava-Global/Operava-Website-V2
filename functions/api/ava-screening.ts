@@ -20,6 +20,7 @@ type AvaEnv = FormEnv & {
   AVA_ID_BUCKET?: R2Bucket
   AVA_PROCTOR_BUCKET?: R2Bucket
   AVA_ONBOARDING_BUCKET?: R2Bucket
+  AVA_LEGACY_ID_UPLOAD_ENABLED?: string
   AVA_IDV_API_URL?: string
   AVA_IDV_API_KEY?: string
   AVA_IDV_WEBHOOK_SECRET?: string
@@ -351,7 +352,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (action === 'requestOnboardingDocument') {
         const id=clean(data?.id,80),typeCode=String(data?.documentType||'')
         const note=clean(data?.note,500)
-        if(!id||!Object.hasOwn(DOCUMENT_TYPES,typeCode))return error('Select a candidate and an approved document category.')
+        if(!id||!Object.prototype.hasOwnProperty.call(DOCUMENT_TYPES,typeCode))return error('Select a candidate and an approved document category.')
         const applicant=await get(db,id)
         if(!applicant||!applicant.verified_at)return error('Verified applicant not found.',404)
         if(!['submitted','time_expired'].includes(applicant.assessment_status))return error('Onboarding documents can be requested after the assessment is complete.',409)
@@ -722,7 +723,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const saved = await get(db, invite.id)
       return json({ ...(await state(db, env, saved!)), sessionToken })
     }
-    if(['state','applications','selectApplication'].includes(action)) await ensure(db)
+    if(['state','applications','selectApplication','onboardingDocuments','submitOnboardingDocument'].includes(action)) await ensure(db)
     const row = await authorized(request, env, db)
     if (!row) return error('Your secure screening session is missing or expired.', 401)
     if (action === 'state') return json(await state(db, env, row))
@@ -857,6 +858,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       return json(await state(db, env, (await get(db, row.id))!))
     }
     if (action === 'identity') {
+      if(env.AVA_LEGACY_ID_UPLOAD_ENABLED!=='true')return error('Only certified live mobile ID capture is permitted. Use your emailed live verification link.',403)
       if (row.assessment_status !== 'not_started') return error('Identity submission is closed after the assessment begins.', 409)
       if (!env.AVA_ID_BUCKET) return error('Secure identity document storage is not yet configured. Please contact Talent Acquisition.', 503)
       if (row.identity_status === 'approved' || row.identity_status === 'pending_review') return error('Identity evidence is already submitted for review.', 409)
