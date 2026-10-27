@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { CheckCircle2, ChevronRight, ClipboardCheck, ClipboardList, FileCheck2, Clock3, Headphones, LockKeyhole, MailCheck, Mic, MonitorCheck, ShieldCheck, Smartphone, TriangleAlert, LogOut } from 'lucide-react'
@@ -104,6 +104,8 @@ export default function AvaScreening() {
   const [workspaceView,setWorkspaceView] = useState<'assessment'|'applications'|'documents'>('assessment')
   const [profilePage,setProfilePage] = useState(0)
   const [readyPage,setReadyPage] = useState(0)
+  const [itemPage,setItemPage] = useState(0)
+  const deckRef=useRef<HTMLDivElement|null>(null)
   const [registerName,setRegisterName] = useState('')
   const [registerEmail,setRegisterEmail] = useState('')
   const [registerRole,setRegisterRole] = useState<Role>('tech')
@@ -552,6 +554,35 @@ export default function AvaScreening() {
     : screen.assessmentStatus === 'in_progress' ? 'assessment'
     : !screen.profile?.fullName || !screen.consentGiven ? 'profile' : 'ready'
   const finished = stage === 'finished'
+  // Scale only the active stage to the available viewport; the main document,
+  // exam scene and inner forms never become vertical scrolling containers.
+  // Re-measure when content/pages change or the viewport is resized.
+  useLayoutEffect(() => {
+    const deck=deckRef.current
+    if(!deck)return
+    let frame=0
+    const fit=()=>{
+      const scene=deck.querySelector<HTMLElement>('.ava-horizontal-scene')
+      const content=scene?.querySelector<HTMLElement>('.ava-scene-fit')
+      if(!scene||!content)return
+      content.style.zoom='1'
+      const needed=content.scrollHeight
+      const available=scene.clientHeight
+      if(!needed||!available)return
+      const scale=Math.min(1,Math.max(0.35,(available-8)/(needed+8)))
+      content.style.zoom=String(Math.floor(scale*1000)/1000)
+    }
+    const schedule=()=>{window.cancelAnimationFrame(frame);frame=window.requestAnimationFrame(fit)}
+    const resized=new ResizeObserver(schedule)
+    resized.observe(deck)
+    const updated=new MutationObserver(schedule)
+    updated.observe(deck,{childList:true,subtree:true,characterData:true})
+    schedule()
+    return ()=>{window.cancelAnimationFrame(frame);resized.disconnect();updated.disconnect()}
+  },[stage,profilePage,readyPage,workspaceView,itemPage,screen?.question?.number,applications.length,documents.length])
+  useEffect(()=>setItemPage(0),[workspaceView])
+  const visibleApplications=applications.slice(itemPage,itemPage+1)
+  const visibleDocuments=documents.slice(itemPage,itemPage+1)
 
   return (
     <div className="ava-screening">
@@ -600,10 +631,12 @@ export default function AvaScreening() {
           </div>
         </nav>}
         <div className="ava-workspace-body">
+        <div className="ava-assessment-deck" ref={deckRef}>
         <AnimatePresence mode="wait" initial={false}>
         <motion.div key={`${stage}-${stage==='profile'?profilePage:stage==='ready'?readyPage:workspaceView}-${screen?.question?.number||0}`}
           className="ava-horizontal-scene" initial={{opacity:0,x:reduceMotion?0:'14%'}} animate={{opacity:1,x:0}} exit={{opacity:0,x:reduceMotion?0:'-14%'}}
           transition={{duration:reduceMotion?0:0.65,ease:[0.22,1,0.36,1]}}>
+        <div className="ava-scene-fit">
         {(workspaceView==='assessment'||!screen||stage==='assessment') && <div className="ava-shell">
           <aside className="ava-sidebar" aria-label="Assessment guidance">
             {stage !== 'assessment' && stage !== 'finished' && <div className="ava-team-art"><img src="/media/ava-assessment-team.svg" alt="Connected Operava professionals, secure assessment and teamwork" width={660} height={400} decoding="async" /></div>}
@@ -722,7 +755,6 @@ export default function AvaScreening() {
               </div>}
             </div>}
             {stage === 'assessment' && <div className="ava-panel ava-assessment">
-              <div className="ava-assessor-guide" aria-label="AVA assessment guide"><img src="/media/ava-proctor-mermaid.svg" alt="AVA, animated cyber-mermaid assessment guide" width={96} height={145}/><div><strong>AVA · Assessment guide</strong><span>One question at a time. Your progress is saved securely.</span></div></div>
               {screen?.total===30 && (!proctorReady||!proctorSaved.camera||!proctorSaved.screen||!isCaptureLive()) ? <div className="ava-proctor-reconnect" role="status">
                 <MonitorCheck size={24}/><h2>Restore assessment permissions</h2>
                 <p>The timer continues, but questions and answer submission are paused until live screen, webcam and microphone recording is restored. Browsers require you to approve screen sharing again.</p>
@@ -730,7 +762,7 @@ export default function AvaScreening() {
                 <button type="button" className="ava-primary" disabled={proctorBusy||!recordingConsent||!screen?.verifiedApplicantProfile||!screen.recordingStorageReady} onClick={()=>void startCapture()}>{proctorBusy?'Requesting permissions…':'Restore screen, camera and microphone'}<ChevronRight size={17}/></button>
                 <p className="ava-muted">{proctorReady?'Capture restarted; waiting for private recordings to save.':'No recording permission means no further assessment answers.'}</p>
               </div> : <><div className="ava-assessment-top"><span className="ava-label">LIVE ASSESSMENT · QUESTION {screen?.question?.number} / {screen?.total}</span><span className="ava-badge">{screen?.question?.section === 'english' ? 'ENGLISH COMMUNICATION' : 'ROLE ASSESSMENT'}</span></div>
-              <div className="ava-progress"><span style={{width:`${((screen?.answered || 0) / (screen?.total || 1)) * 100}%`}} /></div><div className="ava-exam-meta"><span><ShieldCheck size={15}/> Identity verified</span><span><MonitorCheck size={15}/> Consent-based recording active</span><span><Clock3 size={15}/> {formatRemaining(seconds)} remaining</span></div><h2>{screen?.question?.prompt || 'Loading next question…'}</h2><label className="ava-field">Your response<textarea className="ava-answer" rows={8} value={answer} maxLength={4000} onChange={(e) => { setAnswer(e.target.value); setAnswerSource('typed') }} placeholder="Write your response in your own words. You can also dictate, then review the transcript before submitting." /></label>
+              <div className="ava-progress"><span style={{width:`${((screen?.answered || 0) / (screen?.total || 1)) * 100}%`}} /></div><div className="ava-exam-meta"><span><ShieldCheck size={15}/> Identity verified</span><span><MonitorCheck size={15}/> Consent-based recording active</span><span><Clock3 size={15}/> {formatRemaining(seconds)} remaining</span></div><h2>{screen?.question?.prompt || 'Loading next question…'}</h2><label className="ava-field">Your response<textarea className="ava-answer" rows={5} value={answer} maxLength={4000} onChange={(e) => { setAnswer(e.target.value); setAnswerSource('typed') }} placeholder="Write your response in your own words. You can also dictate, then review the transcript before submitting." /></label>
               <div className="ava-tools"><button type="button" className="ava-secondary" disabled={!speechAvailable} onClick={startDictation}><Mic size={17}/>{isSpeaking ? 'Stop dictation' : 'Dictate answer'}</button><span>{answer.length}/4000 characters</span></div>
               {!speechAvailable && <p className="ava-muted">Speech recognition isn’t available in this browser. Typing is supported.</p>}
               <p className="ava-muted">Dictation converts speech to editable text using your browser’s speech recognition service. Transcript-only review cannot reliably score spoken fluency or pronunciation.</p>
@@ -755,7 +787,7 @@ export default function AvaScreening() {
           {applicationsError && <p role="alert" className="ava-alert">{applicationsError}</p>}
           {!applications.length && !applicationsError && <p className="ava-muted">No verified Careers applications found for this email. You can still continue your existing Ava screening or <Link to="/apply">apply for a role</Link>.</p>}
           <div className="ava-application-grid">
-            {applications.map(item => <article key={item.referenceId} className="ava-application-card">
+            {visibleApplications.map(item => <article key={item.referenceId} className="ava-application-card">
               <p className="ava-label">{item.referenceId}</p>
               <h3>{item.position}</h3>
               <p>Application: <strong>{item.applicationStatus === 'VERIFIED' ? 'Application received' : item.applicationStatus}</strong></p>
@@ -776,6 +808,7 @@ export default function AvaScreening() {
                 </button>}
             </article>)}
           </div>
+          {applications.length>1 && <div className="ava-record-pager"><button className="ava-secondary" type="button" disabled={itemPage===0} onClick={()=>setItemPage(p=>Math.max(0,p-1))}>Previous application</button><span aria-live="polite">{Math.min(itemPage+1,applications.length)} / {applications.length}</span><button className="ava-secondary" type="button" disabled={itemPage>=applications.length-1} onClick={()=>setItemPage(p=>Math.min(applications.length-1,p+1))}>Next application <ChevronRight size={16}/></button></div>}
           <p className="ava-muted">Verification and recruitment statuses are controlled by OPERAVA reviewers. Assessment submission does not automatically determine employment eligibility. Passport NFC and certified face-liveness verification are not yet available; do not submit identity photos through email.</p>
         </section>}
         {screen && stage !== 'assessment' && workspaceView==='documents' && <section className="ava-applications" aria-label="Required onboarding documents">
@@ -791,7 +824,7 @@ export default function AvaScreening() {
           {onboardingError && <p role="alert" className="ava-alert">{onboardingError}</p>}
           {!documents.length && <p className="ava-muted ava-document-empty">No onboarding documents have been requested for this application. When Talent Acquisition needs one, it will appear here with a required action.</p>}
           <div className="ava-application-grid">
-            {documents.map(doc=><article key={doc.id} className="ava-application-card ava-document-card">
+            {visibleDocuments.map(doc=><article key={doc.id} className="ava-application-card ava-document-card">
               <p className="ava-label">{ONBOARDING_LABELS[doc.document_type]||'Requested document'}</p>
               <h3>{doc.status==='approved'?'Document accepted':doc.status==='submitted'?'Submitted for review':doc.status==='resubmission_required'?'Resubmission required':'Required action · Upload document'}</h3>
               {doc.request_note && <p>Recruitment request: {doc.request_note}</p>}
@@ -811,9 +844,19 @@ export default function AvaScreening() {
               {doc.status==='approved' && <p className="ava-status-good">Approved by Talent Acquisition</p>}
             </article>)}
           </div>
+          {documents.length>1 && <div className="ava-record-pager"><button className="ava-secondary" type="button" disabled={itemPage===0} onClick={()=>setItemPage(p=>Math.max(0,p-1))}>Previous document</button><span aria-live="polite">{Math.min(itemPage+1,documents.length)} / {documents.length}</span><button className="ava-secondary" type="button" disabled={itemPage>=documents.length-1} onClick={()=>setItemPage(p=>Math.min(documents.length-1,p+1))}>Next document <ChevronRight size={16}/></button></div>}
         </section>}
+        </div>
         </motion.div>
         </AnimatePresence>
+        <aside className="ava-proctor-dock" aria-label="AVA animated assessment proctor">
+          <div className="ava-proctor-dock-title"><span className="ava-proctor-live" aria-hidden="true" /><span>AVA · ASSESSMENT GUIDE</span></div>
+          <div className="ava-proctor-character"><img src="/media/ava-proctor-mermaid.svg" alt="AVA, a turquoise cyber-mermaid with a gently swaying tail" width={300} height={470}/></div>
+          <div className="ava-proctor-caption"><strong>{stage==='assessment'?'Question '+(screen?.question?.number||'')+' of '+(screen?.total||30):'Meet AVA, your virtual proctor'}</strong>
+            <p>{stage==='assessment'?'Your responses are reviewed by authorized recruitment personnel. The assessment timer continues while permissions are restored.':'I guide you through the assessment steps. Your privacy and recording permissions remain under your control.'}</p>
+          </div>
+        </aside>
+        </div>
         <div className="ava-app-support"><LockKeyhole size={13} aria-hidden="true" /> Secure email OTP sign-in · For assistance, email <a href="mailto:talents@operavaglobal.com">talents@operavaglobal.com</a></div>
         </div>
         </div>
