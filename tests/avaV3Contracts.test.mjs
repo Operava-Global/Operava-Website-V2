@@ -1,0 +1,67 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { test } from 'node:test'
+
+const read = path => readFileSync(new URL('../'+path, import.meta.url), 'utf8')
+const backend=read('functions/api/ava-screening.ts')
+const callback=read('functions/api/ava-identity-callback.ts')
+const proxy=read('functions/recruitment-admin/api.ts')
+const app=read('src/App.tsx')
+const careers=read('src/pages/Careers.tsx')
+const applicant=read('src/pages/AvaScreening.tsx')
+const admin=read('src/pages/RecruitmentAdmin.tsx')
+const schema=read('db/submissions.sql')
+
+test('Ava portal entry and candidate required action are connected',()=>{
+  assert.match(app,/path="\/applicant-portal\/\*"/)
+  assert.match(careers,/to="\/applicant-portal"/)
+  assert.match(backend,/action === 'applications'/)
+  assert.match(backend,/f\.form_type='CAREERS'/)
+  assert.match(backend,/f\.verification_status='VERIFIED'/)
+  assert.match(backend,/lower\(f\.email\)=\?/)
+  assert.match(backend,/requiredAction=assessmentStatus==='not_started'\?'Complete Assessment'/)
+  assert.match(applicant,/Required action:/)
+  assert.match(applicant,/Complete profile to unlock assessment/)
+})
+
+test('Onboarding is application-scoped, R2 private and recruiter protected',()=>{
+  assert.match(schema,/CREATE TABLE IF NOT EXISTS ava_screening_onboarding_documents/)
+  assert.match(backend,/env\.AVA_ONBOARDING_BUCKET\.put\(key,contents/)
+  assert.match(backend,/WHERE id=\? AND session_id=\?/)
+  assert.match(backend,/status IN \('requested','resubmission_required'\)/)
+  assert.match(backend,/file\.type!=='application\/pdf'/)
+  assert.match(proxy,/onboardingQueue/)
+  assert.match(proxy,/requestOnboardingDocument/)
+  assert.match(proxy,/reviewOnboardingDocument/)
+  assert.match(proxy,/downloadOnboardingDocument/)
+  assert.match(proxy,/accessIdentity\(request, env\)/)
+  assert.match(admin,/tab==='onboarding'/)
+  assert.match(applicant,/loadOnboarding/)
+  assert.match(applicant,/uploadOnboarding/)
+})
+
+test('Applicant identity cannot self-attest and live capture has hard gates',()=>{
+  assert.match(backend,/identityStart/)
+  assert.match(backend,/Only certified live mobile ID capture is permitted/)
+  assert.match(backend,/if\(row\.identity_status!=='approved'\|\|!verified\)/)
+  assert.match(backend,/AVА_SCREENING_PROCTOR_DOES_NOT_EXIST|AVA_PROCTOR_BUCKET/)
+  assert.match(callback,/event\.livenessPassed===true/)
+  assert.match(callback,/event\.documentAuthentic===true/)
+  assert.match(callback,/score>=95/)
+  assert.match(callback,/event\.passportNfcPassed===true/)
+  assert.match(callback,/event\.eventId/)
+  assert.match(callback,/ava_screening_provider_events/)
+  assert.doesNotMatch(applicant,/type="file"[^>]*accept="image\//)
+})
+
+test('Proctor recording metadata and actual media stay behind Access',()=>{
+  assert.match(backend,/ava_screening_proctor_evidence/)
+  assert.match(backend,/action === 'listProctorEvidence'/)
+  assert.match(backend,/action === 'downloadProctorEvidence'/)
+  assert.match(proxy,/downloadProctorEvidence/)
+  assert.match(admin,/proctorSegments/)
+  assert.match(admin,/monitoringEventCounts/)
+  assert.match(backend,/Recording segments arrived too quickly/)
+  assert.match(backend,/DELETE FROM ava_screening_proctor_evidence/)
+  assert.match(backend,/DELETE FROM ava_screening_onboarding_documents/)
+})
