@@ -59,6 +59,7 @@ type SpeechClient = {
 }
 type SpeechCtor = new () => SpeechClient
 const SESSION_KEY = 'operava_ava_screening_session_v1'
+const IS_PREVIEW = typeof window !== 'undefined' && window.location.hostname.endsWith('.operava-website-v2.pages.dev')
 const API = '/api/ava-screening'
 const BLANK_PROFILE: Profile = { fullName: '', phone: '', education: '', experience: '', motivation: '' }
 const FORM_FIELDS: { key: keyof Profile; label: string; placeholder: string; rows?: number }[] = [
@@ -96,6 +97,7 @@ export default function AvaScreening() {
   const [selectedDocuments,setSelectedDocuments] = useState<Record<string,File|null>>({})
   const [onboardingError,setOnboardingError] = useState('')
   const [otpRequested, setOtpRequested] = useState(false)
+  const [entryMode,setEntryMode] = useState<'login'|'register'>('login')
   const [registerName,setRegisterName] = useState('')
   const [registerEmail,setRegisterEmail] = useState('')
   const [registerRole,setRegisterRole] = useState<Role>('tech')
@@ -148,7 +150,7 @@ export default function AvaScreening() {
   // Public entry must not require an invitation. The site key is public; the
   // Turnstile verification secret is held only in Cloudflare Pages environment.
   useEffect(() => {
-    if (invitation || session) return
+    if (invitation || session || IS_PREVIEW) return
     void submit('publicConfig').then(data => setTurnstileKey(data.turnstileSiteKey || ''))
       .catch(() => setError('Registrations are temporarily unavailable. Please try again later.'))
   }, [invitation,session,submit])
@@ -301,8 +303,8 @@ export default function AvaScreening() {
   const startPublic = async () => {
     const email=registerEmail.trim().toLowerCase()
     const success=await perform(()=>submit('publicStart',{
-      name:registerName.trim(),email,role:registerRole,turnstileToken
-    }),'A six-digit login code was sent. Check your inbox.')
+      name:registerName.trim(),email,role:registerRole,turnstileToken,loginOnly:entryMode==='login'
+    }),'If this email has an applicant account, check its inbox for a six-digit login code.')
     setTurnstileToken('')
     if (success) {setPendingEmail(email);setOtpRequested(true)}
     else if (turnstileWidget.current) {
@@ -312,7 +314,7 @@ export default function AvaScreening() {
   }
   const verifyPublic = async () => {
     if (await perform(()=>submit('publicVerify',{email:pendingEmail,code,
-      name:registerName.trim(),role:registerRole}),'Your email is verified.')) {
+      name:registerName.trim(),role:registerRole,loginOnly:entryMode==='login'}),'Your email is verified.')) {
       setCode('')
     }
   }
@@ -328,7 +330,7 @@ export default function AvaScreening() {
     setScreen(null);setApplications([]);setDocuments([]);setOnboardingConfigured(false);setSelectedDocuments({});setSession('');sessionRef.current='';setOtpRequested(false)
     setProfile(BLANK_PROFILE);setPrivacyConsent(false);setMonitorConsent(false);setAiConsent(false)
     setRegisterName('');setRegisterEmail('');setPendingEmail('');setCode('')
-    setTurnstileToken('');setNotice('You have signed out.')
+    setEntryMode('login');setTurnstileToken('');setNotice('You have signed out.')
     // Clear legacy invitation query to offer public email OTP login for resuming.
     if (invitation) navigate('/ava-screening/',{replace:true})
   }
@@ -531,8 +533,11 @@ export default function AvaScreening() {
               <img src={STEP_ILLUSTRATIONS[stage].src} alt="" aria-hidden="true" width={112} height={112} decoding="async" />
             </div>
             {stage === 'email' && <div className="ava-panel"><div className="ava-icon"><MailCheck /></div><p className="ava-label">STEP 01 — FREE APPLICANT REGISTRATION</p><h2>Register or sign in with email.</h2>
-              <p>Anyone may register for an OPERAVA role assessment. No invitation or password is required. We send a six-digit code to verify that you control the email address.</p>
-              {invitation ? <><div className="ava-invitation"><ShieldCheck size={20}/> A private invitation was detected. Do not forward or share its link.</div>
+              <p>Existing applicants can sign in with their email and a one-time code. New applicants can create a profile to apply and complete their required assessment.</p>
+              {!invitation && IS_PREVIEW ? <div className="ava-invitation ava-preview-login">
+                <LockKeyhole size={20}/><span>This is a design preview without applicant login credentials. To protect applicant records, sign in using the secure production portal instead.
+                  <a href="https://www.operavaglobal.com/applicant-portal/"> Open the live Applicant Portal</a>.</span>
+              </div> : invitation ? <><div className="ava-invitation"><ShieldCheck size={20}/> A private invitation was detected. Do not forward or share its link.</div>
                 {!otpRequested ? <button className="ava-primary" disabled={busy} onClick={() => void requestCode()}>{busy ? 'Sending code…' : 'Send verification code'}<ChevronRight size={17}/></button>
                   : <form onSubmit={(e) => { e.preventDefault(); void verifyCode() }}><label className="ava-field">Verification code<input inputMode="numeric" autoComplete="one-time-code" maxLength={6} pattern="[0-9]{6}" placeholder="6-digit code" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0,6))} required /></label>
                     <p className="ava-muted">Sent to {maskedEmail}. Expires in 10 minutes.</p><button className="ava-primary" disabled={busy || code.length !== 6}>{busy ? 'Verifying…' : 'Verify and continue'}<ChevronRight size={17}/></button>
@@ -545,24 +550,30 @@ export default function AvaScreening() {
                     onChange={e=>setCode(e.target.value.replace(/\D/g,'').slice(0,6))}/></label>
                   <button type="submit" className="ava-primary" disabled={busy||code.length!==6}>
                     {busy?'Verifying…':'Verify email and continue'}<ChevronRight size={16}/></button>
-                  <button className="ava-secondary" type="button" onClick={()=>{setOtpRequested(false);setCode('');setTurnstileToken('')}}
-                    disabled={busy}>Sign in with another email / resend after 60 seconds</button>
+                  <button className="ava-secondary" type="button" onClick={()=>{setOtpRequested(false);setCode('');setTurnstileToken('');
+                    const turnstile=(window as unknown as {turnstile?:{reset:(id:string)=>void}}).turnstile
+                    if(turnstileWidget.current)turnstile?.reset(turnstileWidget.current)}}
+                    disabled={busy}>Use another email / request a new code</button>
                 </form> : <form className="ava-form" onSubmit={e=>{e.preventDefault();void startPublic()}}>
-                  <label className="ava-field">Full name<input required minLength={2} maxLength={100} autoComplete="name"
-                    placeholder="Your legal full name" value={registerName} onChange={e=>setRegisterName(e.target.value)}/></label>
+                  <div className="ava-entry-options" role="group" aria-label="Choose applicant access">
+                    <button type="button" className={entryMode==='login'?'is-active':''} aria-pressed={entryMode==='login'} onClick={()=>{setEntryMode('login');setTurnstileToken('');if(turnstileWidget.current){(window as unknown as {turnstile?:{reset:(id:string)=>void}}).turnstile?.reset(turnstileWidget.current)}}}>Existing applicant · Log in</button>
+                    <button type="button" className={entryMode==='register'?'is-active':''} aria-pressed={entryMode==='register'} onClick={()=>{setEntryMode('register');setTurnstileToken('');if(turnstileWidget.current){(window as unknown as {turnstile?:{reset:(id:string)=>void}}).turnstile?.reset(turnstileWidget.current)}}}>New applicant · Register</button>
+                  </div>
+                  {entryMode==='register' && <label className="ava-field">Full legal name<input required minLength={2} maxLength={100} autoComplete="name"
+                    placeholder="As it appears on your identity document" value={registerName} onChange={e=>setRegisterName(e.target.value)}/></label>}
                   <label className="ava-field">Email address<input required type="email" maxLength={180} autoComplete="email"
                     placeholder="you@example.com" value={registerEmail} onChange={e=>setRegisterEmail(e.target.value)}/></label>
-                  <label className="ava-field">Assessment track<select value={registerRole}
+                  {entryMode==='register' && <label className="ava-field">Assessment track<select value={registerRole}
                     onChange={e=>setRegisterRole(e.target.value as Role)}>
                     <option value="tech">Technology Executive</option>
                     <option value="ops">Business Operations Executive</option>
                     <option value="cx">Customer Experience Executive</option>
-                  </select></label>
+                  </select></label>}
                   <div className="ava-human-check"><div ref={turnstileNode} aria-label="Automated abuse protection challenge" />
                     {!turnstileKey && <p className="ava-muted">Registration is not yet available. Security verification is being configured.</p>}</div>
                   <button className="ava-primary" type="submit" disabled={busy||!turnstileKey||!turnstileToken}>
-                    {busy?'Sending code…':'Send email verification code'}<ChevronRight size={16}/></button>
-                  <p className="ava-muted">Already have a profile? Enter the same email address and verify a new code to resume.</p>
+                    {busy?'Sending code…':entryMode==='login'?'Email my login code':'Register and email a code'}<ChevronRight size={16}/></button>
+                  <p className="ava-muted">{entryMode==='login'?'Use the same email address from your Careers application. If you have never registered, select New applicant.':'You will verify your email before your new profile is activated.'}</p>
                 </form>}
             </div>}
             {stage === 'profile' && <div className="ava-panel"><p className="ava-label">STEP 02 — CANDIDATE BACKGROUND</p><h2>Tell us about yourself.</h2><p>Complete your education, professional experience, and motivation before identity review. Your responses are saved to the secure screening record.</p>
