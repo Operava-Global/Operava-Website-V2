@@ -73,7 +73,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   useSpotlight()
   const wasApplicantPortal = useRef(false)
   useEffect(() => {
-    const inApplicantPortal = /^\\/(?:ava-screening|applicant-portal)(?:\\/|$)/.test(pathname)
+    const inApplicantPortal = new RegExp('^/(?:ava-screening|applicant-portal)(?:/|$)').test(pathname)
     if (inApplicantPortal === wasApplicantPortal.current) return
     wasApplicantPortal.current = inApplicantPortal
     // Opt in to white on portal entry. Restore the stored marketing-site
