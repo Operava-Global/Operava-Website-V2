@@ -274,3 +274,21 @@ The default public identity verification no longer needs a third-party identity 
 **Privacy and operations:** Captured identity photos are restricted to the dedicated private R2 bucket and are automatically removed by a bucket lifecycle after 30 days. Reviewer access runs only through Cloudflare Access. Account deletion additionally removes all owned identity objects and their metadata. No external vision LLM or third-party ID vendor receives these photos in this owned workflow. Obtain a privacy/legal review and test camera permissions and reviewer procedures on real phones before relying on it for production hiring. R2 lifecycle expiry can make old evidence unavailable for later audits; preserve only minimal human-decision logs with approved retention.
 
 **Runtime:** `AVA_ID_BUCKET` is bound to `operava-ava-identity-evidence`; no document images may be published as static site assets. Optional `functions/lib/avaVision.ts` and text prompts are **not wired** into identity approval and do not perform biometric decisions. The legacy signed identity callback remains for backward compatibility but is no longer invoked by the owned applicant path.
+
+## Camera activation and browser permission recovery (29 October 2026)
+
+**Root cause:** `public/_headers` previously applied `Permissions-Policy: camera=()` globally and on `/ava-screening/*`, while `/applicant-portal/*` inherited the global denial. Even a successful `getUserMedia` implementation cannot access a camera when the browser enforces this header.
+
+**Correction:** Maintain `camera=(), microphone=()` for unrelated website pages. Permit `camera=(self), microphone=(self)` only for `/ava-screening` and `/applicant-portal` (including slash/subpaths); retain no-store, no-index and no-referrer on those routes. Browser permission must still be granted explicitly; headers never grant access silently.
+
+**Applicant flow:**
+1. Detect HTTPS, feature-policy availability, media devices, and an optional browser `Permissions API` camera status. The Permissions API is missing/incomplete on some browsers; unknown does **not** mean denied and never bypasses browser prompts.
+2. Issue the short-lived server identity challenge, then **render** the live preview and an explicit `Enable back camera` button. Do not call `getUserMedia` after awaiting a network request or before the video element exists.
+3. On direct user gesture, request the rear camera for the ID (with a fallback video constraint on older browsers). Require a **live, enabled, unmuted track**, successful muted/inline `video.play()`, and a decoded frame before displaying `Camera is active` and enabling `Capture ID & next`.
+4. Capture the JPEG in memory, close the rear camera, then request the front camera through a **second user gesture** for selfie. After the first selfie, leave the front stream active for the turned selfie. Each capture advances only after the actual JPEG is produced.
+5. On permission denial, busy camera, missing device, playback failure, device disconnect, or unsupported environment: show actionable guidance, allow a retry, and prevent advancing or submitting without all three images. Stop tracks and discard pending permission requests on cancel, logout or unmount.
+6. Identity evidence upload is unchanged: the backend validates the challenge and private photos and requires human approval before assessment/proctoring begins. Browser permission state alone never approves identity.
+
+**Browser support:** use a recent HTTPS version of Safari, Chrome, Edge or Firefox. If access is denied, enable Camera via browser site permissions and operating-system privacy permissions; restart the capture step. In-app browsers and cross-origin iframes may refuse capture despite a correct site configuration. Do not attempt to automatically change browser permissions or update installed browsers: the browser and OS own these user-controlled settings.
+
+**Validation:** CI includes a focused camera/permissions contract test, TypeScript and Vite build. Confirm actual response headers, desktop/mobile Safari and Chrome camera permissions, denial/retry, in-app browsing, switching rear/front cameras, and the complete reviewer approval flow on real devices before asserting full end-to-end operation. Reference: https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia .
