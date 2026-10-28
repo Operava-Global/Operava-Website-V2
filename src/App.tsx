@@ -24,6 +24,7 @@ import OperatingPhilosophy from './pages/OperatingPhilosophy'
 import RemoteFirstModel from './pages/RemoteFirstModel'
 import CorporateRegistration from './pages/CorporateRegistration'
 import Contact from './pages/Contact'
+import Partnership from './pages/Partnership'
 import Quote from './pages/Quote'
 import Contacts from './pages/Contacts'
 import Faq from './pages/Faq'
@@ -95,6 +96,8 @@ export default function App() {
 
             {/* Contact & portals */}
             <Route path="/contact" element={<Contact />} />
+            <Route path="/partnerships" element={<Partnership />} />
+            <Route path="/partnership" element={<Navigate to="/partnerships" replace />} />
             <Route path="/quote" element={<Quote />} />
             <Route path="/request-a-quote" element={<Quote />} />
             <Route path="/contacts" element={<Contacts />} />
