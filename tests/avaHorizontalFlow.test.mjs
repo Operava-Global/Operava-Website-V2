@@ -42,9 +42,9 @@ test('API refuses cross-origin attempts, stale identity and post-deadline record
   assert.match(api, /Sec-Fetch-Site/)
   assert.match(api, /Identity verification must remain approved throughout the assessment/)
   assert.match(api, /Assessment time elapsed\. Recording upload has closed/)
-  assert.match(api, /A verification link was recently requested/)
-  assert.match(api, /subject:\{name:legalName\}/)
-  assert.match(api, /AVA_IDV_WEBHOOK_SECRET/)
+  assert.match(api, /A live identity capture was recently started/)
+  assert.match(api, /identityReviewChecksValid/)
+  assert.match(api, /AVA_ID_BUCKET/)
 })
 
 test('AVA presents a one-question board instead of a character sidecar', () => {
