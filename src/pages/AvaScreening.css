@@ -1193,3 +1193,34 @@ html[data-theme="light"] .ava-preview-login a{color:#6c27bc}
   #site-shell.ava-screening-host .ava-camera-stepper span{padding:3px;font-size:9px}
   #site-shell.ava-screening-host .ava-owned-id{gap:5px;padding:8px}
 }
+
+/* Browser-native ID fallback and proctor device-by-device permission flow. */
+#site-shell.ava-screening-host .ava-native-capture{
+  padding:9px 11px;border-radius:8px;border:1px solid var(--ava-line);
+  display:flex;gap:6px;flex-wrap:wrap;align-items:center
+}
+#site-shell.ava-screening-host .ava-native-capture input[type=file]{
+  position:absolute;width:1px;height:1px;opacity:0;pointer-events:none
+}
+#site-shell.ava-screening-host .ava-native-capture .ava-muted{
+  flex:1 1 100%;margin:0;font-size:10px;line-height:1.4
+}
+#site-shell.ava-screening-host .ava-proctor-browser-check{
+  display:flex;flex-direction:column;gap:5px;
+  padding:9px 12px;border:1px solid var(--ava-line);border-radius:9px;
+  background:var(--ava-card);color:var(--ava-muted);font-size:11px;line-height:1.45
+}
+#site-shell.ava-screening-host .ava-proctor-browser-check strong{color:var(--ava-ink);font-size:12px}
+#site-shell.ava-screening-host .ava-proctor-browser-check .ava-text-button{
+  align-self:flex-start;margin:0;padding:0
+}
+#site-shell.ava-screening-host .ava-proctor-device-steps{
+  display:flex;align-items:stretch;gap:8px;flex-wrap:wrap;margin-top:8px
+}
+#site-shell.ava-screening-host .ava-proctor-device-steps button{
+  flex:1 1 175px;min-height:36px;margin:0
+}
+@media(max-height:690px){
+  #site-shell.ava-screening-host .ava-proctor-browser-check{gap:3px;padding:6px}
+  #site-shell.ava-screening-host .ava-native-capture{padding:6px}
+}

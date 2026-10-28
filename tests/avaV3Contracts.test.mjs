@@ -51,7 +51,12 @@ test('Applicant identity cannot self-attest and live capture has hard gates',()=
   assert.match(callback,/event\.passportNfcPassed===true/)
   assert.match(callback,/event\.eventId/)
   assert.match(callback,/ava_screening_provider_events/)
-  assert.doesNotMatch(applicant,/type="file"[^>]*accept="image\//)
+  // Device-camera picker is optional and explicitly human-reviewed; it is
+  // not an unverified automatic biometric or identity attestation.
+  assert.ok(applicant.includes('type="file" accept="image/*" capture='))
+  assert.match(applicant,/identityCaptureMode/)
+  assert.ok(backend.includes("captureMethod=form.get('captureMethod')"))
+  assert.match(backend,/identityReviewChecksValid/)
 })
 
 test('Proctor recording metadata and actual media stay behind Access',()=>{

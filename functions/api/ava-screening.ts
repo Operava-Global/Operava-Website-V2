@@ -493,6 +493,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         const headers=new Headers({'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',
           'Referrer-Policy':'no-referrer','Content-Disposition':`attachment; filename="ava-identity-${part}.jpg"`})
         object.writeHttpMetadata(headers)
+        headers.set('X-AVA-Capture-Method',object.customMetadata?.captureMethod||'unknown')
         return new Response(object.body,{headers})
       }
 
@@ -1084,6 +1085,9 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const form=await new Response(raw.buffer as ArrayBuffer,{headers:{'Content-Type':type}}).formData()
       const token=String(form.get('challenge')||'')
       const documentType=form.get('documentType')
+      const captureMethod=form.get('captureMethod')||'live_preview'
+      if(!['live_preview','device_camera_fallback'].includes(String(captureMethod)))
+        return error('Unknown identity photo capture method.',400)
       if(!/^[a-f0-9-]{36}$/.test(token)||!validOwnedDocumentType(documentType)||form.get('consent')!=='true')
         return error('A valid live challenge, identity type and explicit consent are required.',400)
       const previous=await db.prepare('SELECT * FROM ava_screening_owned_identity WHERE session_id=?')
@@ -1108,7 +1112,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         for(const [i,bytes] of [document,selfie,motion].entries())
           await env.AVA_ID_BUCKET.put(keys[i],bytes,{
             httpMetadata:{contentType:'image/jpeg'},
-            customMetadata:{category:'private-manual-identity-review',part:['document','selfie','motion'][i]}
+            customMetadata:{category:'private-manual-identity-review',part:['document','selfie','motion'][i],captureMethod:String(captureMethod)}
           })
         const updated=await db.prepare(`UPDATE ava_screening_owned_identity SET
           document_key=?,selfie_key=?,motion_key=?,document_type=?,consent_at=?,
