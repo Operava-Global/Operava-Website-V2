@@ -496,10 +496,11 @@ function confirmationCopy(kind: ConfirmationKind) {
 }
 
 function confirmationDetails(opts: ConfirmationInput): Array<[string, string]> {
+  const isPartner = confirmationKind(opts) === 'partner'
   const values: Array<[string, string]> = [
     ['Name', opts.name],
     ...confirmationFields
-      .map(({ label, keys }) => [label, submissionValue(opts.rows, ...keys)] as [string, string])
+      .map(({ label, keys }) => [isPartner && label === 'Project Requirements' ? 'Partnership Proposal' : isPartner && label === 'Website / System URL' ? 'Company Website' : label, submissionValue(opts.rows, ...keys)] as [string, string])
       .filter(([, value]) => Boolean(value && value.trim() && value !== 'undefined')),
   ]
   // Omit empty rows and avoid repeating the reference number in the detail listing.
