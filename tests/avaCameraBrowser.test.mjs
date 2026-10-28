@@ -13,7 +13,7 @@ test('Camera and mic remain globally denied but are permitted on both AVA URL al
   for(const route of ['/ava-screening/*','/ava-screening','/applicant-portal/*','/applicant-portal']){
     const entry=headers.split('\n'+route+'\n')[1]
     assert.ok(entry,route+' must have explicit override')
-    assert.match(entry,/^  Permissions-Policy: camera=\(self\), microphone=\(self\), geolocation=\(\)/)
+    assert.match(entry,/^  ! Permissions-Policy\\n  Permissions-Policy: camera=\\(self\\), microphone=\\(self\\), geolocation=\\(\\)/)
     assert.match(entry,/  Cache-Control: no-store/)
   }
 })
