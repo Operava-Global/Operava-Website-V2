@@ -157,6 +157,8 @@ export default function AvaScreening() {
   const [identityFrames,setIdentityFrames]=useState<{document:Blob|null;selfie:Blob|null;motion:Blob|null}>({document:null,selfie:null,motion:null})
   const identityStream=useRef<MediaStream|null>(null)
   const identityVideo=useRef<HTMLVideoElement|null>(null)
+  const identityNativeInput=useRef<HTMLInputElement|null>(null)
+  const [identityCaptureMode,setIdentityCaptureMode]=useState<'live_preview'|'device_camera_fallback'>('live_preview')
   const identityCameraGeneration=useRef(0)
   const [identityCameraStatus,setIdentityCameraStatus]=useState<'idle'|'requesting'|'ready'|'blocked'|'unsupported'|'interrupted'>('idle')
   const [identityBrowser,setIdentityBrowser]=useState<CameraCheck|null>(null)
@@ -514,6 +516,7 @@ export default function AvaScreening() {
       if(!result.challenge||!result.challengeCode||!result.expiresAt)
         throw Error('Unable to obtain a secure camera challenge.')
       setIdentityFrames({document:null,selfie:null,motion:null})
+      setIdentityCaptureMode('live_preview')
       setIdentityStep(0)
       setIdentityChallenge({token:result.challenge,code:result.challengeCode,expires:result.expiresAt})
       setIdentityCameraStatus('idle')
@@ -556,6 +559,50 @@ export default function AvaScreening() {
     }catch(e){setError(e instanceof Error?e.message:'Unable to capture identity photo.')}
     finally{setIdentityBusy(false)}
   }
+  // Native mobile camera-picker fallback. It can offer a photo library on
+  // some devices; every frame remains a visual human-review observation, not
+  // proof of physical liveness. Convert to JPEG before private upload.
+  const captureNativeIdentityFile=async(file:File|null)=>{
+    if(!file)return
+    setIdentityBusy(true);setError('')
+    try{
+      if(!identityChallenge||Date.now()>identityChallenge.expires)
+        throw Error('Your secure identity challenge expired. Restart capture.')
+      if(!file.type.startsWith('image/')||file.size>15_000_000)
+        throw Error('Select one clear photo captured with your device camera (maximum 15 MB).')
+      const url=URL.createObjectURL(file)
+      let image:HTMLImageElement
+      try {
+        image=await new Promise<HTMLImageElement>((resolve,reject)=>{
+          const img=new Image()
+          img.onload=()=>resolve(img)
+          img.onerror=()=>reject(Error('The selected image could not be opened. Use your device camera with JPEG capture.'))
+          img.src=url
+        })
+      }finally{URL.revokeObjectURL(url)}
+      if(image.naturalWidth<320||image.naturalHeight<240)
+        throw Error('Camera photo is too small. Retake it with a higher resolution.')
+      const canvas=document.createElement('canvas')
+      const scale=Math.min(1,1280/image.naturalWidth,1280/image.naturalHeight)
+      canvas.width=Math.floor(image.naturalWidth*scale)
+      canvas.height=Math.floor(image.naturalHeight*scale)
+      const context=canvas.getContext('2d')
+      if(!context)throw Error('This browser cannot process captured photos.')
+      context.drawImage(image,0,0,canvas.width,canvas.height)
+      const jpeg=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(blob=>
+        blob?resolve(blob):reject(Error('Unable to convert photo to a private JPEG.')),'image/jpeg',0.83))
+      if(jpeg.size<8000||jpeg.size>=2_500_000)
+        throw Error('Captured image is not usable. Retake it in good lighting.')
+      stopIdentityCamera()
+      setIdentityCaptureMode('device_camera_fallback')
+      const part=(['document','selfie','motion'] as const)[identityStep]
+      setIdentityFrames(previous=>({...previous,[part]:jpeg}))
+      if(identityStep===0){setIdentityStep(1);setNotice('ID photo captured. Use the device camera again for your first selfie.')}
+      else if(identityStep===1){setIdentityStep(2);setNotice('First selfie captured. Turn your face for the second selfie.')}
+      else{setIdentityStep(3);setNotice('Three photos prepared for restricted human review. Device camera-picker captures are not independent liveness proof.')}
+    }catch(e){setError(cameraErrorMessage(e))}
+    finally{setIdentityBusy(false)}
+  }
   const submitIdentity=async()=>{
     setIdentityBusy(true);setError('')
     try{
@@ -565,6 +612,7 @@ export default function AvaScreening() {
         throw Error('Explicit consent and all three camera captures are required.')
       const form=new FormData()
       form.set('challenge',identityChallenge.token);form.set('documentType',identityDocType);form.set('consent','true')
+      form.set('captureMethod',identityCaptureMode)
       for(const key of ['document','selfie','motion'] as const)
         form.set(key,new File([identityFrames[key]!],key+'.jpg',{type:'image/jpeg'}))
       await submit('identitySubmit',{},form)
@@ -995,6 +1043,15 @@ export default function AvaScreening() {
                       </button>
                     </div>
                     {(identityCameraStatus==='blocked'||identityCameraStatus==='unsupported'||identityBrowser?.permission==='denied')&&<p className="ava-camera-help">Camera access blocked? Open the camera icon or site settings beside your browser address bar, select <strong>Allow</strong> for Camera, check your phone or computer privacy settings, then retry. If camera capture is unsupported, update your browser or use the latest Chrome, Edge, Firefox, or Safari outside an in-app browser.</p>}
+                    <div className="ava-native-capture">
+                      <input ref={identityNativeInput} type="file" accept="image/*" capture={identityStep===0?'environment':'user'}
+                        aria-label={identityStep===0?'Device camera ID photo':'Device camera selfie photo'}
+                        onChange={event=>{const photo=event.target.files?.[0]||null;event.target.value='';void captureNativeIdentityFile(photo)}}/>
+                      <button type="button" className="ava-secondary" disabled={identityBusy} onClick={()=>identityNativeInput.current?.click()}>
+                        <Smartphone size={16}/>Use device camera instead
+                      </button>
+                      <p className="ava-muted">Alternative for phones or browsers with a blocked live preview. Some devices may also offer an existing photo; OPERAVA reviewers assess these images manually, not as validated liveness.</p>
+                    </div>
                     <button type="button" className="ava-text-button" disabled={identityBusy} onClick={()=>void inspectIdentityBrowser()}>Check browser and permission status</button></>:<>
                         <p className="ava-status-good">Three separate camera images captured for authorized human review. No automated identity approval will occur.</p>
                         <button type="button" className="ava-primary" disabled={identityBusy} onClick={()=>void submitIdentity()}>{identityBusy?'Submitting securely…':'Submit identity for human verification'}<ChevronRight size={16}/></button>
@@ -1009,6 +1066,13 @@ export default function AvaScreening() {
                   <div className="ava-check-icon"><MonitorCheck size={24}/></div>
                   <h3>02 · Grant proctor permissions</h3>
                   <p>Record your entire screen, webcam and microphone throughout the assessment. If permission is denied, revoked, or storage is interrupted, you cannot begin or continue. Use the tests below to check your browser without uploading media.</p>
+                  <div className="ava-proctor-browser-check" role="status">
+                    <strong>Browser capture compatibility</strong>
+                    <span>{proctorSupport?.compatible?'Screen, webcam, microphone and recording APIs are available.':'This browser or site cannot provide all required recording capabilities.'}</span>
+                    <span>Screen sharing: {proctorSupport?.screen&&proctorSupport.screenPolicy?'supported':'unavailable or blocked'} · Webcam: {proctorSupport?.camera&&proctorSupport.cameraPolicy?'supported':'unavailable'} · Mic: {proctorSupport?.microphonePolicy?'allowed by site':'blocked by policy'} · Recorder: {proctorSupport?.recorder?'supported':'unavailable'}</span>
+                    {!proctorSupport?.compatible&&<span>For a proctored assessment, use a current browser supporting full-screen sharing, typically desktop Chrome, Edge, Firefox or Safari. Complete phone ID capture first and reopen the assessment on your computer with the same account.</span>}
+                    <button type="button" className="ava-text-button" onClick={()=>setProctorSupport(inspectProctorSupport())}>Recheck device support</button>
+                  </div>
                   <div className="ava-permission-tests" aria-label="Local device permission diagnostics">
                     <button type="button" className="ava-secondary" disabled={proctorBusy||permissionTest==='testing'} onClick={()=>void checkCameraMic()}><Mic size={16}/>{cameraChecked?'Camera & mic: checked':'Test camera & microphone'}</button>
                     <button type="button" className="ava-secondary" disabled={proctorBusy||permissionTest==='testing'} onClick={()=>void checkScreenShare()}><MonitorCheck size={16}/>{screenChecked?'Screen: checked':'Test full-screen sharing'}</button>
@@ -1016,9 +1080,14 @@ export default function AvaScreening() {
                   <p className="ava-muted">These tests stop capture immediately and never upload media. Permission may need to be granted again when you start the exam.</p>
                   <label className="ava-check"><input type="checkbox" checked={recordingConsent} onChange={e=>setRecordingConsent(e.target.checked)}/>
                     <span>I explicitly consent to screen, webcam and microphone recording for proctoring, restricted reviewer access and approved retention.</span></label>
-                  <button type="button" className="ava-secondary" disabled={proctorBusy||!recordingConsent||!screen?.recordingStorageReady||!screen?.verifiedApplicantProfile} onClick={() => void startCapture()}>
-                    <Mic size={16}/>{proctorBusy?'Requesting permissions…':proctorReady?'Restart recording':'Allow screen, webcam & mic'}
-                  </button>
+                  <div className="ava-proctor-device-steps">
+                    <button type="button" className="ava-secondary" disabled={proctorBusy||!recordingConsent||!screen?.recordingStorageReady||!screen?.verifiedApplicantProfile||!proctorSupport?.camera||!proctorSupport.microphonePolicy} onClick={()=>void prepareProctorCamera()}>
+                      <Mic size={16}/>{proctorBusy?'Requesting device access…':proctorCameraReady?'Webcam & microphone active ✓':'1 · Enable webcam & microphone'}
+                    </button>
+                    <button type="button" className="ava-primary" disabled={proctorBusy||!proctorCameraReady||!proctorSupport?.screen||!proctorSupport.screenPolicy} onClick={()=>void startCapture()}>
+                      <MonitorCheck size={16}/>{proctorBusy?'Starting secure recording…':proctorReady?'Restart screen recording':'2 · Share entire screen & record'}<ChevronRight size={16}/>
+                    </button>
+                  </div>
                   <p className={proctorReady&&proctorSaved.camera&&proctorSaved.screen?'ava-status-good':'ava-status-warn'}>
                     {proctorReady&&proctorSaved.camera&&proctorSaved.screen?'Both recordings saved · Capture active':'Required · Live recording not ready'}
                   </p>
@@ -1052,7 +1121,10 @@ export default function AvaScreening() {
                 <MonitorCheck size={24}/><h2>Restore assessment permissions</h2>
                 <p>The timer continues, but questions and answer submission are paused until live screen, webcam and microphone recording is restored. Browsers require you to approve screen sharing again.</p>
                 <label className="ava-check"><input type="checkbox" checked={recordingConsent} onChange={e=>setRecordingConsent(e.target.checked)}/><span>I consent to continuing screen, webcam and microphone recording for this assessment.</span></label>
-                <button type="button" className="ava-primary" disabled={proctorBusy||!recordingConsent||!screen?.verifiedApplicantProfile||!screen.recordingStorageReady} onClick={()=>void startCapture()}>{proctorBusy?'Requesting permissions…':'Restore screen, camera and microphone'}<ChevronRight size={17}/></button>
+                <div className="ava-proctor-device-steps">
+                  <button type="button" className="ava-secondary" disabled={proctorBusy||!recordingConsent||!screen?.verifiedApplicantProfile||!screen.recordingStorageReady} onClick={()=>void prepareProctorCamera()}>{proctorCameraReady?'Webcam & microphone active ✓':'1 · Enable webcam & microphone'}</button>
+                  <button type="button" className="ava-primary" disabled={proctorBusy||!proctorCameraReady||!proctorSupport?.screen} onClick={()=>void startCapture()}>2 · Restore entire screen sharing <ChevronRight size={17}/></button>
+                </div>
                 <p className="ava-muted">{proctorReady?'Capture restarted; waiting for private recordings to save.':'No recording permission means no further assessment answers.'}</p>
               </div> : <>
                 <div className="ava-ai-conversation" aria-label="AVA questions and instructions">
