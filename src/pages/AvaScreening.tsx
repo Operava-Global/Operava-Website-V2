@@ -808,16 +808,16 @@ export default function AvaScreening() {
                     <label className="ava-field">Identity document<select value={identityDocType} onChange={e=>setIdentityDocType(e.target.value as typeof identityDocType)}>
                       <option value="national_id">National ID</option><option value="passport">Passport</option><option value="drivers_license">Driver’s licence</option>
                     </select></label>
-                    <label className="ava-check"><input type="checkbox" checked={identityConsent} onChange={e=>setIdentityConsent(e.target.checked)}/><span>I consent to taking and privately storing three camera photos of my identity document and face, exclusively for authorized OPERAVA human identity review, subject to the <Link to="/privacy" target="_blank">Privacy Policy</Link>. I understand automated biometric matching is not used.</span></label>
+                    <label className="ava-check"><input type="checkbox" checked={identityConsent} onChange={e=>setIdentityConsent(e.target.checked)}/><span>I consent to taking and privately storing three camera photos of my identity document and face, exclusively for authorized OPERAVA human identity review, subject to the <Link to="/privacy" target="_blank">Privacy Policy</Link>. The stored images automatically expire after 30 days. I understand automated biometric matching is not used.</span></label>
                     <button type="button" className="ava-secondary" disabled={identityBusy||!identityConsent||!screen?.identityProviderAvailable} onClick={()=>void requestIdentity()}><Smartphone size={16}/>{identityBusy?'Starting camera…':'Begin OPERAVA live identity capture'}</button>
                   </>}
                   {identityChallenge&&screen?.identityStatus!=='pending_review'&&<div className="ava-owned-id">
                     <p className="ava-label">ONE-TIME CAPTURE CHALLENGE · {identityChallenge.code}</p>
                     <p>{['Hold the document flat in the camera with all edges visible. Avoid glare and reflections.','Look directly at the camera for a neutral selfie.','Turn your face slightly to one side and take a second selfie.','Review and submit all three camera frames.'][identityStep]}</p>
-                    {identityStep<3?<><video ref={identityVideo} playsInline autoPlay muted aria-label="Live identity verification camera preview"/>
+                    {identityStep<3?<><video ref={identityVideo} data-facing={identityStep===0?'environment':'user'} playsInline autoPlay muted aria-label="Live identity verification camera preview"/>
                       <div className="ava-slide-actions">
                         <button type="button" className="ava-primary" disabled={identityBusy} onClick={()=>void captureIdentity()}>{identityBusy?'Capturing…':['Capture ID','Capture first selfie','Capture turned selfie'][identityStep]} <ChevronRight size={16}/></button>
-                        <button type="button" className="ava-secondary" disabled={identityBusy} onClick={()=>void startIdentityCamera(identityStep===0?'environment':'user')}>Enable camera</button>
+                        <button type="button" className="ava-secondary" disabled={identityBusy} onClick={()=>void startIdentityCamera(identityStep===0?'environment':'user').catch(e=>setError(e instanceof Error?e.message:'Camera unavailable.'))}>Enable camera</button>
                       </div></>:<>
                         <p className="ava-status-good">Three separate camera images captured for authorized human review. No automated identity approval will occur.</p>
                         <button type="button" className="ava-primary" disabled={identityBusy} onClick={()=>void submitIdentity()}>{identityBusy?'Submitting securely…':'Submit identity for human verification'}<ChevronRight size={16}/></button>
