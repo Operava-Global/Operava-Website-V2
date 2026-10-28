@@ -673,15 +673,6 @@ html[data-theme="light"] .ava-preview-login a{color:#6c27bc}
 #site-shell.ava-screening-host .ava-readiness-grid .ava-check-card{max-width:920px;animation:ava-side-enter .55s cubic-bezier(.22,1,.36,1) both}
 #site-shell.ava-screening-host .ava-readiness>.ava-muted{max-width:860px;margin-bottom:0}
 #site-shell.ava-screening-host .ava-readiness-footer{max-width:920px}
-.ava-assessor-guide{display:flex;align-items:center;gap:14px;min-width:0;
-  padding:10px 16px 10px 7px;margin:0 0 17px;
-  background:linear-gradient(96deg,rgba(160,0,240,.09),transparent 80%);
-  border:1px solid var(--ava-line);border-radius:9px}
-.ava-assessor-guide img{width:76px;height:95px;object-fit:contain;object-position:top center;flex:none;
-  filter:drop-shadow(0 7px 12px rgba(0,162,203,.24))}
-.ava-assessor-guide div{display:flex;flex-direction:column;gap:6px}
-.ava-assessor-guide strong{color:var(--ava-ink);font-size:14px;letter-spacing:.01em}
-.ava-assessor-guide span{color:var(--ava-muted);font-size:12px;line-height:1.5}
 .ava-proctor-reconnect{max-width:650px;padding:25px;background:var(--ava-card);
   border:1px solid var(--ava-line);border-left:3px solid #A000F0;border-radius:8px}
 .ava-proctor-reconnect>svg{color:#A000F0}
@@ -739,8 +730,8 @@ html[data-theme="light"] .ava-preview-login a{color:#6c27bc}
 }
 #site-shell.ava-screening-host .ava-assessment-deck{
   display:grid;
-  grid-template-columns:minmax(0,1fr) clamp(190px,21vw,290px);
-  gap:12px;
+  grid-template-columns:minmax(0,1fr);
+  gap:0;
   flex:1 1 auto;
   min-height:0;
   height:100%;
@@ -831,97 +822,17 @@ html[data-theme="light"] .ava-preview-login a{color:#6c27bc}
 #site-shell.ava-screening-host .ava-scene-fit .ava-invitation{padding:10px 12px;margin:9px 0}
 #site-shell.ava-screening-host .ava-scene-fit .ava-applications{padding:13px 16px}
 #site-shell.ava-screening-host .ava-app-support{padding:4px 2px 0;font-size:9px;flex:0 0 auto}
-#site-shell.ava-screening-host .ava-proctor-dock{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:space-between;
-  min-width:0;
-  min-height:0;
-  overflow:hidden;
-  position:relative;
-  padding:13px 7px 10px;
-  border:1px solid var(--ava-line);
-  border-radius:10px;
-  background:linear-gradient(165deg,rgba(160,0,240,.06),transparent 34%),var(--ava-bg);
-}
-#site-shell.ava-screening-host .ava-proctor-dock-title{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:7px;
-  font-size:9px;
-  letter-spacing:.09em;
-  font-weight:800;
-  color:var(--ava-ink);
-}
-#site-shell.ava-screening-host .ava-proctor-live{
-  width:7px;height:7px;border-radius:100%;
-  background:#00bdbb;box-shadow:0 0 0 4px rgba(0,189,187,.13);
-  animation:ava-proctor-light 3s ease-in-out infinite;
-}
-#site-shell.ava-screening-host .ava-proctor-character{
-  display:grid;
-  place-items:center;
-  flex:1 1 auto;
-  min-height:0;
-  width:100%;
-  padding:5px 2px;
-  isolation:isolate;
-}
-#site-shell.ava-screening-host .ava-proctor-character:before{
-  content:"";position:absolute;width:78%;aspect-ratio:1;top:20%;
-  border-radius:50%;z-index:-1;opacity:.55;
-  background:radial-gradient(circle,rgba(0,207,240,.18),rgba(160,0,240,.07) 50%,transparent 70%);
-  animation:ava-proctor-halo 6.6s ease-in-out infinite alternate;
-}
-#site-shell.ava-screening-host .ava-proctor-character img{
-  display:block;
-  width:auto;
-  height:100%;
-  max-width:100%;
-  max-height:100%;
-  object-fit:contain;
-  filter:drop-shadow(0 15px 15px rgba(3,149,187,.18));
-  animation:ava-proctor-float 5.5s ease-in-out infinite;
-}
-#site-shell.ava-screening-host .ava-proctor-caption{
-  width:100%;
-  padding:10px 9px 0;
-  text-align:center;
-  border-top:1px solid var(--ava-line);
-}
-#site-shell.ava-screening-host .ava-proctor-caption strong{
-  display:block;font-size:11px;color:var(--ava-ink);line-height:1.3;
-}
-#site-shell.ava-screening-host .ava-proctor-caption p{
-  color:var(--ava-muted);font-size:10px;line-height:1.45;margin:5px 0 0;
-}
 #site-shell.ava-screening-host .ava-record-pager{
   display:flex;gap:9px;align-items:center;justify-content:center;
   margin-top:8px;flex-wrap:wrap;
 }
 #site-shell.ava-screening-host .ava-record-pager span{font-size:11px;font-variant-numeric:tabular-nums;color:var(--ava-muted)}
 #site-shell.ava-screening-host .ava-record-pager .ava-secondary{margin:0}
-@keyframes ava-proctor-float{0%,100%{transform:translateY(2px)}50%{transform:translateY(-9px)}}
-@keyframes ava-proctor-halo{from{transform:scale(.85);opacity:.35}to{transform:scale(1.1);opacity:.7}}
-@keyframes ava-proctor-light{0%,100%{opacity:.4}50%{opacity:1}}
 @media(max-width:850px){
- #site-shell.ava-screening-host .ava-assessment-deck{grid-template-columns:minmax(0,1fr) 125px;gap:7px}
- #site-shell.ava-screening-host .ava-proctor-dock{padding:6px 3px}
- #site-shell.ava-screening-host .ava-proctor-dock-title{font-size:7px;letter-spacing:0}
- #site-shell.ava-screening-host .ava-proctor-caption{padding:5px 2px 0}
- #site-shell.ava-screening-host .ava-proctor-caption strong{font-size:9px}
- #site-shell.ava-screening-host .ava-proctor-caption p{font-size:8px}
  #site-shell.ava-screening-host .ava-app-heading{display:none}
  #site-shell.ava-screening-host .ava-app-support{display:none}
 }
 @media(max-width:520px){
- #site-shell.ava-screening-host .ava-assessment-deck{grid-template-columns:minmax(0,1fr) 79px;gap:4px}
- #site-shell.ava-screening-host .ava-proctor-dock-title span:last-child{display:none}
- #site-shell.ava-screening-host .ava-proctor-caption{display:none}
- #site-shell.ava-screening-host .ava-proctor-character{padding:2px 0}
- #site-shell.ava-screening-host .ava-proctor-dock{border-radius:7px}
  #site-shell.ava-screening-host .ava-scene-fit .ava-content{padding:8px}
  #site-shell.ava-screening-host .ava-scene-fit .ava-panel h2{font-size:21px}
  #site-shell.ava-screening-host .ava-scene-fit .ava-panel>p:not(.ava-label):not(.ava-muted){font-size:11px}
@@ -937,10 +848,284 @@ html[data-theme="light"] .ava-preview-login a{color:#6c27bc}
  #site-shell.ava-screening-host .ava-app-support{display:none}
  #site-shell.ava-screening-host .ava-workspace-main{padding-top:3px}
  #site-shell.ava-screening-host .ava-workspace-nav{margin-bottom:3px}
- #site-shell.ava-screening-host .ava-proctor-caption p{display:none}
+}
+
+/* Full-width AVA AI-style question board. The backend continues to own the
+   question sequence, timer, identity and recording gates. No mascot/sidecar. */
+#site-shell.ava-screening-host .ava-content--question-board{
+  padding:clamp(9px,1.2vw,19px);
+  background:var(--ava-bg);
+}
+#site-shell.ava-screening-host .ava-ai-board{
+  display:flex;
+  flex-direction:column;
+  gap:clamp(10px,1.5vh,18px);
+  width:100%;
+  max-width:none;
+  margin:0;
+  min-width:0;
+}
+#site-shell.ava-screening-host .ava-ai-board-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  padding:0 0 12px;
+  border-bottom:1px solid var(--ava-line);
+}
+#site-shell.ava-screening-host .ava-ai-board-identity{
+  display:flex;
+  align-items:center;
+  gap:13px;
+  min-width:0;
+}
+#site-shell.ava-screening-host .ava-ai-board-icon{
+  display:grid;
+  place-items:center;
+  flex:0 0 44px;
+  width:44px;
+  height:44px;
+  border-radius:13px;
+  color:#A000F0;
+  background:rgba(160,0,240,.09);
+  border:1px solid rgba(160,0,240,.22);
+}
+#site-shell.ava-screening-host .ava-ai-eyebrow{
+  margin:0 0 4px;
+  color:#A000F0;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.13em;
+}
+#site-shell.ava-screening-host .ava-ai-board-head h2{
+  margin:0 0 3px;
+  font-size:clamp(23px,2.6vw,32px);
+  font-weight:850;
+  line-height:1.14;
+  letter-spacing:-.04em;
+}
+#site-shell.ava-screening-host .ava-ai-board-subtitle{
+  margin:0;
+  color:var(--ava-muted);
+  font-size:11px;
+  line-height:1.5;
+}
+#site-shell.ava-screening-host .ava-ai-board-session{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex:none;
+  padding:10px 13px;
+  border:1px solid var(--ava-line);
+  border-radius:10px;
+  background:var(--ava-card);
+  color:var(--ava-ink);
+  font-variant-numeric:tabular-nums;
+}
+#site-shell.ava-screening-host .ava-ai-board-session svg{color:#A000F0}
+#site-shell.ava-screening-host .ava-ai-board-session span{font-size:18px;font-weight:850}
+#site-shell.ava-screening-host .ava-ai-board-session small{font-size:10px;color:var(--ava-muted)}
+#site-shell.ava-screening-host .ava-ai-board-progress{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+#site-shell.ava-screening-host .ava-ai-board-progress>div:first-child{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  font-size:11px;
+  font-weight:750;
+  color:var(--ava-ink);
+}
+#site-shell.ava-screening-host .ava-ai-board-progress>div:first-child span:last-child{
+  color:var(--ava-muted);font-weight:600;
+}
+#site-shell.ava-screening-host .ava-ai-board-progress .ava-progress{
+  height:5px;
+  margin:0;
+}
+#site-shell.ava-screening-host .ava-ai-conversation{
+  display:flex;
+  flex-direction:column;
+  gap:13px;
+  width:100%;
+}
+#site-shell.ava-screening-host .ava-ai-message{
+  display:flex;
+  gap:13px;
+  align-items:flex-start;
+  width:100%;
+}
+#site-shell.ava-screening-host .ava-ai-message-avatar{
+  flex:0 0 35px;
+  display:grid;
+  place-items:center;
+  width:35px;height:35px;
+  border-radius:11px;
+  background:#A000F0;
+  color:white;
+}
+#site-shell.ava-screening-host .ava-ai-message-body{
+  flex:1 1 auto;
+  min-width:0;
+  padding:16px 20px;
+  border-radius:5px 14px 14px 14px;
+  background:var(--ava-card);
+  border:1px solid var(--ava-line);
+}
+#site-shell.ava-screening-host .ava-ai-message--instructions .ava-ai-message-body{
+  background:linear-gradient(98deg,rgba(160,0,240,.065),transparent 75%),var(--ava-card);
+}
+#site-shell.ava-screening-host .ava-ai-message--question .ava-ai-message-body{
+  border-color:rgba(160,0,240,.24);
+  background:var(--ava-bg);
+  box-shadow:0 10px 22px rgba(29,10,50,.035);
+  animation:ava-board-question-enter .6s cubic-bezier(.22,1,.36,1) both;
+}
+#site-shell.ava-screening-host .ava-ai-message-meta{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:9px;
+  line-height:1.4;
+}
+#site-shell.ava-screening-host .ava-ai-message-meta strong{
+  font-size:11px;
+  font-weight:850;
+  color:var(--ava-ink);
+}
+#site-shell.ava-screening-host .ava-ai-message-meta span{
+  font-size:10px;
+  font-weight:750;
+  color:#A000F0;
+  text-transform:uppercase;
+  letter-spacing:.045em;
+}
+#site-shell.ava-screening-host .ava-ai-message-body>p{
+  color:var(--ava-muted);
+  margin:0;
+  font-size:12px;
+  line-height:1.65;
+}
+#site-shell.ava-screening-host .ava-ai-message-body h3{
+  color:var(--ava-ink);
+  margin:0;
+  font-weight:750;
+  font-size:clamp(16px,2vw,22px);
+  line-height:1.55;
+  letter-spacing:-.02em;
+  overflow-wrap:anywhere;
+}
+#site-shell.ava-screening-host .ava-ai-composer{
+  border:1px solid var(--ava-line);
+  border-radius:14px;
+  padding:15px 17px;
+  background:var(--ava-bg);
+  box-shadow:0 10px 34px rgba(35,18,55,.045);
+}
+#site-shell.ava-screening-host .ava-ai-composer-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:0 0 8px;
+}
+#site-shell.ava-screening-host .ava-ai-composer-head label{
+  font-size:12px;
+  color:var(--ava-ink);
+  font-weight:800;
+}
+#site-shell.ava-screening-host .ava-ai-composer-head span{
+  font-size:10px;
+  color:var(--ava-muted);
+  font-variant-numeric:tabular-nums;
+}
+#site-shell.ava-screening-host .ava-ai-composer textarea{
+  display:block;
+  width:100%;
+  height:clamp(85px,17dvh,170px);
+  min-height:85px;
+  padding:12px 14px;
+  border:1px solid var(--ava-line);
+  border-radius:10px;
+  resize:none;
+  outline:none;
+  color:var(--ava-ink);
+  background:var(--ava-card);
+  line-height:1.55;
+  font-size:13px;
+}
+#site-shell.ava-screening-host .ava-ai-composer textarea:focus-visible{
+  border-color:#A000F0;
+  box-shadow:0 0 0 3px rgba(160,0,240,.1);
+}
+#site-shell.ava-screening-host .ava-ai-composer-actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding-top:10px;
+}
+#site-shell.ava-screening-host .ava-ai-composer-utilities{
+  display:flex;align-items:center;gap:13px;min-width:0;
+}
+#site-shell.ava-screening-host .ava-ai-composer-utilities .ava-secondary,
+#site-shell.ava-screening-host .ava-ai-composer-actions .ava-primary{
+  margin:0;
+  min-height:39px;
+}
+#site-shell.ava-screening-host .ava-ai-composer-utilities span{
+  color:var(--ava-muted);
+  font-size:10px;
+  line-height:1.45;
+  max-width:320px;
+}
+#site-shell.ava-screening-host .ava-ai-composer-actions .ava-primary{
+  white-space:nowrap;
+}
+#site-shell.ava-screening-host .ava-ai-security-note{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  color:var(--ava-muted);
+  margin:0;
+  font-size:10px;
+  line-height:1.5;
+  flex-wrap:wrap;
+}
+#site-shell.ava-screening-host .ava-ai-security-note svg{color:#A000F0}
+@keyframes ava-board-question-enter{
+  from{opacity:.4;transform:translateX(24px)}
+  to{opacity:1;transform:translateX(0)}
+}
+@media(max-width:740px){
+  #site-shell.ava-screening-host .ava-ai-board-head{gap:7px;padding-bottom:8px}
+  #site-shell.ava-screening-host .ava-ai-board-icon{flex-basis:35px;width:35px;height:35px;border-radius:9px}
+  #site-shell.ava-screening-host .ava-ai-board-head h2{font-size:21px}
+  #site-shell.ava-screening-host .ava-ai-board-subtitle{font-size:10px}
+  #site-shell.ava-screening-host .ava-ai-board-session{padding:7px;gap:5px}
+  #site-shell.ava-screening-host .ava-ai-board-session span{font-size:14px}
+  #site-shell.ava-screening-host .ava-ai-board-session small{display:none}
+  #site-shell.ava-screening-host .ava-ai-message{gap:7px}
+  #site-shell.ava-screening-host .ava-ai-message-avatar{flex-basis:27px;width:27px;height:27px;border-radius:7px}
+  #site-shell.ava-screening-host .ava-ai-message-body{padding:10px 12px}
+  #site-shell.ava-screening-host .ava-ai-message-meta{gap:6px;margin-bottom:5px;flex-wrap:wrap}
+  #site-shell.ava-screening-host .ava-ai-message-body h3{font-size:16px;line-height:1.4}
+  #site-shell.ava-screening-host .ava-ai-composer{padding:11px}
+  #site-shell.ava-screening-host .ava-ai-composer-actions{align-items:stretch;flex-direction:column}
+  #site-shell.ava-screening-host .ava-ai-composer-utilities{justify-content:space-between}
+  #site-shell.ava-screening-host .ava-ai-composer-actions .ava-primary{align-self:stretch}
+}
+@media(max-height:700px){
+  #site-shell.ava-screening-host .ava-ai-board{gap:8px}
+  #site-shell.ava-screening-host .ava-ai-message-body{padding:10px 13px}
+  #site-shell.ava-screening-host .ava-ai-message-body>p{font-size:11px;line-height:1.4}
+  #site-shell.ava-screening-host .ava-ai-composer{padding:10px 12px}
+  #site-shell.ava-screening-host .ava-ai-composer textarea{height:85px}
 }
 @media(prefers-reduced-motion:reduce){
- #site-shell.ava-screening-host .ava-proctor-live,
- #site-shell.ava-screening-host .ava-proctor-character img,
- #site-shell.ava-screening-host .ava-proctor-character:before{animation:none!important}
+  #site-shell.ava-screening-host .ava-ai-message--question .ava-ai-message-body{
+    animation:none!important;
+  }
 }

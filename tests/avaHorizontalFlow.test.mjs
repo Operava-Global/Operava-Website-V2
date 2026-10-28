@@ -6,7 +6,6 @@ const source = path => readFileSync(new URL('../' + path, import.meta.url), 'utf
 const ui = source('src/pages/AvaScreening.tsx')
 const css = source('src/pages/AvaScreening.css')
 const api = source('functions/api/ava-screening.ts')
-const mascot = source('public/media/ava-proctor-mermaid.svg')
 
 test('AVA uses horizontal, reduced-motion-aware stage and question transitions', () => {
   assert.match(ui, /AnimatePresence mode="wait"/)
@@ -15,7 +14,7 @@ test('AVA uses horizontal, reduced-motion-aware stage and question transitions',
   assert.match(ui, /useReducedMotion\(\)/)
   assert.match(ui, /duration:reduceMotion\?0:0\.65/)
   assert.match(css, /\.ava-workspace-body\{[\s\S]*?overflow:hidden/)
-  assert.match(css, /\.ava-horizontal-scene\{[\s\S]*?overflow-y:auto/)
+  assert.match(css, /\.ava-horizontal-scene\{[\s\S]*?overflow:hidden!important/)
   assert.match(ui, /setProfilePage\(page=>Math\.min\(2,page\+1\)\)/)
   assert.match(ui, /setReadyPage\(1\)/)
 })
@@ -48,10 +47,13 @@ test('API refuses cross-origin attempts, stale identity and post-deadline record
   assert.match(api, /AVA_IDV_WEBHOOK_SECRET/)
 })
 
-test('AVA proctor illustration is accessible and honors reduced motion', () => {
-  assert.match(mascot, /animated assessment guide/)
-  assert.match(mascot, /id="tail"/)
-  assert.match(mascot, /ava-tail-sway/)
-  assert.match(mascot, /prefers-reduced-motion:reduce/)
-  assert.match(ui, /ava-proctor-mermaid\.svg/)
+test('AVA presents a one-question board instead of a character sidecar', () => {
+  assert.ok(ui.includes('ava-ai-board'))
+  assert.ok(ui.includes('AVA · Instructions'))
+  assert.ok(ui.includes('ava-ai-message--question'))
+  assert.ok(ui.includes('Submit & next question'))
+  assert.ok(!ui.includes('ava-proctor-mermaid.svg'))
+  assert.ok(!ui.includes('ava-proctor-dock'))
+  assert.match(css, /ava-board-question-enter/)
+  assert.match(css, /prefers-reduced-motion:reduce/)
 })

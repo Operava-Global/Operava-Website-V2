@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { CheckCircle2, ChevronRight, ClipboardCheck, ClipboardList, FileCheck2, Clock3, Headphones, LockKeyhole, MailCheck, Mic, MonitorCheck, ShieldCheck, Smartphone, TriangleAlert, LogOut } from 'lucide-react'
+import { CheckCircle2, ChevronRight, ClipboardCheck, ClipboardList, FileCheck2, Clock3, Headphones, Sparkles, LockKeyhole, MailCheck, Mic, MonitorCheck, ShieldCheck, Smartphone, TriangleAlert, LogOut } from 'lucide-react'
 import { usePageMeta } from '../site/seo'
 import ThemeToggle from '../site/ThemeToggle'
 import './AvaScreening.css'
@@ -645,11 +645,11 @@ export default function AvaScreening() {
             <div className="ava-sidebar-note"><LockKeyhole size={17}/><span>New assessments require consented webcam, microphone and screen recording. Sound and focus flags require human review; AI feedback is advisory.</span></div>
             {screen?.assessmentStatus === 'in_progress' && <div className="ava-timer"><span>TIME REMAINING</span><strong aria-live="off" className={seconds < 300 ? 'ava-time-low' : ''}>{formatRemaining(seconds)}</strong><small>Time runs even if this tab closes.</small></div>}
           </aside>
-          <section className="ava-content" aria-live="polite">
-            <div className="ava-stage-heading">
+          <section className={`ava-content ${stage==='assessment'?'ava-content--question-board':''}`} aria-live="polite">
+            {stage!=='assessment' && <div className="ava-stage-heading">
               <div><span>AVA SCREENING JOURNEY</span><strong>{STEP_ILLUSTRATIONS[stage].label}</strong></div>
               <img src={STEP_ILLUSTRATIONS[stage].src} alt="" aria-hidden="true" width={112} height={112} decoding="async" />
-            </div>
+            </div>}
             {stage === 'email' && <div className="ava-panel"><div className="ava-icon"><MailCheck /></div><p className="ava-label">STEP 01 — FREE APPLICANT REGISTRATION</p><h2>Register or sign in with email.</h2>
               <p>Existing applicants can sign in with their email and a one-time code. New applicants can create a profile to apply and complete their required assessment.</p>
               {!invitation && IS_PREVIEW ? <div className="ava-invitation ava-preview-login">
@@ -754,19 +754,59 @@ export default function AvaScreening() {
                   onClick={() => void beginAssessment()}>{busy?'Starting…':'Begin Ava Assessment'}<ChevronRight size={17}/></button>
               </div>}
             </div>}
-            {stage === 'assessment' && <div className="ava-panel ava-assessment">
+            {stage === 'assessment' && <div className="ava-panel ava-assessment ava-ai-board">
+              <header className="ava-ai-board-head">
+                <div className="ava-ai-board-identity">
+                  <span className="ava-ai-board-icon" aria-hidden="true"><Sparkles size={21}/></span>
+                  <div><p className="ava-ai-eyebrow">OPERAVA / AVA ASSESSMENT</p><h2>Question board</h2><p className="ava-ai-board-subtitle">Secure, step-by-step assessment · One question at a time</p></div>
+                </div>
+                <div className="ava-ai-board-session" aria-label="Assessment timer"><Clock3 size={16}/><span>{formatRemaining(seconds)}</span><small>remaining</small></div>
+              </header>
+              <div className="ava-ai-board-progress">
+                <div><span>Question {screen?.question?.number || screen?.answered || 0} of {screen?.total || 30}</span><span>{screen?.answered || 0} completed</span></div>
+                <div className="ava-progress" role="progressbar" aria-label="Assessment completed" aria-valuemin={0} aria-valuemax={screen?.total||30} aria-valuenow={screen?.answered||0}>
+                  <span style={{width:`${((screen?.answered || 0) / (screen?.total || 1)) * 100}%`}} />
+                </div>
+              </div>
               {screen?.total===30 && (!proctorReady||!proctorSaved.camera||!proctorSaved.screen||!isCaptureLive()) ? <div className="ava-proctor-reconnect" role="status">
                 <MonitorCheck size={24}/><h2>Restore assessment permissions</h2>
                 <p>The timer continues, but questions and answer submission are paused until live screen, webcam and microphone recording is restored. Browsers require you to approve screen sharing again.</p>
                 <label className="ava-check"><input type="checkbox" checked={recordingConsent} onChange={e=>setRecordingConsent(e.target.checked)}/><span>I consent to continuing screen, webcam and microphone recording for this assessment.</span></label>
                 <button type="button" className="ava-primary" disabled={proctorBusy||!recordingConsent||!screen?.verifiedApplicantProfile||!screen.recordingStorageReady} onClick={()=>void startCapture()}>{proctorBusy?'Requesting permissions…':'Restore screen, camera and microphone'}<ChevronRight size={17}/></button>
                 <p className="ava-muted">{proctorReady?'Capture restarted; waiting for private recordings to save.':'No recording permission means no further assessment answers.'}</p>
-              </div> : <><div className="ava-assessment-top"><span className="ava-label">LIVE ASSESSMENT · QUESTION {screen?.question?.number} / {screen?.total}</span><span className="ava-badge">{screen?.question?.section === 'english' ? 'ENGLISH COMMUNICATION' : 'ROLE ASSESSMENT'}</span></div>
-              <div className="ava-progress"><span style={{width:`${((screen?.answered || 0) / (screen?.total || 1)) * 100}%`}} /></div><div className="ava-exam-meta"><span><ShieldCheck size={15}/> Identity verified</span><span><MonitorCheck size={15}/> Consent-based recording active</span><span><Clock3 size={15}/> {formatRemaining(seconds)} remaining</span></div><h2>{screen?.question?.prompt || 'Loading next question…'}</h2><label className="ava-field">Your response<textarea className="ava-answer" rows={5} value={answer} maxLength={4000} onChange={(e) => { setAnswer(e.target.value); setAnswerSource('typed') }} placeholder="Write your response in your own words. You can also dictate, then review the transcript before submitting." /></label>
-              <div className="ava-tools"><button type="button" className="ava-secondary" disabled={!speechAvailable} onClick={startDictation}><Mic size={17}/>{isSpeaking ? 'Stop dictation' : 'Dictate answer'}</button><span>{answer.length}/4000 characters</span></div>
-              {!speechAvailable && <p className="ava-muted">Speech recognition isn’t available in this browser. Typing is supported.</p>}
-              <p className="ava-muted">Dictation converts speech to editable text using your browser’s speech recognition service. Transcript-only review cannot reliably score spoken fluency or pronunciation.</p>
-              <div className="ava-bottom"><span><MonitorCheck size={15}/> Proctored session {fullscreen ? '· Fullscreen on' : '· Fullscreen optional'} · Focus &amp; sound events logged</span><button className="ava-primary" disabled={busy || answer.trim().length < 15 || seconds === 0 || (screen?.total === 30 && !proctorReady)} onClick={() => void sendAnswer()}>{busy ? 'Submitting…' : 'Save answer and continue'}<ChevronRight size={17}/></button></div>
+              </div> : <>
+                <div className="ava-ai-conversation" aria-label="AVA questions and instructions">
+                  <div className="ava-ai-message ava-ai-message--instructions">
+                    <span className="ava-ai-message-avatar" aria-hidden="true"><Sparkles size={17}/></span>
+                    <div className="ava-ai-message-body">
+                      <div className="ava-ai-message-meta"><strong>AVA · Instructions</strong><span>Before you answer</span></div>
+                      <p>Read the question carefully and respond in your own words. Submit one answer to receive the next question. Your 45-minute timer continues if you leave or refresh this page; submitted responses cannot be edited.</p>
+                    </div>
+                  </div>
+                  <div className="ava-ai-message ava-ai-message--question">
+                    <span className="ava-ai-message-avatar" aria-hidden="true"><Sparkles size={17}/></span>
+                    <div className="ava-ai-message-body">
+                      <div className="ava-ai-message-meta"><strong>AVA · Question {screen?.question?.number}</strong><span>{screen?.question?.section === 'english' ? 'English communication' : 'Role assessment'}</span></div>
+                      <h3>{screen?.question?.prompt || 'Loading next question…'}</h3>
+                    </div>
+                  </div>
+                </div>
+                <div className="ava-ai-composer">
+                  <div className="ava-ai-composer-head"><label htmlFor="ava-ai-response">Your response</label><span>{answer.length} / 4000 characters</span></div>
+                  <textarea id="ava-ai-response" className="ava-answer" rows={5} value={answer} maxLength={4000}
+                    onChange={(e) => { setAnswer(e.target.value); setAnswerSource('typed') }}
+                    aria-describedby="ava-ai-response-help"
+                    placeholder="Type your response here. Write naturally, using examples where helpful…" />
+                  <div className="ava-ai-composer-actions">
+                    <div className="ava-ai-composer-utilities">
+                      <button type="button" className="ava-secondary" disabled={!speechAvailable} onClick={startDictation}><Mic size={17}/>{isSpeaking ? 'Stop dictation' : 'Dictate answer'}</button>
+                      <span id="ava-ai-response-help">{speechAvailable ? 'Dictation is converted to editable text. Check it before submitting.' : 'Speech recognition is unavailable here; typing is supported.'}</span>
+                    </div>
+                    <button type="button" className="ava-primary" disabled={busy || answer.trim().length < 15 || seconds === 0 || (screen?.total === 30 && !proctorReady)}
+                      onClick={() => void sendAnswer()}>{busy ? 'Saving response…' : 'Submit & next question'}<ChevronRight size={17}/></button>
+                  </div>
+                </div>
+                <p className="ava-ai-security-note"><ShieldCheck size={14}/> Verified identity <span aria-hidden="true">·</span> <MonitorCheck size={14}/> Consented recording {fullscreen?'· Fullscreen on':'· Fullscreen optional'} <span aria-hidden="true">·</span> Focus and sound events require human review</p>
               </>}
             </div>}
             {finished && <div className="ava-panel"><div className="ava-icon"><ClipboardCheck /></div><p className="ava-label">SCREENING RECORD — SUBMITTED</p><h2>{screen?.assessmentStatus === 'time_expired' ? 'Time has elapsed.' : 'Assessment completed.'}</h2><p>Your submitted responses are saved for Talent Acquisition’s review. No AI-generated feedback or scores make an automatic employment decision.</p><div className="ava-summary"><div><span>Answers received</span><strong>{screen?.answered} / {screen?.total}</strong></div><div><span>AI writing reviews</span><strong>{screen?.reviewProgress.reviewed} / {screen?.reviewProgress.total}</strong></div><div><span>Hiring decision</span><strong>Human review</strong></div></div>
@@ -849,13 +889,6 @@ export default function AvaScreening() {
         </div>
         </motion.div>
         </AnimatePresence>
-        <aside className="ava-proctor-dock" aria-label="AVA animated assessment proctor">
-          <div className="ava-proctor-dock-title"><span className="ava-proctor-live" aria-hidden="true" /><span>AVA · ASSESSMENT GUIDE</span></div>
-          <div className="ava-proctor-character"><img src="/media/ava-proctor-mermaid.svg" alt="AVA, a turquoise cyber-mermaid with a gently swaying tail" width={300} height={470}/></div>
-          <div className="ava-proctor-caption"><strong>{stage==='assessment'?'Question '+(screen?.question?.number||'')+' of '+(screen?.total||30):'Meet AVA, your virtual proctor'}</strong>
-            <p>{stage==='assessment'?'Your responses are reviewed by authorized recruitment personnel. The assessment timer continues while permissions are restored.':'I guide you through the assessment steps. Your privacy and recording permissions remain under your control.'}</p>
-          </div>
-        </aside>
         </div>
         <div className="ava-app-support"><LockKeyhole size={13} aria-hidden="true" /> Secure email OTP sign-in · For assistance, email <a href="mailto:talents@operavaglobal.com">talents@operavaglobal.com</a></div>
         </div>
