@@ -455,13 +455,13 @@ const confirmationFields: Array<{ label: string; keys: string[] }> = [
   { label: 'Additional Information', keys: ['Additional notes', 'Additional', 'Notes'] },
 ]
 
-type ConfirmationKind = 'operavian' | 'partner' | 'application' | 'academy' | 'general'
+type ConfirmationKind = 'operavian' | 'partner' | 'partner-submission' | 'application' | 'academy' | 'general'
 
 /** Only Future Operavian and Future Business Partner categories get their specialized response copy. */
 function confirmationKind(opts: ConfirmationInput, career = false): ConfirmationKind {
   if (career) return 'application'
   if (/academy/i.test(opts.sourceLabel)) return 'academy'
-  if (/partnership/i.test(opts.sourceLabel)) return 'partner'
+  if (/partnership/i.test(opts.sourceLabel)) return 'partner-submission'
   const category = submissionValue(opts.rows, 'Inquiry Category', 'Inquiry Type', 'Category')
   if (/future\s+operavian/i.test(category)) return 'operavian'
   if (/future\s+business\s+partner|business\s+partnership/i.test(category)) return 'partner'
@@ -475,9 +475,15 @@ function confirmationCopy(kind: ConfirmationKind) {
     thankYou: 'Thank you for choosing OPERAVA. We are pleased to begin working with you.',
     team: 'OPERAVA Recruitment Team',
   }
+  if (kind === 'partner-submission') return {
+    received: 'We have received your partnership proposal. Your submission has been recorded and forwarded to our Partnerships team.',
+    next: 'Our partnerships team will review your proposal and contact you regarding potential next steps.',
+    thankYou: 'Thank you for your interest in collaborating with OPERAVA. We look forward to exploring the opportunity.',
+    team: 'OPERAVA Partnerships Team',
+  }
   if (kind === 'partner') return {
     received: 'We have received your inquiry for a future business partnership. Your submission has been recorded and forwarded to our Business Partnership team.',
-    next: 'Our partnerships team will review your proposal and contact you regarding potential next steps.',
+    next: 'We will review your partnership inquiry and get back to you within 1-2 business days to discuss the next steps.',
     thankYou: 'Thank you for choosing OPERAVA. We look forward to partnering with you.',
     team: 'OPERAVA Support Team',
   }
@@ -496,7 +502,7 @@ function confirmationCopy(kind: ConfirmationKind) {
 }
 
 function confirmationDetails(opts: ConfirmationInput): Array<[string, string]> {
-  const isPartner = confirmationKind(opts) === 'partner'
+  const isPartner = ['partner', 'partner-submission'].includes(confirmationKind(opts))
   const values: Array<[string, string]> = [
     ['Name', opts.name],
     ...confirmationFields
