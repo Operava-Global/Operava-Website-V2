@@ -24,9 +24,29 @@
 /sitemap.xml
   Cache-Control: public, max-age=86400
 
-# Public candidate Ava Screening supports email OTP, with optional speech-to-text dictation.
+# AVA applicant camera and microphone capture are explicitly user initiated.
+# Keep camera/microphone disabled on every other website route.
+# Both the legacy screening URL and the applicant portal share the same React SPA.
 /ava-screening/*
-  Permissions-Policy: camera=(), microphone=(self), geolocation=()
+  Permissions-Policy: camera=(self), microphone=(self), geolocation=()
+  Referrer-Policy: no-referrer
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: no-store
+
+/ava-screening
+  Permissions-Policy: camera=(self), microphone=(self), geolocation=()
+  Referrer-Policy: no-referrer
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: no-store
+
+/applicant-portal/*
+  Permissions-Policy: camera=(self), microphone=(self), geolocation=()
+  Referrer-Policy: no-referrer
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: no-store
+
+/applicant-portal
+  Permissions-Policy: camera=(self), microphone=(self), geolocation=()
   Referrer-Policy: no-referrer
   X-Robots-Tag: noindex, nofollow, noarchive
   Cache-Control: no-store
