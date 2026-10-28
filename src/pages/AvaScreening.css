@@ -1140,3 +1140,56 @@ html[data-theme="light"] .ava-preview-login a{color:#6c27bc}
 #site-shell.ava-screening-host .ava-owned-id .ava-slide-actions{margin:0;gap:7px}
 #site-shell.ava-screening-host .ava-owned-id button{margin:0}
 @media(max-height:650px){#site-shell.ava-screening-host .ava-owned-id video{height:125px}}
+
+/* AVA owned-ID camera: browser status, live preview, and one-frame-at-a-time progression. */
+#site-shell.ava-screening-host .ava-camera-preflight{
+  display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;
+  padding:7px 10px;margin:7px 0;
+  background:var(--ava-card);border:1px solid var(--ava-line);
+  border-radius:8px;font-size:11px;color:var(--ava-muted)
+}
+#site-shell.ava-screening-host .ava-camera-preflight .ava-text-button{margin:0;padding:0;font-size:11px}
+#site-shell.ava-screening-host .ava-camera-stepper{display:flex;gap:6px;flex-wrap:wrap}
+#site-shell.ava-screening-host .ava-camera-stepper span{
+  flex:1 1 110px;padding:6px 8px;text-align:center;border-radius:5px;
+  color:var(--ava-muted);border:1px solid var(--ava-line);
+  font-size:10px;font-weight:700
+}
+#site-shell.ava-screening-host .ava-camera-stepper span.is-complete{
+  color:#A000F0;background:rgba(160,0,240,.07)
+}
+#site-shell.ava-screening-host .ava-camera-stepper span.is-current{
+  color:var(--ava-ink);border-color:#A000F0
+}
+#site-shell.ava-screening-host .ava-camera-preview{
+  position:relative;display:grid;place-items:center;
+  overflow:hidden;border-radius:8px;background:#12131b;
+  width:100%;height:clamp(115px,20dvh,230px)
+}
+#site-shell.ava-screening-host .ava-owned-id .ava-camera-preview video{
+  width:100%;height:100%;max-height:100%;object-fit:contain;
+  border-radius:0;background:transparent
+}
+#site-shell.ava-screening-host .ava-camera-placeholder{
+  position:absolute;inset:0;display:grid;place-items:center;
+  text-align:center;padding:12px;font-size:12px;
+  background:rgba(8,9,17,.86);color:#fff
+}
+#site-shell.ava-screening-host .ava-camera-help{
+  color:var(--ava-muted);background:rgba(160,0,240,.05);
+  border-left:2px solid #A000F0;
+  padding:8px 10px;line-height:1.4;font-size:10px
+}
+#site-shell.ava-screening-host .ava-camera-help strong{color:var(--ava-ink)}
+#site-shell.ava-screening-host .ava-owned-id .ava-slide-actions{
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px
+}
+#site-shell.ava-screening-host .ava-owned-id .ava-slide-actions button{
+  flex:1 1 180px;min-height:37px
+}
+#site-shell.ava-screening-host .ava-owned-id .ava-primary:disabled{opacity:.6;cursor:not-allowed}
+@media(max-height:680px){
+  #site-shell.ava-screening-host .ava-camera-preview{height:115px}
+  #site-shell.ava-screening-host .ava-camera-stepper span{padding:3px;font-size:9px}
+  #site-shell.ava-screening-host .ava-owned-id{gap:5px;padding:8px}
+}
