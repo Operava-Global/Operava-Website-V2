@@ -448,7 +448,7 @@ export default function AvaScreening() {
       }
       const video=identityVideo.current
       const track=stream.getVideoTracks()[0]
-      if(!video||!track||!cameraIsLive(stream))
+      if(!video||!track||track.readyState!=='live')
         throw Error('No live video track is available. Check the device camera and retry.')
       identityStream.current=stream
       track.addEventListener('ended',()=>{

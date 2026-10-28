@@ -279,7 +279,7 @@ The default public identity verification no longer needs a third-party identity 
 
 **Root cause:** `public/_headers` previously applied `Permissions-Policy: camera=()` globally and on `/ava-screening/*`, while `/applicant-portal/*` inherited the global denial. Even a successful `getUserMedia` implementation cannot access a camera when the browser enforces this header.
 
-**Correction:** Maintain `camera=(), microphone=()` for unrelated website pages. Permit `camera=(self), microphone=(self)` only for `/ava-screening` and `/applicant-portal` (including slash/subpaths); retain no-store, no-index and no-referrer on those routes. Browser permission must still be granted explicitly; headers never grant access silently.
+**Correction:** Maintain `camera=(), microphone=()` for unrelated website pages. Because Cloudflare Pages combines matching `_headers` rules, each AVA-specific route first declares `! Permissions-Policy` to remove the inherited global denial, then sets `camera=(self), microphone=(self)`. Without this detach, the browser may receive conflicting `camera=()` and `camera=(self)` directives and still block capture. Cover `/ava-screening` and `/applicant-portal` (including slash/subpaths); retain no-store, no-index and no-referrer. Browser permission must still be granted explicitly; headers never grant access silently.
 
 **Applicant flow:**
 1. Detect HTTPS, feature-policy availability, media devices, and an optional browser `Permissions API` camera status. The Permissions API is missing/incomplete on some browsers; unknown does **not** mean denied and never bypasses browser prompts.
