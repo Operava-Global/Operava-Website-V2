@@ -1125,8 +1125,8 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         if(!status.meta.changes)throw Error('IDENTITY_STATE_CHANGED')
       } catch {
         for(const key of keys)await env.AVA_ID_BUCKET.delete(key).catch(()=>{})
-        await db.prepare('UPDATE ava_screening_owned_identity SET document_key=NULL,selfie_key=NULL,motion_key=NULL,submitted_at=NULL WHERE session_id=? AND challenge_hash=? AND submitted_at=?')
-          .bind(row.id,challengeHash,now).run().catch(()=>{})
+        await db.prepare('UPDATE ava_screening_owned_identity SET document_key=NULL,selfie_key=NULL,motion_key=NULL,submitted_at=NULL WHERE session_id=? AND challenge_hash=? AND document_key=? AND submitted_at=?')
+          .bind(row.id,challengeHash,keys[0],now).run().catch(()=>{})
         return error('Identity upload could not be completed. Restart secure capture.',409)
       }
       for(const old of [previous.document_key,previous.selfie_key,previous.motion_key])
