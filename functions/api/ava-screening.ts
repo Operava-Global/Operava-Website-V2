@@ -8,6 +8,7 @@ import {
   type FormEnv,
 } from '../lib/formCore'
 import { buildQuestionSet, type PositionCode } from '../lib/assessmentBank'
+import { OWNED_ID_TTL_MS, ownedIdentityAccepted, validOwnedDocumentType, validateCameraJpeg, identityReviewChecksValid } from '../lib/avaOwnedIdentity'
 
 type Role = PositionCode
 type AvaEnv = FormEnv & {
@@ -39,6 +40,7 @@ type Applicant = {
   completed: number | null; created_at: number
 }
 type AnswerRow = { question_id: string; answer: string; source: string; review_status: string; review_json: string | null; submitted_at: number }
+type OwnedIdentity = {session_id:string;challenge_hash:string;issued_at:number;expires_at:number;attempts:number;document_key:string|null;selfie_key:string|null;motion_key:string|null;document_type:string|null;consent_at:number|null;submitted_at:number|null;reviewed_at:number|null;reviewer_note:string|null}
 const ROLES: Record<Role, string> = {
   tech: 'Technology Executive', ops: 'Business Operations Executive', cx: 'Customer Experience Executive',
 }
@@ -176,6 +178,12 @@ async function ensure(db: D1Database) {
       FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS ava_onboarding_session_idx ON ava_screening_onboarding_documents(session_id,requested_at DESC)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS ava_onboarding_status_idx ON ava_screening_onboarding_documents(status,requested_at DESC)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_owned_identity (
+      session_id TEXT PRIMARY KEY,challenge_hash TEXT NOT NULL,issued_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,attempts INTEGER NOT NULL DEFAULT 0,
+      document_key TEXT,selfie_key TEXT,motion_key TEXT,document_type TEXT,
+      consent_at INTEGER,submitted_at INTEGER,reviewed_at INTEGER,reviewer_note TEXT,
+      FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_provider_events (event_id TEXT PRIMARY KEY, session_id TEXT NOT NULL,received_at INTEGER NOT NULL)`),
   ])
   // D1 table already exists for previous sessions; one-time additive migration.
@@ -237,9 +245,9 @@ async function state(db: D1Database, env: AvaEnv, row: Applicant) {
   }
   const attestation=await db.prepare('SELECT status,face_score FROM ava_screening_identity_attestations WHERE session_id=?').bind(row.id).first<{status:string;face_score:number}>()
   return {...result,applicationReference:link?.reference_id||null,
-    verifiedApplicantProfile:row.identity_status==='approved' && attestation?.status==='verified',
+    verifiedApplicantProfile:row.identity_status==='approved' && ownedIdentityAccepted(attestation?.status),
     identityVerification:attestation?.status||'required',faceMatchScore:attestation?.status==='verified'?attestation.face_score:null,
-    identityProviderAvailable:Boolean(env.AVA_IDV_API_URL&&env.AVA_IDV_API_KEY&&env.AVA_IDV_WEBHOOK_SECRET),
+    identityProviderAvailable:Boolean(env.AVA_ID_BUCKET),identityMode:'operava_owned_human_review',
     recordingStorageReady:Boolean(env.AVA_PROCTOR_BUCKET),
     onboardingStorageReady:Boolean(env.AVA_ONBOARDING_BUCKET)}
 }
@@ -327,7 +335,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
   try {
     const type = request.headers.get('Content-Type') || ''
     const data = type.includes('multipart/form-data') ? null : await requestData(request)
-    const action = String(data?.action || (type.includes('multipart/form-data') ? (['proctorChunk','submitOnboardingDocument'].includes(new URL(request.url).searchParams.get('action')||'') ? new URL(request.url).searchParams.get('action') : 'identity') : ''))
+    const action = String(data?.action || (type.includes('multipart/form-data') ? (['proctorChunk','submitOnboardingDocument','identitySubmit'].includes(new URL(request.url).searchParams.get('action')||'') ? new URL(request.url).searchParams.get('action') : 'identity') : ''))
     // Reject browser requests issued from other origins, including consented
     // recording uploads. Server-to-server reviewer calls can omit Origin.
     const origin = request.headers.get('Origin')
@@ -468,13 +476,24 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         return json({ ok: true, pending: results.results || [] })
       }
       if (action === 'identityDocument') {
-        const applicant = await get(db, clean(data?.id, 80))
-        if (!applicant?.identity_key || applicant.identity_status !== 'pending_review' || !env.AVA_ID_BUCKET) return error('Document unavailable for review.', 404)
-        const object = await env.AVA_ID_BUCKET.get(applicant.identity_key)
-        if (!object) return error('Document missing from protected storage.', 404)
-        const headers = new Headers({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Disposition': 'attachment; filename="identity-evidence"' })
+        const id=clean(data?.id,80)
+        const applicant=await get(db,id)
+        if(!applicant||applicant.identity_status!=='pending_review'||!env.AVA_ID_BUCKET)
+          return error('Identity evidence unavailable for review.',404)
+        const part=String(data?.part||'document')
+        if(!['document','selfie','motion'].includes(part))return error('Unknown evidence type.',400)
+        const owned=await db.prepare('SELECT * FROM ava_screening_owned_identity WHERE session_id=?')
+          .bind(id).first<OwnedIdentity>()
+        const key=part==='document'?(owned?.document_key||applicant.identity_key):
+          part==='selfie'?owned?.selfie_key:owned?.motion_key
+        if(!key||!(part==='document'&&key===applicant.identity_key)&&!key.startsWith('ava-owned-id/'+id+'/'))
+          return error('Evidence unavailable.',404)
+        const object=await env.AVA_ID_BUCKET.get(key)
+        if(!object)return error('Evidence missing from private storage.',404)
+        const headers=new Headers({'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',
+          'Referrer-Policy':'no-referrer','Content-Disposition':`attachment; filename="ava-identity-${part}.jpg"`})
         object.writeHttpMetadata(headers)
-        return new Response(object.body, { headers })
+        return new Response(object.body,{headers})
       }
 
       // Reviewer-only endpoints return human-readable candidate responses, not just AI feedback.
@@ -558,10 +577,12 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         if (!id || data?.confirm !== 'DELETE') return error('A candidate ID and explicit DELETE confirmation are required.')
         const applicant = await get(db, id)
         if (!applicant) return error('Candidate not found.', 404)
-        if (applicant.identity_key) {
-          if (!env.AVA_ID_BUCKET) return error('Private ID storage unavailable; cannot safely finish deletion.', 503)
-          await env.AVA_ID_BUCKET.delete(applicant.identity_key)
-        }
+        const owned=await db.prepare('SELECT * FROM ava_screening_owned_identity WHERE session_id=?')
+          .bind(id).first<OwnedIdentity>()
+        const identityKeys=[...new Set([applicant.identity_key,owned?.document_key,owned?.selfie_key,owned?.motion_key].filter((k):k is string=>Boolean(k)))]
+        if(identityKeys.length&&!env.AVA_ID_BUCKET)
+          return error('Private identity storage unavailable; cannot safely finish deletion.',503)
+        for(const key of identityKeys)await env.AVA_ID_BUCKET!.delete(key)
         const recordings=(await db.prepare('SELECT object_key FROM ava_screening_proctor_evidence WHERE session_id=?')
           .bind(id).all<{object_key:string}>()).results||[]
         const paperwork=(await db.prepare('SELECT object_key FROM ava_screening_onboarding_documents WHERE session_id=? AND object_key IS NOT NULL')
@@ -574,6 +595,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
           db.prepare('DELETE FROM ava_screening_onboarding_documents WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_proctor_evidence WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_identity_attestations WHERE session_id=?').bind(id),
+          db.prepare('DELETE FROM ava_screening_owned_identity WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_identity_intents WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_provider_events WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_questions WHERE session_id=?').bind(id),
@@ -608,20 +630,68 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
             clean(request.headers.get('X-AVA-Reviewer-Identity') || '', 180) || 'reviewer_api').run()
         return json({ ok: true, message: 'Invitation email sent.', expiresAt: payload.exp, invitationId: payload.id })
       }
-      const id = clean(data?.id, 80)
-      const decision = data?.decision
-      if (!id || (decision !== 'approved' && decision !== 'needs_resubmission')) return error('Provide a session ID and a valid review decision.')
-      const row = await get(db, id)
-      if (!row || row.identity_status !== 'pending_review' || !row.identity_key) return error('Pending identity submission not found.', 404)
-      const now = Date.now()
-      const results = await db.batch([
-        db.prepare('UPDATE ava_screening_sessions SET identity_status=?, identity_reviewed=? WHERE id=? AND identity_status=?')
-          .bind(decision, now, id, 'pending_review'),
+      const id=clean(data?.id,80),decision=data?.decision
+      const reviewer=clean(request.headers.get('X-AVA-Reviewer-Identity'),180)
+      const note=clean(data?.note,750)
+      if(!id||!['approved','needs_resubmission'].includes(String(decision)))return error('Valid review decision required.')
+      if(!reviewer)return error('Authenticated reviewer identity required.',403)
+      const applicant=await get(db,id)
+      if(!applicant||applicant.identity_status!=='pending_review'||!applicant.identity_key)
+        return error('Pending identity review not found.',404)
+      const owned=await db.prepare('SELECT * FROM ava_screening_owned_identity WHERE session_id=?')
+        .bind(id).first<OwnedIdentity>()
+      if(!owned?.document_key||!owned.selfie_key||!owned.motion_key||!owned.submitted_at) {
+        // Old manual-upload applicants cannot be approved as newly reviewed
+        // live-capture applicants. Allow a reviewer to request recapture.
+        if(decision!=='needs_resubmission'||note.length<12)
+          return error('Complete owned identity evidence is required. Request new live capture.',409)
+        const legacy=await db.prepare("UPDATE ava_screening_sessions SET identity_status='needs_resubmission',identity_reviewed=? WHERE id=? AND identity_status='pending_review'")
+          .bind(Date.now(),id).run()
+        if(!legacy.meta.changes)return error('Review status changed. Refresh queue.',409)
+        await db.prepare('INSERT INTO ava_screening_review_events(session_id,action,detail,recorded_at) VALUES (?,?,?,?)')
+          .bind(id,'legacy_identity_recapture',`reviewer:${reviewer}; ${note}`,Date.now()).run()
+        return json({ok:true,identityStatus:'needs_resubmission'})
+      }
+      if(decision==='approved'&&(!identityReviewChecksValid(data?.checks)||note.length<12))
+        return error('A reviewer must confirm four checks and provide a meaningful rationale.',400)
+      if(decision==='approved') {
+        if(!env.AVA_ID_BUCKET)return error('Private identity evidence storage unavailable.',503)
+        // Evidence must still exist after lifecycle expiry; absent photos must
+        // never be approved via only the D1 metadata or browser checkboxes.
+        const media=await Promise.all([owned.document_key,owned.selfie_key,owned.motion_key]
+          .map(key=>env.AVA_ID_BUCKET!.head(key!)))
+        if(media.some(item=>!item))
+          return error('Identity photo evidence has expired. Request fresh camera capture.',409)
+      }
+      if(decision==='needs_resubmission'&&note.length<12)
+        return error('Provide the applicant with a clear resubmission reason.',400)
+      const now=Date.now()
+      const updated=await db.prepare('UPDATE ava_screening_sessions SET identity_status=?,identity_reviewed=? WHERE id=? AND identity_status=\'pending_review\'')
+        .bind(decision,now,id).run()
+      if(!updated.meta.changes)return error('Review status changed. Refresh queue.',409)
+      if(decision==='approved') {
+        // Owned, named HUMAN decision; no biometric score or fake document
+        // authenticity/liveness claim. No external certified-provider assertion.
+        await db.prepare(`INSERT INTO ava_screening_identity_attestations
+          (session_id,vendor_reference,face_score,liveness_pass,document_authentic,
+            document_name_match,passport_nfc_pass,status,checked_at)
+          VALUES (?,?,0,0,0,1,0,'manual_verified',?)
+          ON CONFLICT(session_id) DO UPDATE SET
+            vendor_reference=excluded.vendor_reference,face_score=0,liveness_pass=0,
+            document_authentic=0,document_name_match=1,passport_nfc_pass=0,
+            status='manual_verified',checked_at=excluded.checked_at`)
+          .bind(id,'operava-owned-'+id,now).run()
+      } else {
+        await db.prepare("UPDATE ava_screening_identity_attestations SET status='manual_review',checked_at=? WHERE session_id=?")
+          .bind(now,id).run()
+      }
+      await db.batch([
+        db.prepare('UPDATE ava_screening_owned_identity SET reviewer_note=?,reviewed_at=? WHERE session_id=?')
+          .bind(note,now,id),
         db.prepare('INSERT INTO ava_screening_review_events(session_id,action,detail,recorded_at) VALUES (?,?,?,?)')
-          .bind(id, 'identity_review', String(decision), now),
+          .bind(id,'owned_identity_'+decision,`reviewer:${reviewer}; ${note}`,now)
       ])
-      if (!results[0].meta.changes) return error('Identity status changed. Refresh the queue.', 409)
-      return json({ ok: true, identityStatus: decision })
+      return json({ok:true,identityStatus:decision,reviewedAt:now})
     }
     if (action === 'publicConfig') {
       return json({ ok: true, emailOtpOnly: true, registrationOpen: true,
@@ -802,7 +872,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const saved = await get(db, invite.id)
       return json({ ...(await state(db, env, saved!)), sessionToken })
     }
-    if(['state','applications','selectApplication','onboardingDocuments','submitOnboardingDocument','proctorConsent','proctorChunk'].includes(action)) await ensure(db)
+    if(['state','applications','selectApplication','onboardingDocuments','submitOnboardingDocument','proctorConsent','proctorChunk','identityStart','identitySubmit'].includes(action)) await ensure(db)
     const row = await authorized(request, env, db)
     if (!row) return error('Your secure screening session is missing or expired.', 401)
     if (action === 'state') return json(await state(db, env, row))
@@ -936,7 +1006,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       return json(await state(db, env, (await get(db, row.id))!))
     }
     if (action === 'identity') {
-      if(env.AVA_LEGACY_ID_UPLOAD_ENABLED!=='true')return error('Only certified live mobile ID capture is permitted. Use your emailed live verification link.',403)
+      if(env.AVA_LEGACY_ID_UPLOAD_ENABLED!=='true')return error('Legacy identity uploads are disabled. Use OPERAVA owned live camera capture.',403)
       if (row.assessment_status !== 'not_started') return error('Identity submission is closed after the assessment begins.', 409)
       if (!env.AVA_ID_BUCKET) return error('Secure identity document storage is not yet configured. Please contact Talent Acquisition.', 503)
       if (row.identity_status === 'approved' || row.identity_status === 'pending_review') return error('Identity evidence is already submitted for review.', 409)
@@ -965,9 +1035,9 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if(!row.profile||!row.consent_at||!row.monitor_consent_at)
         return error('Complete your profile and monitoring consent first.',403)
       if(!env.AVA_PROCTOR_BUCKET)return error('Private recording storage is unavailable.',503)
-      const attestation=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status='verified'")
+      const attestation=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status IN ('verified','manual_verified')")
         .bind(row.id).first()
-      if(row.identity_status!=='approved'||!attestation)return error('Live identity verification must pass before recording.',403)
+      if(row.identity_status!=='approved'||!attestation)return error('OPERAVA identity review must pass before recording.',403)
       if(data?.recordingConsent!==true)
         return error('Explicit camera, microphone and screen recording consent is required.',403)
       await db.prepare('UPDATE ava_screening_sessions SET proctor_consent_at=? WHERE id=? AND assessment_status IN (\'not_started\',\'in_progress\')')
@@ -975,42 +1045,100 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       return json({ok:true,proctorConsentGiven:true})
     }
     if (action === 'identityStart') {
-      if (!row.profile || !row.consent_at || !row.monitor_consent_at) return error('Complete the applicant profile and required consents first.',403)
-      if (!env.AVA_IDV_API_URL || !env.AVA_IDV_API_KEY || !env.AVA_IDV_WEBHOOK_SECRET) return error('Certified live identity verification is not configured. Contact Talent Acquisition.',503)
-      const recentIntent=await db.prepare('SELECT created_at FROM ava_screening_identity_intents WHERE session_id=?')
-        .bind(row.id).first<{created_at:number}>()
-      if(recentIntent && Date.now()-recentIntent.created_at<60_000)
-        return error('A verification link was recently requested. Check your email before retrying.',429)
-      let legalName=row.name
+      if(!row.profile||!row.consent_at||!row.monitor_consent_at)
+        return error('Complete your profile and privacy terms first.',403)
+      if(row.assessment_status!=='not_started'||row.identity_status==='approved'||row.identity_status==='pending_review')
+        return error('Identity capture is not available in this application state.',409)
+      if(!env.AVA_ID_BUCKET)return error('Private OPERAVA identity storage is not configured.',503)
+      // Server-issued, single-use, short-lived challenge; do not log the token.
+      // It prevents stale or duplicate uploads, but does not prove true liveness.
+      const now=Date.now()
+      const previous=await db.prepare('SELECT * FROM ava_screening_owned_identity WHERE session_id=?')
+        .bind(row.id).first<OwnedIdentity>()
+      const attempts=previous&&now-previous.issued_at<24*60*60_000?previous.attempts+1:1
+      if(attempts>5)return error('Identity capture limit reached. Contact Talent Acquisition.',429)
+      if(previous&&now-previous.issued_at<45_000)
+        return error('A live identity capture was recently started. Try again shortly.',429)
+      const challenge=crypto.randomUUID()
+      const hash=await digest(row.id+':'+challenge)
+      await db.prepare(`INSERT INTO ava_screening_owned_identity
+        (session_id,challenge_hash,issued_at,expires_at,attempts,submitted_at)
+        VALUES (?,?,?,?,?,NULL)
+        ON CONFLICT(session_id) DO UPDATE SET
+          challenge_hash=excluded.challenge_hash,issued_at=excluded.issued_at,
+          expires_at=excluded.expires_at,attempts=excluded.attempts,submitted_at=NULL`)
+        .bind(row.id,hash,now,now+OWNED_ID_TTL_MS,attempts).run()
+      return json({ok:true,mode:'operava_owned_human_review',challenge,
+        challengeCode:challenge.slice(-6).toUpperCase(),expiresAt:now+OWNED_ID_TTL_MS,
+        required:['document','selfie','motion']})
+    }
+    if (action === 'identitySubmit') {
+      if(request.headers.get('Origin')!==new URL(request.url).origin)
+        return error('Identity media must be submitted from this secure site.',403)
+      if(!env.AVA_ID_BUCKET)return error('Private OPERAVA identity storage is unavailable.',503)
+      if(!row.profile||!row.consent_at||!row.monitor_consent_at||
+        row.assessment_status!=='not_started'||!['not_submitted','needs_resubmission'].includes(row.identity_status))
+        return error('Identity capture is unavailable in the current application state.',403)
+      if(!type.includes('multipart/form-data'))return error('Expected live camera images.',415)
+      const raw=await readLimitedBody(request,8_000_000)
+      const form=await new Response(raw.buffer as ArrayBuffer,{headers:{'Content-Type':type}}).formData()
+      const token=String(form.get('challenge')||'')
+      const documentType=form.get('documentType')
+      if(!/^[a-f0-9-]{36}$/.test(token)||!validOwnedDocumentType(documentType)||form.get('consent')!=='true')
+        return error('A valid live challenge, identity type and explicit consent are required.',400)
+      const previous=await db.prepare('SELECT * FROM ava_screening_owned_identity WHERE session_id=?')
+        .bind(row.id).first<OwnedIdentity>()
+      const now=Date.now(),challengeHash=await digest(row.id+':'+token)
+      if(!previous||previous.expires_at<=now||previous.submitted_at||
+        !timingSafeEqualStr(previous.challenge_hash,challengeHash))
+        return error('Identity camera challenge expired or was already used. Restart capture.',409)
+      let document:Uint8Array,selfie:Uint8Array,motion:Uint8Array
       try {
-        const identityProfile=JSON.parse(row.profile) as {fullName?:string}
-        if(identityProfile.fullName?.trim())legalName=identityProfile.fullName.trim()
-      } catch { /* Profile presence was verified above. */ }
-      // Provider adapter: never send face/ID photos to the general application API.
-      // Credentials must only be available as Cloudflare encrypted secrets.
-      const endpoint=new URL(env.AVA_IDV_API_URL)
-      if(endpoint.protocol!=='https:') return error('Identity provider configuration is unsafe.',503)
-      const external=await fetch(endpoint.toString(),{
-        method:'POST',headers:{Authorization:`Bearer ${env.AVA_IDV_API_KEY}`,'Content-Type':'application/json'},
-        body:JSON.stringify({reference:row.id,subject:{name:legalName},workflow:'live-face-document-passport-nfc',
-          callbackUrl:new URL('/api/ava-identity-callback',request.url).toString()})
-      })
-      if(!external.ok) return error('Identity verification provider is unavailable.',503)
-      const result=await external.json() as {verificationUrl?:string;reference?:string}
-      if(!result.verificationUrl||!result.reference) return error('Identity provider did not return a live verification session.',503)
-      await db.prepare('INSERT INTO ava_screening_identity_intents(session_id,vendor_reference,created_at) VALUES (?,?,?) ON CONFLICT(session_id) DO UPDATE SET vendor_reference=excluded.vendor_reference,created_at=excluded.created_at').bind(row.id,String(result.reference).slice(0,200),Date.now()).run()
-      const url=new URL(result.verificationUrl)
-      if(url.protocol!=='https:') return error('Identity provider returned an invalid URL.',503)
-      await sendEmail(env,{from:resolveFromEnv(env),to:[row.email],subject:'OPERAVA | Live identity verification',
-        text:`Hello ${row.name},\n\nTo verify your applicant profile, open this secure live identity verification link on your mobile phone:\n${url.toString()}\n\nOnly proceed if you requested this link. The provider will ask permission to access your camera. A selfie and live ID capture are required; uploading existing pictures is not accepted.\n\nOPERAVA Talent Acquisition`,
-        html:`<p>Hello ${escapeHtml(row.name)},</p><p>Your live identity verification link is ready.</p><p><a href="${escapeHtml(url.toString())}">Open secure verification on your mobile phone</a></p><p>The identity provider will ask permission to use your camera. Existing photo uploads are not accepted. Ignore this message if you did not request verification.</p><p>OPERAVA Talent Acquisition</p>`})
-      return json({ok:true,verificationUrl:url.toString(),message:'Live verification link sent to your confirmed email. Use your phone to complete it.'})
+        document=await validateCameraJpeg(form.get('document'),'document')
+        selfie=await validateCameraJpeg(form.get('selfie'),'selfie')
+        motion=await validateCameraJpeg(form.get('motion'),'motion')
+      }catch{return error('Capture three clear live JPEG images using your camera.',400)}
+      const [selfieDigest,motionDigest]=await Promise.all([
+        crypto.subtle.digest('SHA-256',selfie),crypto.subtle.digest('SHA-256',motion)])
+      if(new Uint8Array(selfieDigest).every((b,i)=>b===new Uint8Array(motionDigest)[i]))
+        return error('Please capture two different selfie moments for manual review.',400)
+      const root=`ava-owned-id/${row.id}/${crypto.randomUUID()}`
+      const keys=[root+'/document.jpg',root+'/selfie.jpg',root+'/motion.jpg']
+      try {
+        for(const [i,bytes] of [document,selfie,motion].entries())
+          await env.AVA_ID_BUCKET.put(keys[i],bytes,{
+            httpMetadata:{contentType:'image/jpeg'},
+            customMetadata:{category:'private-manual-identity-review',part:['document','selfie','motion'][i]}
+          })
+        const updated=await db.prepare(`UPDATE ava_screening_owned_identity SET
+          document_key=?,selfie_key=?,motion_key=?,document_type=?,consent_at=?,
+          submitted_at=?,reviewer_note=NULL,reviewed_at=NULL
+          WHERE session_id=? AND challenge_hash=? AND expires_at>? AND submitted_at IS NULL`)
+          .bind(keys[0],keys[1],keys[2],documentType,now,now,row.id,challengeHash,now).run()
+        if(!updated.meta.changes)throw Error('CHALLENGE_CONSUMED')
+        const status=await db.prepare(`UPDATE ava_screening_sessions SET
+          identity_status='pending_review',identity_key=?,identity_kind=?,
+          identity_submitted=?,identity_reviewed=NULL
+          WHERE id=? AND assessment_status='not_started'
+          AND identity_status IN ('not_submitted','needs_resubmission')`)
+          .bind(keys[0],documentType,now,row.id).run()
+        if(!status.meta.changes)throw Error('IDENTITY_STATE_CHANGED')
+      } catch {
+        for(const key of keys)await env.AVA_ID_BUCKET.delete(key).catch(()=>{})
+        await db.prepare('UPDATE ava_screening_owned_identity SET document_key=NULL,selfie_key=NULL,motion_key=NULL,submitted_at=NULL WHERE session_id=? AND challenge_hash=? AND document_key=? AND submitted_at=?')
+          .bind(row.id,challengeHash,keys[0],now).run().catch(()=>{})
+        return error('Identity upload could not be completed. Restart secure capture.',409)
+      }
+      for(const old of [previous.document_key,previous.selfie_key,previous.motion_key])
+        if(old&&!keys.includes(old))await env.AVA_ID_BUCKET.delete(old).catch(()=>{})
+      return json({ok:true,identityStatus:'pending_review',
+        message:'Captured images saved privately for OPERAVA human identity review.'})
     }
     if (action === 'proctorChunk') {
       if(!env.AVA_PROCTOR_BUCKET) return error('Private assessment recording storage is unavailable.',503)
       if(!row.consent_at||!row.monitor_consent_at||!row.profile||!row.proctor_consent_at) return error('Explicit screen, camera and microphone recording consent is required.',403)
-      const attestation=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status='verified'").bind(row.id).first()
-      if(row.identity_status!=='approved'||!attestation)return error('Certified identity verification must complete before recording.',403)
+      const attestation=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status IN ('verified','manual_verified')").bind(row.id).first()
+      if(row.identity_status!=='approved'||!attestation)return error('OPERAVA identity review must complete before recording.',403)
       if(row.assessment_status!=='not_started'&&row.assessment_status!=='in_progress') return error('Assessment is not accepting recordings.',409)
       if(row.assessment_status==='in_progress'&&(!row.deadline||Date.now()>=row.deadline))
         return error('Assessment time elapsed. Recording upload has closed.',409)
@@ -1042,8 +1170,8 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       // actual private live recording segments, not browser-supplied booleans.
       if (!row.profile || !row.consent_at || !row.monitor_consent_at) return error('Complete the profile and monitoring consent before starting.', 403)
       if (row.assessment_status !== 'not_started') return error('Assessment already started or submitted.', 409)
-      const verified=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status='verified'").bind(row.id).first()
-      if(row.identity_status!=='approved'||!verified) return error('Live identity and document verification must pass before the assessment.',403)
+      const verified=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status IN ('verified','manual_verified')").bind(row.id).first()
+      if(row.identity_status!=='approved'||!verified) return error('OPERAVA human identity review must be approved before the assessment.',403)
       if(!row.proctor_consent_at)return error('Explicit camera, microphone and screen recording consent is required.',403)
       if(!env.AVA_PROCTOR_BUCKET) return error('Secure live proctor recording is not configured.',503)
       const evidence=await db.prepare("SELECT kind,MAX(recorded_at) AS last_seen FROM ava_screening_proctor_evidence WHERE session_id=? GROUP BY kind")
@@ -1065,7 +1193,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       }
       if((row.assessment_version||1)>=2) {
         if(!row.proctor_consent_at)return error('Proctoring consent is required for this assessment.',403)
-        const verified=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status='verified'")
+        const verified=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status IN ('verified','manual_verified')")
           .bind(row.id).first()
         if(row.identity_status!=='approved'||!verified)
           return error('Identity verification must remain approved throughout the assessment.',403)

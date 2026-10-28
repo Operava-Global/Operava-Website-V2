@@ -245,6 +245,25 @@ CREATE TABLE IF NOT EXISTS ava_screening_questions (
   PRIMARY KEY(session_id, question_number),
   FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE
 );
+-- OPERAVA-owned live camera capture: challenge and private R2 object keys only.
+-- No automatic biometric match, forged authenticity or certified liveness claim.
+CREATE TABLE IF NOT EXISTS ava_screening_owned_identity (
+  session_id TEXT PRIMARY KEY,
+  challenge_hash TEXT NOT NULL,
+  issued_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  document_key TEXT,
+  selfie_key TEXT,
+  motion_key TEXT,
+  document_type TEXT,
+  consent_at INTEGER,
+  submitted_at INTEGER,
+  reviewed_at INTEGER,
+  reviewer_note TEXT,
+  FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS ava_screening_identity_intents (
   session_id TEXT PRIMARY KEY,
   vendor_reference TEXT NOT NULL UNIQUE,

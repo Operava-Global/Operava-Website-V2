@@ -49,6 +49,7 @@ type ApplicationRecord = {
 type ApiPayload = ScreenState & {
   error?: string; sessionToken?: string; maskedEmail?: string; turnstileSiteKey?: string;
   applicationReference?: string | null; applications?: ApplicationRecord[]; verificationUrl?: string
+  challenge?: string; challengeCode?: string; expiresAt?: number
   documents?: OnboardingRecord[]; configured?: boolean
 }
 type SpeechResult = { results: ArrayLike<ArrayLike<{ transcript: string }>> }
@@ -142,6 +143,13 @@ export default function AvaScreening() {
   const [screenChecked,setScreenChecked] = useState(false)
   const captureActive = useRef(false)
   const [identityBusy,setIdentityBusy] = useState(false)
+  const [identityChallenge,setIdentityChallenge]=useState<{token:string;code:string;expires:number}|null>(null)
+  const [identityStep,setIdentityStep]=useState(0)
+  const [identityDocType,setIdentityDocType]=useState<'passport'|'national_id'|'drivers_license'>('national_id')
+  const [identityConsent,setIdentityConsent]=useState(false)
+  const [identityFrames,setIdentityFrames]=useState<{document:Blob|null;selfie:Blob|null;motion:Blob|null}>({document:null,selfie:null,motion:null})
+  const identityStream=useRef<MediaStream|null>(null)
+  const identityVideo=useRef<HTMLVideoElement|null>(null)
   const [fullscreen, setFullscreen] = useState(false)
   const consentRef = useRef(false)
   const sessionRef = useRef(session)
@@ -149,7 +157,7 @@ export default function AvaScreening() {
   useEffect(() => { sessionRef.current = session }, [session])
 
   const submit = useCallback(async (action: string, body: Record<string, unknown> = {}, form?: FormData): Promise<ApiPayload> => {
-    const res = await fetch(API, {
+    const res = await fetch(form ? API+'?action='+encodeURIComponent(action) : API, {
       method: 'POST', cache: 'no-store', credentials: 'same-origin',
       headers: form ? { ...(sessionRef.current ? { Authorization: `Bearer ${sessionRef.current}` } : {}) }
         : { 'Content-Type': 'application/json', ...(sessionRef.current ? { Authorization: `Bearer ${sessionRef.current}` } : {}) },
@@ -388,12 +396,90 @@ export default function AvaScreening() {
       } finally {stream.getTracks().forEach(track=>track.stop())}
     } catch(e){setPermissionTest('unsupported');setError(e instanceof Error?e.message:'Screen recording permission was denied.')}
   }
-  const requestIdentity = async () => {
+  const stopIdentityCamera=()=>{
+    identityStream.current?.getTracks().forEach(track=>track.stop())
+    identityStream.current=null
+    if(identityVideo.current)identityVideo.current.srcObject=null
+  }
+  const startIdentityCamera=async(facing:'environment'|'user')=>{
+    if(!navigator.mediaDevices?.getUserMedia)throw Error('A secure HTTPS browser with a camera is required.')
+    stopIdentityCamera()
+    const stream=await navigator.mediaDevices.getUserMedia({video:{
+      facingMode:{ideal:facing},width:{ideal:1280},height:{ideal:720}},audio:false})
+    identityStream.current=stream
+    if(identityVideo.current){
+      identityVideo.current.srcObject=stream
+      await identityVideo.current.play().catch(()=>{})
+    }
+  }
+  useEffect(()=>{
+    if(identityChallenge&&identityStep<3&&identityStream.current&&identityVideo.current){
+      identityVideo.current.srcObject=identityStream.current
+      void identityVideo.current.play().catch(()=>{})
+    }
+  },[identityChallenge,identityStep])
+  useEffect(()=>()=>{identityStream.current?.getTracks().forEach(track=>track.stop())},[])
+  const requestIdentity=async()=>{
     setIdentityBusy(true);setError('')
     try {
-      await submit('identityStart')
-      setNotice('A live identity verification link was sent to your email. Open it on your phone, grant camera permission and complete the provider checks; then refresh this portal.')
-    } catch(e){setError(e instanceof Error?e.message:'Identity verification is unavailable.')}
+      if(!identityConsent)throw Error('Review and consent to private identity photo capture first.')
+      const result=await submit('identityStart')
+      if(!result.challenge||!result.challengeCode||!result.expiresAt)
+        throw Error('Unable to obtain a secure camera challenge.')
+      setIdentityFrames({document:null,selfie:null,motion:null})
+      setIdentityStep(0)
+      setIdentityChallenge({token:result.challenge,code:result.challengeCode,expires:result.expiresAt})
+      await startIdentityCamera('environment')
+      setNotice('Capture the document, then two different live selfie moments. Images are reviewed by OPERAVA employees only.')
+    }catch(e){setError(e instanceof Error?e.message:'Unable to begin owned identity capture.')}
+    finally{setIdentityBusy(false)}
+  }
+  const captureIdentity=async()=>{
+    setIdentityBusy(true);setError('')
+    try {
+      if(!identityChallenge||Date.now()>identityChallenge.expires)throw Error('The camera challenge expired. Start again.')
+      const video=identityVideo.current
+      if(!video||video.readyState<2||video.videoWidth<320)
+        throw Error('Camera is not ready. Allow access and wait for the live preview.')
+      const canvas=document.createElement('canvas')
+      const ratio=Math.min(1,1280/video.videoWidth)
+      canvas.width=Math.round(video.videoWidth*ratio);canvas.height=Math.round(video.videoHeight*ratio)
+      const ctx=canvas.getContext('2d')
+      if(!ctx)throw Error('Camera capture is unavailable in this browser.')
+      ctx.drawImage(video,0,0,canvas.width,canvas.height)
+      const shot=await new Promise<Blob>((resolve,reject)=>
+        canvas.toBlob(blob=>blob?resolve(blob):reject(Error('Unable to save camera frame.')),'image/jpeg',.86))
+      if(shot.size<8000||shot.size>2_500_000)throw Error('Photo quality is insufficient or image too large. Try again.')
+      const key=(['document','selfie','motion'] as const)[identityStep]
+      setIdentityFrames(previous=>({...previous,[key]:shot}))
+      if(identityStep===0) {
+        setIdentityStep(1)
+        await startIdentityCamera('user')
+      } else if(identityStep===1) {
+        setIdentityStep(2)
+      } else {
+        setIdentityStep(3);stopIdentityCamera()
+      }
+    }catch(e){setError(e instanceof Error?e.message:'Unable to capture identity photo.')}
+    finally{setIdentityBusy(false)}
+  }
+  const submitIdentity=async()=>{
+    setIdentityBusy(true);setError('')
+    try{
+      if(!identityChallenge||Date.now()>identityChallenge.expires)
+        throw Error('Your camera challenge expired. Restart live capture.')
+      if(!identityConsent||!identityFrames.document||!identityFrames.selfie||!identityFrames.motion)
+        throw Error('Explicit consent and all three camera captures are required.')
+      const form=new FormData()
+      form.set('challenge',identityChallenge.token);form.set('documentType',identityDocType);form.set('consent','true')
+      for(const key of ['document','selfie','motion'] as const)
+        form.set(key,new File([identityFrames[key]!],key+'.jpg',{type:'image/jpeg'}))
+      await submit('identitySubmit',{},form)
+      setIdentityFrames({document:null,selfie:null,motion:null})
+      setIdentityChallenge(null);stopIdentityCamera()
+      setNotice('Identity photos are privately submitted. An authorized OPERAVA reviewer must compare the evidence and approve your profile before the assessment.')
+      await refresh()
+    }catch(e){setError(e instanceof Error?e.message:'Unable to submit your identity evidence.')}
     finally{setIdentityBusy(false)}
   }
   const stopCapture = () => {
@@ -716,12 +802,29 @@ export default function AvaScreening() {
                 {readyPage===0 && <article className="ava-check-card">
                   <div className="ava-check-icon"><ShieldCheck size={24}/></div>
                   <h3>01 · Verify your identity</h3>
-                  <p>Complete a live selfie and government ID or passport scan on your phone. For passports, a certified provider must validate the NFC chip. Your verified profile requires liveness, ID authenticity, matching name and at least 95% face similarity.</p>
-                  <p className={screen?.verifiedApplicantProfile?'ava-status-good':'ava-status-warn'}>{screen?.verifiedApplicantProfile?'Verified Applicant Profile · Approved':screen?.identityVerification==='manual_review'?'Identity needs human review':'Required · Not yet verified'}</p>
-                  {!screen?.verifiedApplicantProfile && <button type="button" className="ava-secondary" disabled={identityBusy||!screen?.identityProviderAvailable} onClick={() => void requestIdentity()}>
-                    <Smartphone size={16}/>{identityBusy?'Sending link…':'Email my secure phone verification link'}
-                  </button>}
-                  {!screen?.identityProviderAvailable && <p className="ava-small-warning">Certified identity provider is not configured. Verification and assessment are unavailable until OPERAVA enables it.</p>}
+                  <p>OPERAVA verifies identity using its own secure camera capture and authorized human reviewers. A live camera photo of your ID and two selfie moments are required. This is visual identity review, not government-certified document authentication or spoof-proof liveness.</p>
+                  <p className={screen?.verifiedApplicantProfile?'ava-status-good':'ava-status-warn'}>{screen?.verifiedApplicantProfile?'OPERAVA identity reviewed · Approved':screen?.identityStatus==='pending_review'?'Under private human review':screen?.identityStatus==='needs_resubmission'?'Resubmission requested':'Required · Not yet reviewed'}</p>
+                  {!screen?.verifiedApplicantProfile&&!identityChallenge&&screen?.identityStatus!=='pending_review'&&<>
+                    <label className="ava-field">Identity document<select value={identityDocType} onChange={e=>setIdentityDocType(e.target.value as typeof identityDocType)}>
+                      <option value="national_id">National ID</option><option value="passport">Passport</option><option value="drivers_license">Driver’s licence</option>
+                    </select></label>
+                    <label className="ava-check"><input type="checkbox" checked={identityConsent} onChange={e=>setIdentityConsent(e.target.checked)}/><span>I consent to taking and privately storing three camera photos of my identity document and face, exclusively for authorized OPERAVA human identity review, subject to the <Link to="/privacy" target="_blank">Privacy Policy</Link>. The stored images automatically expire after 30 days. I understand automated biometric matching is not used.</span></label>
+                    <button type="button" className="ava-secondary" disabled={identityBusy||!identityConsent||!screen?.identityProviderAvailable} onClick={()=>void requestIdentity()}><Smartphone size={16}/>{identityBusy?'Starting camera…':'Begin OPERAVA live identity capture'}</button>
+                  </>}
+                  {identityChallenge&&screen?.identityStatus!=='pending_review'&&<div className="ava-owned-id">
+                    <p className="ava-label">ONE-TIME CAPTURE CHALLENGE · {identityChallenge.code}</p>
+                    <p>{['Hold the document flat in the camera with all edges visible. Avoid glare and reflections.','Look directly at the camera for a neutral selfie.','Turn your face slightly to one side and take a second selfie.','Review and submit all three camera frames.'][identityStep]}</p>
+                    {identityStep<3?<><video ref={identityVideo} data-facing={identityStep===0?'environment':'user'} playsInline autoPlay muted aria-label="Live identity verification camera preview"/>
+                      <div className="ava-slide-actions">
+                        <button type="button" className="ava-primary" disabled={identityBusy} onClick={()=>void captureIdentity()}>{identityBusy?'Capturing…':['Capture ID','Capture first selfie','Capture turned selfie'][identityStep]} <ChevronRight size={16}/></button>
+                        <button type="button" className="ava-secondary" disabled={identityBusy} onClick={()=>void startIdentityCamera(identityStep===0?'environment':'user').catch(e=>setError(e instanceof Error?e.message:'Camera unavailable.'))}>Enable camera</button>
+                      </div></>:<>
+                        <p className="ava-status-good">Three separate camera images captured for authorized human review. No automated identity approval will occur.</p>
+                        <button type="button" className="ava-primary" disabled={identityBusy} onClick={()=>void submitIdentity()}>{identityBusy?'Submitting securely…':'Submit identity for human verification'}<ChevronRight size={16}/></button>
+                      </>}
+                    <button type="button" className="ava-text-button" onClick={()=>{stopIdentityCamera();setIdentityChallenge(null);setIdentityFrames({document:null,selfie:null,motion:null})}}>Cancel and clear camera captures</button>
+                  </div>}
+                  {!screen?.identityProviderAvailable && <p className="ava-small-warning">OPERAVA private identity evidence storage is unavailable. Ask Talent Acquisition to enable the secure verification service.</p>}
                   <button type="button" className="ava-text-button" onClick={() => void refresh()}>Refresh verified profile</button>
                   <div className="ava-slide-actions"><button type="button" className="ava-primary" onClick={()=>setReadyPage(1)}>Next: proctor permissions <ChevronRight size={17}/></button></div>
                 </article>}
@@ -743,7 +846,7 @@ export default function AvaScreening() {
                     {proctorReady&&proctorSaved.camera&&proctorSaved.screen?'Both recordings saved · Capture active':'Required · Live recording not ready'}
                   </p>
                   {!screen?.recordingStorageReady && <p className="ava-small-warning">Private recording storage is not configured. Capture remains disabled for your privacy.</p>}
-                  {!screen?.verifiedApplicantProfile && <p className="ava-small-warning">Certified identity verification must pass before starting continuous recording. Use the local permission diagnostics above to check device compatibility.</p>}
+                  {!screen?.verifiedApplicantProfile && <p className="ava-small-warning">OPERAVA identity review must be approved before starting continuous recording. Use the local permission diagnostics above to check device compatibility.</p>}
                   {proctorReady && <button type="button" className="ava-text-button" onClick={stopCapture}>Stop recording</button>}
                   <div className="ava-slide-actions"><button type="button" className="ava-secondary" onClick={()=>setReadyPage(0)}>Previous: identity</button></div>
                 </article>}

@@ -1129,3 +1129,14 @@ html[data-theme="light"] .ava-preview-login a{color:#6c27bc}
     animation:none!important;
   }
 }
+
+/* OPERAVA-owned camera verification is a temporary capture pane, not an AI
+   identity/biometric decision. Photos stay in memory until consented upload. */
+#site-shell.ava-screening-host .ava-owned-id{max-width:680px;display:flex;flex-direction:column;gap:9px;margin:13px 0;padding:12px;border:1px solid var(--ava-line);border-radius:9px;background:var(--ava-card)}
+#site-shell.ava-screening-host .ava-owned-id>p{margin:0;color:var(--ava-muted);font-size:12px;line-height:1.55}
+#site-shell.ava-screening-host .ava-owned-id>p.ava-label{color:#A000F0;font-weight:800;letter-spacing:.05em}
+#site-shell.ava-screening-host .ava-owned-id video{width:100%;height:clamp(128px,24dvh,250px);object-fit:contain;background:#101015;border-radius:8px}
+#site-shell.ava-screening-host .ava-owned-id video[data-facing='user']{transform:scaleX(-1)}
+#site-shell.ava-screening-host .ava-owned-id .ava-slide-actions{margin:0;gap:7px}
+#site-shell.ava-screening-host .ava-owned-id button{margin:0}
+@media(max-height:650px){#site-shell.ava-screening-host .ava-owned-id video{height:125px}}
