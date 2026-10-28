@@ -53,9 +53,9 @@ test('Applicant identity cannot self-attest and live capture has hard gates',()=
   assert.match(callback,/ava_screening_provider_events/)
   // Device-camera picker is optional and explicitly human-reviewed; it is
   // not an unverified automatic biometric or identity attestation.
-  assert.match(applicant,/type="file" accept="image\\/\\*" capture=/)
+  assert.ok(applicant.includes('type="file" accept="image/*" capture='))
   assert.match(applicant,/identityCaptureMode/)
-  assert.match(backend,/captureMethod=form.get\\('captureMethod'\\)/)
+  assert.ok(backend.includes("captureMethod=form.get('captureMethod')"))
   assert.match(backend,/identityReviewChecksValid/)
 })
 
