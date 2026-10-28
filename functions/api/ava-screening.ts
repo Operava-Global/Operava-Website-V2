@@ -8,6 +8,7 @@ import {
   type FormEnv,
 } from '../lib/formCore'
 import { buildQuestionSet, type PositionCode } from '../lib/assessmentBank'
+import { OWNED_ID_TTL_MS, ownedIdentityAccepted, validOwnedDocumentType, validateCameraJpeg, identityReviewChecksValid } from '../lib/avaOwnedIdentity'
 
 type Role = PositionCode
 type AvaEnv = FormEnv & {
@@ -39,6 +40,7 @@ type Applicant = {
   completed: number | null; created_at: number
 }
 type AnswerRow = { question_id: string; answer: string; source: string; review_status: string; review_json: string | null; submitted_at: number }
+type OwnedIdentity = {session_id:string;challenge_hash:string;issued_at:number;expires_at:number;attempts:number;document_key:string|null;selfie_key:string|null;motion_key:string|null;document_type:string|null;consent_at:number|null;submitted_at:number|null;reviewed_at:number|null;reviewer_note:string|null}
 const ROLES: Record<Role, string> = {
   tech: 'Technology Executive', ops: 'Business Operations Executive', cx: 'Customer Experience Executive',
 }
@@ -176,6 +178,12 @@ async function ensure(db: D1Database) {
       FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS ava_onboarding_session_idx ON ava_screening_onboarding_documents(session_id,requested_at DESC)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS ava_onboarding_status_idx ON ava_screening_onboarding_documents(status,requested_at DESC)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_owned_identity (
+      session_id TEXT PRIMARY KEY,challenge_hash TEXT NOT NULL,issued_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,attempts INTEGER NOT NULL DEFAULT 0,
+      document_key TEXT,selfie_key TEXT,motion_key TEXT,document_type TEXT,
+      consent_at INTEGER,submitted_at INTEGER,reviewed_at INTEGER,reviewer_note TEXT,
+      FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_provider_events (event_id TEXT PRIMARY KEY, session_id TEXT NOT NULL,received_at INTEGER NOT NULL)`),
   ])
   // D1 table already exists for previous sessions; one-time additive migration.
@@ -237,9 +245,9 @@ async function state(db: D1Database, env: AvaEnv, row: Applicant) {
   }
   const attestation=await db.prepare('SELECT status,face_score FROM ava_screening_identity_attestations WHERE session_id=?').bind(row.id).first<{status:string;face_score:number}>()
   return {...result,applicationReference:link?.reference_id||null,
-    verifiedApplicantProfile:row.identity_status==='approved' && attestation?.status==='verified',
+    verifiedApplicantProfile:row.identity_status==='approved' && ownedIdentityAccepted(attestation?.status),
     identityVerification:attestation?.status||'required',faceMatchScore:attestation?.status==='verified'?attestation.face_score:null,
-    identityProviderAvailable:Boolean(env.AVA_IDV_API_URL&&env.AVA_IDV_API_KEY&&env.AVA_IDV_WEBHOOK_SECRET),
+    identityProviderAvailable:Boolean(env.AVA_ID_BUCKET),identityMode:'operava_owned_human_review',
     recordingStorageReady:Boolean(env.AVA_PROCTOR_BUCKET),
     onboardingStorageReady:Boolean(env.AVA_ONBOARDING_BUCKET)}
 }
@@ -327,7 +335,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
   try {
     const type = request.headers.get('Content-Type') || ''
     const data = type.includes('multipart/form-data') ? null : await requestData(request)
-    const action = String(data?.action || (type.includes('multipart/form-data') ? (['proctorChunk','submitOnboardingDocument'].includes(new URL(request.url).searchParams.get('action')||'') ? new URL(request.url).searchParams.get('action') : 'identity') : ''))
+    const action = String(data?.action || (type.includes('multipart/form-data') ? (['proctorChunk','submitOnboardingDocument','identitySubmit'].includes(new URL(request.url).searchParams.get('action')||'') ? new URL(request.url).searchParams.get('action') : 'identity') : ''))
     // Reject browser requests issued from other origins, including consented
     // recording uploads. Server-to-server reviewer calls can omit Origin.
     const origin = request.headers.get('Origin')
@@ -802,7 +810,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const saved = await get(db, invite.id)
       return json({ ...(await state(db, env, saved!)), sessionToken })
     }
-    if(['state','applications','selectApplication','onboardingDocuments','submitOnboardingDocument','proctorConsent','proctorChunk'].includes(action)) await ensure(db)
+    if(['state','applications','selectApplication','onboardingDocuments','submitOnboardingDocument','proctorConsent','proctorChunk','identityStart','identitySubmit'].includes(action)) await ensure(db)
     const row = await authorized(request, env, db)
     if (!row) return error('Your secure screening session is missing or expired.', 401)
     if (action === 'state') return json(await state(db, env, row))
@@ -965,7 +973,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if(!row.profile||!row.consent_at||!row.monitor_consent_at)
         return error('Complete your profile and monitoring consent first.',403)
       if(!env.AVA_PROCTOR_BUCKET)return error('Private recording storage is unavailable.',503)
-      const attestation=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status='verified'")
+      const attestation=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status IN ('verified','manual_verified')")
         .bind(row.id).first()
       if(row.identity_status!=='approved'||!attestation)return error('Live identity verification must pass before recording.',403)
       if(data?.recordingConsent!==true)
@@ -1009,7 +1017,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
     if (action === 'proctorChunk') {
       if(!env.AVA_PROCTOR_BUCKET) return error('Private assessment recording storage is unavailable.',503)
       if(!row.consent_at||!row.monitor_consent_at||!row.profile||!row.proctor_consent_at) return error('Explicit screen, camera and microphone recording consent is required.',403)
-      const attestation=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status='verified'").bind(row.id).first()
+      const attestation=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status IN ('verified','manual_verified')").bind(row.id).first()
       if(row.identity_status!=='approved'||!attestation)return error('Certified identity verification must complete before recording.',403)
       if(row.assessment_status!=='not_started'&&row.assessment_status!=='in_progress') return error('Assessment is not accepting recordings.',409)
       if(row.assessment_status==='in_progress'&&(!row.deadline||Date.now()>=row.deadline))
@@ -1042,7 +1050,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       // actual private live recording segments, not browser-supplied booleans.
       if (!row.profile || !row.consent_at || !row.monitor_consent_at) return error('Complete the profile and monitoring consent before starting.', 403)
       if (row.assessment_status !== 'not_started') return error('Assessment already started or submitted.', 409)
-      const verified=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status='verified'").bind(row.id).first()
+      const verified=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status IN ('verified','manual_verified')").bind(row.id).first()
       if(row.identity_status!=='approved'||!verified) return error('Live identity and document verification must pass before the assessment.',403)
       if(!row.proctor_consent_at)return error('Explicit camera, microphone and screen recording consent is required.',403)
       if(!env.AVA_PROCTOR_BUCKET) return error('Secure live proctor recording is not configured.',503)
@@ -1065,7 +1073,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       }
       if((row.assessment_version||1)>=2) {
         if(!row.proctor_consent_at)return error('Proctoring consent is required for this assessment.',403)
-        const verified=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status='verified'")
+        const verified=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status IN ('verified','manual_verified')")
           .bind(row.id).first()
         if(row.identity_status!=='approved'||!verified)
           return error('Identity verification must remain approved throughout the assessment.',403)
