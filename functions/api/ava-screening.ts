@@ -476,13 +476,24 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         return json({ ok: true, pending: results.results || [] })
       }
       if (action === 'identityDocument') {
-        const applicant = await get(db, clean(data?.id, 80))
-        if (!applicant?.identity_key || applicant.identity_status !== 'pending_review' || !env.AVA_ID_BUCKET) return error('Document unavailable for review.', 404)
-        const object = await env.AVA_ID_BUCKET.get(applicant.identity_key)
-        if (!object) return error('Document missing from protected storage.', 404)
-        const headers = new Headers({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Disposition': 'attachment; filename="identity-evidence"' })
+        const id=clean(data?.id,80)
+        const applicant=await get(db,id)
+        if(!applicant||applicant.identity_status!=='pending_review'||!env.AVA_ID_BUCKET)
+          return error('Identity evidence unavailable for review.',404)
+        const part=String(data?.part||'document')
+        if(!['document','selfie','motion'].includes(part))return error('Unknown evidence type.',400)
+        const owned=await db.prepare('SELECT * FROM ava_screening_owned_identity WHERE session_id=?')
+          .bind(id).first<OwnedIdentity>()
+        const key=part==='document'?(owned?.document_key||applicant.identity_key):
+          part==='selfie'?owned?.selfie_key:owned?.motion_key
+        if(!key||!key.startsWith(owned?.document_key?.split('/').slice(0,-1).join('/')||'ava-owned-id/'))
+          return error('Evidence unavailable.',404)
+        const object=await env.AVA_ID_BUCKET.get(key)
+        if(!object)return error('Evidence missing from private storage.',404)
+        const headers=new Headers({'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',
+          'Referrer-Policy':'no-referrer','Content-Disposition':`attachment; filename="ava-identity-${part}.jpg"`})
         object.writeHttpMetadata(headers)
-        return new Response(object.body, { headers })
+        return new Response(object.body,{headers})
       }
 
       // Reviewer-only endpoints return human-readable candidate responses, not just AI feedback.
@@ -566,10 +577,12 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         if (!id || data?.confirm !== 'DELETE') return error('A candidate ID and explicit DELETE confirmation are required.')
         const applicant = await get(db, id)
         if (!applicant) return error('Candidate not found.', 404)
-        if (applicant.identity_key) {
-          if (!env.AVA_ID_BUCKET) return error('Private ID storage unavailable; cannot safely finish deletion.', 503)
-          await env.AVA_ID_BUCKET.delete(applicant.identity_key)
-        }
+        const owned=await db.prepare('SELECT * FROM ava_screening_owned_identity WHERE session_id=?')
+          .bind(id).first<OwnedIdentity>()
+        const identityKeys=[...new Set([applicant.identity_key,owned?.document_key,owned?.selfie_key,owned?.motion_key].filter((k):k is string=>Boolean(k)))]
+        if(identityKeys.length&&!env.AVA_ID_BUCKET)
+          return error('Private identity storage unavailable; cannot safely finish deletion.',503)
+        for(const key of identityKeys)await env.AVA_ID_BUCKET!.delete(key)
         const recordings=(await db.prepare('SELECT object_key FROM ava_screening_proctor_evidence WHERE session_id=?')
           .bind(id).all<{object_key:string}>()).results||[]
         const paperwork=(await db.prepare('SELECT object_key FROM ava_screening_onboarding_documents WHERE session_id=? AND object_key IS NOT NULL')
@@ -582,6 +595,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
           db.prepare('DELETE FROM ava_screening_onboarding_documents WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_proctor_evidence WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_identity_attestations WHERE session_id=?').bind(id),
+          db.prepare('DELETE FROM ava_screening_owned_identity WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_identity_intents WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_provider_events WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_questions WHERE session_id=?').bind(id),
@@ -616,20 +630,49 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
             clean(request.headers.get('X-AVA-Reviewer-Identity') || '', 180) || 'reviewer_api').run()
         return json({ ok: true, message: 'Invitation email sent.', expiresAt: payload.exp, invitationId: payload.id })
       }
-      const id = clean(data?.id, 80)
-      const decision = data?.decision
-      if (!id || (decision !== 'approved' && decision !== 'needs_resubmission')) return error('Provide a session ID and a valid review decision.')
-      const row = await get(db, id)
-      if (!row || row.identity_status !== 'pending_review' || !row.identity_key) return error('Pending identity submission not found.', 404)
-      const now = Date.now()
-      const results = await db.batch([
-        db.prepare('UPDATE ava_screening_sessions SET identity_status=?, identity_reviewed=? WHERE id=? AND identity_status=?')
-          .bind(decision, now, id, 'pending_review'),
+      const id=clean(data?.id,80),decision=data?.decision
+      const reviewer=clean(request.headers.get('X-AVA-Reviewer-Identity'),180)
+      const note=clean(data?.note,750)
+      if(!id||!['approved','needs_resubmission'].includes(String(decision)))return error('Valid review decision required.')
+      if(!reviewer)return error('Authenticated reviewer identity required.',403)
+      const applicant=await get(db,id)
+      if(!applicant||applicant.identity_status!=='pending_review'||!applicant.identity_key)
+        return error('Pending identity review not found.',404)
+      const owned=await db.prepare('SELECT * FROM ava_screening_owned_identity WHERE session_id=?')
+        .bind(id).first<OwnedIdentity>()
+      if(!owned?.document_key||!owned.selfie_key||!owned.motion_key||!owned.submitted_at)
+        return error('Complete owned identity evidence is required for a review decision.',409)
+      if(decision==='approved'&&(!identityReviewChecksValid(data?.checks)||note.length<12))
+        return error('A reviewer must confirm four checks and provide a meaningful rationale.',400)
+      if(decision==='needs_resubmission'&&note.length<12)
+        return error('Provide the applicant with a clear resubmission reason.',400)
+      const now=Date.now()
+      const updated=await db.prepare('UPDATE ava_screening_sessions SET identity_status=?,identity_reviewed=? WHERE id=? AND identity_status=\'pending_review\'')
+        .bind(decision,now,id).run()
+      if(!updated.meta.changes)return error('Review status changed. Refresh queue.',409)
+      if(decision==='approved') {
+        // Owned, named HUMAN decision; no biometric score or fake document
+        // authenticity/liveness claim. No external certified-provider assertion.
+        await db.prepare(`INSERT INTO ava_screening_identity_attestations
+          (session_id,vendor_reference,face_score,liveness_pass,document_authentic,
+            document_name_match,passport_nfc_pass,status,checked_at)
+          VALUES (?,?,0,0,0,1,0,'manual_verified',?)
+          ON CONFLICT(session_id) DO UPDATE SET
+            vendor_reference=excluded.vendor_reference,face_score=0,liveness_pass=0,
+            document_authentic=0,document_name_match=1,passport_nfc_pass=0,
+            status='manual_verified',checked_at=excluded.checked_at`)
+          .bind(id,'operava-owned-'+id,now).run()
+      } else {
+        await db.prepare("UPDATE ava_screening_identity_attestations SET status='manual_review',checked_at=? WHERE session_id=?")
+          .bind(now,id).run()
+      }
+      await db.batch([
+        db.prepare('UPDATE ava_screening_owned_identity SET reviewer_note=?,reviewed_at=? WHERE session_id=?')
+          .bind(note,now,id),
         db.prepare('INSERT INTO ava_screening_review_events(session_id,action,detail,recorded_at) VALUES (?,?,?,?)')
-          .bind(id, 'identity_review', String(decision), now),
+          .bind(id,'owned_identity_'+decision,`reviewer:${reviewer}; ${note}`,now)
       ])
-      if (!results[0].meta.changes) return error('Identity status changed. Refresh the queue.', 409)
-      return json({ ok: true, identityStatus: decision })
+      return json({ok:true,identityStatus:decision,reviewedAt:now})
     }
     if (action === 'publicConfig') {
       return json({ ok: true, emailOtpOnly: true, registrationOpen: true,
