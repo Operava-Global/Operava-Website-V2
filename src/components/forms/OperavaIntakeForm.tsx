@@ -15,7 +15,17 @@ import {
   type FormValidationState,
 } from '../../utils/formValidation'
 
-export type IntakeKind = 'SERVICES' | 'CAREERS' | 'CONTACT'
+export type IntakeKind = 'SERVICES' | 'CAREERS' | 'CONTACT' | 'PARTNERSHIP'
+
+const PARTNERSHIP_TYPES = [
+  'Strategic / Business Alliance',
+  'Technology / Integration Partner',
+  'Channel / Reseller Partner',
+  'Referral Partner',
+  'Outsourcing / Delivery Partner',
+  'Talent / Education Partner',
+  'Other Partnership',
+]
 
 const SERVICE_CATEGORIES = [
   'Information Technology',
@@ -102,7 +112,7 @@ export default function OperavaIntakeForm({
   defaultService,
   defaultCategory,
 }: Props) {
-  const kind = rawKind === 'CAREERS' ? 'CAREERS' : 'SERVICES'
+  const kind = rawKind === 'CAREERS' ? 'CAREERS' : rawKind === 'PARTNERSHIP' ? 'PARTNERSHIP' : 'SERVICES'
   const formType: IntakeKind = rawKind === 'CONTACT' ? 'CONTACT' : kind
 
   const [step, setStep] = useState<'form' | 'otp' | 'done'>('form')
@@ -124,16 +134,20 @@ export default function OperavaIntakeForm({
   const [form, setForm] = useState({
     name: '',
     company: '',
+    partnershipType: '',
+    partnerRole: '',
+    targetMarkets: '',
+    partnershipTimeline: '',
     email: '',
     phone: '',
     country: '',
-    category: defaultCategory || (rawKind === 'CONTACT' ? 'General Business Inquiry & Consultation' : 'Information Technology'),
+    category: rawKind === 'PARTNERSHIP' ? '' : (defaultCategory || (rawKind === 'CONTACT' ? 'General Business Inquiry & Consultation' : 'Information Technology')),
     service: (defaultService && (SERVICE_ALIASES[defaultService] || defaultService)) || (rawKind === 'CONTACT' ? 'General Business Consultation' : ''),
     description: '',
     budget: '',
     websiteUrl: '',
     contactMethod: 'Email',
-    position: normalizeCareerPosition(defaultPosition),
+    position: rawKind === 'CAREERS' ? normalizeCareerPosition(defaultPosition) : '',
     specialization: '',
     availability: '',
     experience: '',
@@ -297,6 +311,10 @@ export default function OperavaIntakeForm({
           formType,
           name: form.name,
           company: form.company,
+          partnershipType: form.partnershipType,
+          partnerRole: form.partnerRole,
+          targetMarkets: form.targetMarkets,
+          partnershipTimeline: form.partnershipTimeline,
           email: form.email,
           phone: form.phone,
           country: form.country,
@@ -400,16 +418,19 @@ export default function OperavaIntakeForm({
           )}
         </div>
 
-        {kind === 'SERVICES' && (
+        {(kind === 'SERVICES' || kind === 'PARTNERSHIP') && (
           <div>
-            <label htmlFor="field-company" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Company / Organization Name (Optional)</label>
-            <input id="field-company" name="company" autoComplete="organization" spellCheck autoCorrect="on" value={form.company} onChange={set('company')} placeholder="Acme Corp" className={getFieldClass(false, false)} />
+            <label htmlFor="field-company" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">
+              Company / Organization Name {kind === 'PARTNERSHIP' ? <span className="text-accent">*</span> : '(Optional)'}
+            </label>
+            <input id="field-company" name="company" autoComplete="organization" spellCheck autoCorrect="on" required={kind === 'PARTNERSHIP'} value={form.company} onChange={set('company')} onBlur={kind === 'PARTNERSHIP' ? () => handleBlur('company') : undefined} placeholder="Company or organization name" className={getFieldClass(Boolean(errors.company), Boolean(touched.company))} />
+            {kind === 'PARTNERSHIP' && touched.company && errors.company && <p role="alert" className="mt-1.5 text-xs text-red-400">{errors.company}</p>}
           </div>
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="field-email" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">{kind === 'SERVICES' ? 'Business Email Address' : 'Email Address'} <span className="text-accent">*</span></label>
+            <label htmlFor="field-email" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">{kind === 'SERVICES' || kind === 'PARTNERSHIP' ? 'Business Email Address' : 'Email Address'} <span className="text-accent">*</span></label>
             <input id="field-email" name="email" autoComplete="email" autoCapitalize="none" spellCheck={false} autoCorrect="off" required type="email" value={form.email} onChange={set('email')} onBlur={() => handleBlur('email')} placeholder="name@company.com" className={getFieldClass(Boolean(errors.email), Boolean(touched.email))} />
             {touched.email && errors.email && (
               <p role="alert" className="mt-1.5 text-xs text-red-400 font-medium">{errors.email}</p>
@@ -432,6 +453,60 @@ export default function OperavaIntakeForm({
           )}
         </div>
       </div>
+
+      {kind === 'PARTNERSHIP' && (
+        <div className="space-y-5 pt-6 border-t border-neutral-900">
+          <div>
+            <label htmlFor="field-partnershipType" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Partnership Type <span className="text-accent">*</span></label>
+            <select id="field-partnershipType" required value={form.partnershipType} onChange={set('partnershipType')} onBlur={() => handleBlur('partnershipType')} aria-invalid={Boolean(touched.partnershipType && errors.partnershipType)} className={getFieldClass(Boolean(errors.partnershipType), Boolean(touched.partnershipType))}>
+              <option value="">Select a partnership type</option>
+              {PARTNERSHIP_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+            </select>
+            {touched.partnershipType && errors.partnershipType && <p role="alert" className="mt-1.5 text-xs text-red-400">{errors.partnershipType}</p>}
+          </div>
+          <div>
+            <label htmlFor="field-partnerRole" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Your Role / Title (Optional)</label>
+            <input id="field-partnerRole" value={form.partnerRole} onChange={set('partnerRole')} placeholder="Founder, Partnerships Lead, Director..." className={getFieldClass(false, false)} />
+          </div>
+          <div>
+            <label htmlFor="field-description" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Partnership Proposal / Collaboration Goals <span className="text-accent">*</span></label>
+            <textarea id="field-description" required rows={5} maxLength={4000} value={form.description} onChange={set('description')} onBlur={() => handleBlur('description')} placeholder="Tell us about your organization, what each side would contribute and your goals." className={getFieldClass(Boolean(errors.description), Boolean(touched.description))} />
+            {touched.description && errors.description && <p role="alert" className="mt-1.5 text-xs text-red-400">{errors.description}</p>}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="field-targetMarkets" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Target Markets / Regions (Optional)</label>
+              <input id="field-targetMarkets" value={form.targetMarkets} onChange={set('targetMarkets')} placeholder="Philippines, Southeast Asia, Global..." className={getFieldClass(false, false)} />
+            </div>
+            <div>
+              <label htmlFor="field-partnershipTimeline" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Expected Timeline (Optional)</label>
+              <select id="field-partnershipTimeline" value={form.partnershipTimeline} onChange={set('partnershipTimeline')} className={getFieldClass(false, false)}>
+                <option value="">Select a timeline</option>
+                <option>Exploratory / No fixed timeline</option>
+                <option>As soon as possible</option>
+                <option>Within 1–3 months</option>
+                <option>Within 3–6 months</option>
+                <option>6+ months</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label htmlFor="field-websiteUrl" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Company Website (Optional)</label>
+            <input id="field-websiteUrl" type="url" value={form.websiteUrl} onChange={set('websiteUrl')} onBlur={() => handleBlur('websiteUrl')} placeholder="https://yourcompany.com" className={getFieldClass(Boolean(errors.websiteUrl), Boolean(touched.websiteUrl))} />
+            {touched.websiteUrl && errors.websiteUrl && <p role="alert" className="mt-1.5 text-xs text-red-400">{errors.websiteUrl}</p>}
+          </div>
+          <div>
+            <label htmlFor="field-contactMethod" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Preferred Contact Method</label>
+            <select id="field-contactMethod" value={form.contactMethod} onChange={set('contactMethod')} className={getFieldClass(false, false)}>
+              <option>Email</option><option>Phone</option><option>Either</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="field-additional" className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Additional Notes (Optional)</label>
+            <textarea id="field-additional" rows={3} value={form.additional} onChange={set('additional')} className={getFieldClass(false, false)} />
+          </div>
+        </div>
+      )}
 
       {kind === 'SERVICES' && (
         <div className="space-y-4 pt-6 border-t border-neutral-900">
@@ -494,9 +569,9 @@ export default function OperavaIntakeForm({
         </div>
       )}
 
-      {kind === 'SERVICES' && (
+      {(kind === 'SERVICES' || kind === 'PARTNERSHIP') && (
         <div>
-          <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">Supporting document (optional)</label>
+          <label className="block text-[11px] tracking-widest uppercase font-semibold text-neutral-400 mb-2">{kind === 'PARTNERSHIP' ? 'Partnership Deck / Supporting Proposal (Optional)' : 'Supporting document (optional)'}</label>
           <input type="file" accept={ATTACHMENT_ACCEPT}
             onChange={(e) => {
               const file = e.target.files?.[0] || null
@@ -609,23 +684,25 @@ export default function OperavaIntakeForm({
           <span>I confirm the information provided is accurate. <span className="text-accent">*</span></span>
         </label>
         {careerFieldError('accurate')}
+        {kind === 'PARTNERSHIP' && errors.accurate && <p role="alert" className="text-xs text-red-400">{errors.accurate}</p>}
         <label className="flex items-start gap-3 text-xs text-neutral-300 leading-relaxed">
           <input id="field-privacy" type="checkbox" aria-invalid={Boolean(errors.privacy)} checked={form.privacy} onChange={set('privacy')} className="mt-0.5 w-4 h-4 shrink-0" />
           <span>I agree to the processing of my data as described in the <Link to="/privacy" className="underline underline-offset-4 hover:text-accent">Privacy Policy</Link>. <span className="text-accent">*</span></span>
         </label>
         {careerFieldError('privacy')}
+        {kind === 'PARTNERSHIP' && errors.privacy && <p role="alert" className="text-xs text-red-400">{errors.privacy}</p>}
       </div>
 
-      {(error || (kind === 'CAREERS' && Object.values(errors).some(Boolean))) && (
+      {(error || ((kind === 'CAREERS' || kind === 'PARTNERSHIP') && Object.values(errors).some(Boolean))) && (
         <div role="alert" className="border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           {error && <p className="flex items-start gap-2"><AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />{error}</p>}
-          {kind === 'CAREERS' && Object.values(errors).some(Boolean) && (
-            <ul className="mt-2 list-disc pl-5 space-y-1" aria-label="Specific Careers application errors">
+          {(kind === 'CAREERS' || kind === 'PARTNERSHIP') && Object.values(errors).some(Boolean) && (
+            <ul className="mt-2 list-disc pl-5 space-y-1" aria-label={kind === 'PARTNERSHIP' ? 'Partnership form errors' : 'Specific Careers application errors'}>
               {(Object.entries(errors) as Array<[keyof FormValidationState, string | undefined]>)
                 .filter(([, message]) => Boolean(message))
                 .map(([key, message]) => (
                   <li key={key}>
-                    <a href={`#field-${key}`} className="underline underline-offset-2 font-semibold">{careerErrorLabels[key] || key}</a>: {message}
+                    <a href={`#field-${key}`} className="underline underline-offset-2 font-semibold">{(kind === 'PARTNERSHIP' ? ({ company: 'Company / Organization', partnershipType: 'Partnership Type', description: 'Partnership Proposal', websiteUrl: 'Company Website', accurate: 'Accuracy confirmation', privacy: 'Privacy consent' } as Partial<Record<keyof FormValidationState, string>>)[key] : careerErrorLabels[key]) || key}</a>: {message}
                   </li>
                 ))}
             </ul>

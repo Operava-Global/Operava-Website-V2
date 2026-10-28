@@ -20,7 +20,16 @@ import {
 
 import { checkAttachmentName, MAX_ATTACHMENT_BYTES } from '../../lib/emailAttachment'
 
-const TYPES = new Set(['SERVICES', 'CAREERS', 'CONTACT', 'ACADEMY'])
+const TYPES = new Set(['SERVICES', 'CAREERS', 'CONTACT', 'ACADEMY', 'PARTNERSHIP'])
+const PARTNERSHIP_TYPES = new Set([
+  'Strategic / Business Alliance',
+  'Technology / Integration Partner',
+  'Channel / Reseller Partner',
+  'Referral Partner',
+  'Outsourcing / Delivery Partner',
+  'Talent / Education Partner',
+  'Other Partnership',
+])
 
 function mailErrorResponse(msg: string) {
   const code = msg === 'SES_SMTP_NOT_CONFIGURED'
@@ -87,6 +96,11 @@ export const onRequestPost: PagesFunction<FormEnv> = async ({ request, env }) =>
         return json({ error: 'Please describe your requirements (at least 15 characters).' }, 400)
       }
     }
+    if (formType === 'PARTNERSHIP') {
+      if (clean(body.company, 160).length < 2) return json({ error: 'Company / organization name is required.' }, 400)
+      if (!PARTNERSHIP_TYPES.has(clean(body.partnershipType, 180))) return json({ error: 'Select a valid partnership type.' }, 400)
+      if (clean(body.description, 4000).length < 15) return json({ error: 'Please describe your partnership proposal (at least 15 characters).' }, 400)
+    }
     if (formType === 'ACADEMY') {
       if (!clean(body.category, 180)) return json({ error: 'Inquiry type is required.' }, 400)
       if (clean(body.description || body.message, 4000).length < 10) {
@@ -151,6 +165,7 @@ export const onRequestPost: PagesFunction<FormEnv> = async ({ request, env }) =>
       contactMethod: 80, position: 180, specialization: 180,
       availability: 180, experience: 4000, education: 300, skills: 2000,
       portfolio: 500, additional: 4000, resumeKey: 240, attachmentName: 120, attachmentSha256: 64,
+      partnershipType: 180, partnerRole: 180, targetMarkets: 300, partnershipTimeline: 100,
     }
     const safeFields: Record<string, string> = {}
     for (const [field, limit] of Object.entries(fieldLimits)) {

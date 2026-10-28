@@ -13,6 +13,8 @@ export default function FormSuccess({ formType, name, referenceId, emailWarning 
         ? 'Your service inquiry has been successfully submitted and your email address has been verified. Our team will review your inquiry and contact you if additional information is required.'
         : formType === 'ACADEMY'
           ? 'Your OPERAVA Academy enrollment or details inquiry has been submitted and your email is verified. The Academy team will review your request. You can also access the Learning Management System at academy.operavaglobal.com.'
+          : formType === 'PARTNERSHIP'
+            ? 'Your partnership proposal has been submitted and your email address is verified. Our partnerships team will review the opportunity and contact you about potential next steps.'
           : 'Your message has been successfully submitted and your email address has been verified. We will respond if further action or information is required.'
 
   return (

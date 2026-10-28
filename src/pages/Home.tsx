@@ -59,6 +59,14 @@ const SLIDES: Slide[] = [
     cta: 'See engagement models',
   },
   {
+    kicker: 'Partnerships',
+    title: 'Create more value together',
+    desc: 'Strategic alliances, technology integrations, referral networks and delivery partnerships with a clear operational purpose.',
+    img: PHOTO.handshake,
+    to: '/partnerships',
+    cta: 'Become a partner',
+  },
+  {
     kicker: 'Careers',
     title: 'Remote careers built on skills — not geography',
     desc: 'Technology, business operations and customer experience tracks for professionals across the Philippines and beyond.',
@@ -322,6 +330,19 @@ export default function Home() {
           </OutlineButton>
         </div>
       </section>
+
+      {/* PARTNERSHIP CTA */}
+      <div className="px-6 lg:px-12 mb-8 reveal">
+        <CtaBanner
+          image={PHOTO.handshake}
+          kicker="Partnerships"
+          title="Let's build more together — explore a partnership with OPERAVA"
+          cta="Propose a partnership →"
+          to="/partnerships"
+          secondary={{ label: 'Explore our services', to: '/services' }}
+          className="home-card-glow"
+        />
+      </div>
 
       {/* CAREERS CTA */}
       <div className="px-6 lg:px-12">

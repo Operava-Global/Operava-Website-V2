@@ -7,6 +7,7 @@ export const URL_RE = /^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[^\s]*)?$
 export interface FormValidationState {
   name?: string
   company?: string
+  partnershipType?: string
   email?: string
   phone?: string
   country?: string
@@ -102,12 +103,16 @@ export function validateCheckbox(checked: boolean, message: string): string | un
 export function validateSingleField(
   key: keyof FormValidationState,
   value: unknown,
-  kind: 'SERVICES' | 'CAREERS',
+  kind: 'SERVICES' | 'CAREERS' | 'PARTNERSHIP',
   extra?: { hasResume?: boolean; formValues?: Record<string, unknown> },
 ): string | undefined {
   switch (key) {
     case 'name':
       return validateName(String(value || ''))
+    case 'company':
+      return kind === 'PARTNERSHIP' && String(value || '').trim().length < 2 ? 'Company / organization name is required (at least 2 characters).' : undefined
+    case 'partnershipType':
+      return kind === 'PARTNERSHIP' && !String(value || '').trim() ? 'Select the type of partnership you are proposing.' : undefined
     case 'email':
       return validateEmail(String(value || ''))
     case 'phone':
@@ -119,7 +124,7 @@ export function validateSingleField(
     case 'service':
       return kind === 'SERVICES' ? validateService(String(value || '')) : undefined
     case 'description':
-      return kind === 'SERVICES' ? validateDescription(String(value || '')) : undefined
+      return kind === 'SERVICES' || kind === 'PARTNERSHIP' ? validateDescription(String(value || '')) : undefined
     case 'websiteUrl':
       return validateWebsiteUrl(String(value || ''))
     case 'position':
@@ -164,6 +169,10 @@ export function validateIntakeForm(
   form: {
     name: string
     company: string
+    partnershipType: string
+    partnerRole: string
+    targetMarkets: string
+    partnershipTimeline: string
     email: string
     phone: string
     country: string
@@ -184,7 +193,7 @@ export function validateIntakeForm(
     accurate: boolean
     privacy: boolean
   },
-  kind: 'SERVICES' | 'CAREERS',
+  kind: 'SERVICES' | 'CAREERS' | 'PARTNERSHIP',
   hasResume: boolean = false,
 ): FormValidationState {
   const errors: FormValidationState = {}
@@ -212,6 +221,13 @@ export function validateIntakeForm(
     const descErr = validateDescription(form.description)
     if (descErr) errors.description = descErr
 
+    const urlErr = validateWebsiteUrl(form.websiteUrl)
+    if (urlErr) errors.websiteUrl = urlErr
+  } else if (kind === 'PARTNERSHIP') {
+    if (form.company.trim().length < 2) errors.company = 'Company / organization name is required (at least 2 characters).'
+    if (!form.partnershipType.trim()) errors.partnershipType = 'Select the type of partnership you are proposing.'
+    const descErr = validateDescription(form.description)
+    if (descErr) errors.description = descErr
     const urlErr = validateWebsiteUrl(form.websiteUrl)
     if (urlErr) errors.websiteUrl = urlErr
   } else if (kind === 'CAREERS') {

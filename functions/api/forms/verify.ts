@@ -31,6 +31,10 @@ const LABEL_MAP: Record<string, string> = {
   name: 'Name',
   email: 'Email',
   company: 'Company',
+  partnershipType: 'Partnership Type',
+  partnerRole: 'Role / Title',
+  targetMarkets: 'Target Markets',
+  partnershipTimeline: 'Partnership Timeline', 
   phone: 'Phone',
   country: 'Country / Location',
   category: 'Inquiry Type',
@@ -251,12 +255,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const rows = payloadRows(payload)
     const isCareer = formType === 'CAREERS'
     const isAcademy = formType === 'ACADEMY'
+    const isPartnership = formType === 'PARTNERSHIP'
 
     const subject = isCareer
       ? 'Thank you for submitting your OPERAVA job application'
       : isAcademy
         ? 'WE RECEIVED YOUR ACADEMY INQUIRY'
-        : 'WE RECEIVED YOUR INQUIRY'
+        : isPartnership
+          ? 'WE RECEIVED YOUR PARTNERSHIP PROPOSAL'
+          : 'WE RECEIVED YOUR INQUIRY'
 
     const confirmation = {
       name,
@@ -266,7 +273,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         ? 'Careers application form'
         : isAcademy
           ? 'OPERAVA Academy enrollment / inquiry form'
-          : formType === 'SERVICES'
+          : isPartnership
+            ? 'OPERAVA Partnership form'
+            : formType === 'SERVICES'
             ? 'Services / Request a Quote form'
             : 'Contact form',
       rows,
@@ -278,13 +287,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ? env.TALENT_INBOX || 'talents@operavaglobal.com'
       : isAcademy
         ? env.ACADEMY_INBOX || ACADEMY_INBOX_DEFAULT
-        : env.CLIENT_INBOX || 'hello@operavaglobal.com'
+        : isPartnership
+          ? env.PARTNERS_INBOX || 'partners@operavaglobal.com'
+          : env.CLIENT_INBOX || 'hello@operavaglobal.com'
 
     const staffSubject = isCareer
       ? 'New job application received — ' + referenceId
       : isAcademy
         ? 'New Academy enrollment / inquiry — ' + referenceId
-        : 'New inquiry — ' + referenceId
+        : isPartnership
+          ? 'New partnership proposal — ' + referenceId
+          : 'New inquiry — ' + referenceId
 
     const staffHtml = staffNotificationEmail({
       formType,
@@ -295,7 +308,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     })
 
     const staffText =
-      (isCareer ? 'JOB APPLICATION' : isAcademy ? 'ACADEMY' : 'INQUIRY') +
+      (isCareer ? 'JOB APPLICATION' : isAcademy ? 'ACADEMY' : isPartnership ? 'PARTNERSHIP PROPOSAL' : 'INQUIRY') +
       ' received\nReference: ' +
       referenceId +
       '\nFrom: ' +
@@ -303,7 +316,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       ' <' +
       email +
       '>\n\nReply to this message to contact the ' +
-      (isCareer ? 'applicant' : isAcademy ? 'learner' : 'customer') +
+      (isCareer ? 'applicant' : isAcademy ? 'learner' : isPartnership ? 'prospective partner' : 'customer') +
       ' directly.\n'
 
     let emailWarning: string | undefined

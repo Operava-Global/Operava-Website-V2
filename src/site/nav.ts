@@ -298,6 +298,7 @@ export const FOOTER_COLUMNS: { heading: string; links: NavLink[] }[] = [
       { label: 'About Us', to: '/about' },
       { label: 'Industries', to: '/industries' },
       { label: 'Careers', to: '/careers' },
+      { label: 'Partnerships', to: '/partnerships' },
       { label: 'Contact Directory', to: '/contacts' },
       { label: 'Verification', to: '/verification' },
       { label: 'Payment Portal', to: '/payment-portal' },

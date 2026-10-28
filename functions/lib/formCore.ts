@@ -8,7 +8,7 @@ import {
 import { sendSesSmtp } from './sesSmtp'
 import type { EmailAttachment } from './emailAttachment'
 
-export type FormType = 'SERVICES' | 'CAREERS' | 'CONTACT' | 'ACADEMY'
+export type FormType = 'SERVICES' | 'CAREERS' | 'CONTACT' | 'ACADEMY' | 'PARTNERSHIP'
 
 export interface FormEnv {
   SUBMISSIONS_DB?: D1Database
@@ -21,6 +21,7 @@ export interface FormEnv {
   RESEND_FROM?: string
   OTP_SECRET?: string
   CLIENT_INBOX?: string
+  PARTNERS_INBOX?: string
   TALENT_INBOX?: string
   ACADEMY_INBOX?: string
 }
@@ -400,6 +401,7 @@ export const sendResend = sendEmail
 export function inboxFor(type: FormType, env: FormEnv) {
   if (type === 'CAREERS') return [env.TALENT_INBOX || 'talents@operavaglobal.com']
   if (type === 'ACADEMY') return [env.ACADEMY_INBOX || ACADEMY_INBOX_DEFAULT]
+  if (type === 'PARTNERSHIP') return [env.PARTNERS_INBOX || 'partners@operavaglobal.com']
   return [env.CLIENT_INBOX || 'hello@operavaglobal.com']
 }
 
@@ -411,6 +413,7 @@ export function purposeLabel(type: FormType) {
   if (type === 'SERVICES') return 'SERVICE INQUIRY'
   if (type === 'CAREERS') return 'JOB APPLICATION'
   if (type === 'ACADEMY') return 'ACADEMY ENROLLMENT / INQUIRY'
+  if (type === 'PARTNERSHIP') return 'PARTNERSHIP PROPOSAL'
   return 'GENERAL INQUIRY'
 }
 
@@ -433,6 +436,10 @@ const confirmationFields: Array<{ label: string; keys: string[] }> = [
   { label: 'Phone', keys: ['Phone'] },
   { label: 'Country / Location', keys: ['Country / Location', 'Country'] },
   { label: 'Company / Organization', keys: ['Company / Organization', 'Company'] },
+  { label: 'Partnership Type', keys: ['Partnership Type'] },
+  { label: 'Your Role / Title', keys: ['Role / Title'] },
+  { label: 'Target Markets', keys: ['Target Markets'] },
+  { label: 'Partnership Timeline', keys: ['Partnership Timeline'] },
   { label: 'Inquiry Category', keys: ['Inquiry Type', 'Inquiry Category', 'Category'] },
   { label: 'Service / Program', keys: ['Service', 'Program', 'Track', 'Program / Track'] },
   { label: 'Project Requirements', keys: ['Description', 'Message', 'Requirements', 'Details'] },
@@ -448,12 +455,13 @@ const confirmationFields: Array<{ label: string; keys: string[] }> = [
   { label: 'Additional Information', keys: ['Additional notes', 'Additional', 'Notes'] },
 ]
 
-type ConfirmationKind = 'operavian' | 'partner' | 'application' | 'academy' | 'general'
+type ConfirmationKind = 'operavian' | 'partner' | 'partner-submission' | 'application' | 'academy' | 'general'
 
 /** Only Future Operavian and Future Business Partner categories get their specialized response copy. */
 function confirmationKind(opts: ConfirmationInput, career = false): ConfirmationKind {
   if (career) return 'application'
   if (/academy/i.test(opts.sourceLabel)) return 'academy'
+  if (/partnership/i.test(opts.sourceLabel)) return 'partner-submission'
   const category = submissionValue(opts.rows, 'Inquiry Category', 'Inquiry Type', 'Category')
   if (/future\s+operavian/i.test(category)) return 'operavian'
   if (/future\s+business\s+partner|business\s+partnership/i.test(category)) return 'partner'
@@ -466,6 +474,12 @@ function confirmationCopy(kind: ConfirmationKind) {
     next: 'Our team will review your application and contact you within 2-3 business days.',
     thankYou: 'Thank you for choosing OPERAVA. We are pleased to begin working with you.',
     team: 'OPERAVA Recruitment Team',
+  }
+  if (kind === 'partner-submission') return {
+    received: 'We have received your partnership proposal. Your submission has been recorded and forwarded to our Partnerships team.',
+    next: 'Our partnerships team will review your proposal and contact you regarding potential next steps.',
+    thankYou: 'Thank you for your interest in collaborating with OPERAVA. We look forward to exploring the opportunity.',
+    team: 'OPERAVA Partnerships Team',
   }
   if (kind === 'partner') return {
     received: 'We have received your inquiry for a future business partnership. Your submission has been recorded and forwarded to our Business Partnership team.',
@@ -488,10 +502,11 @@ function confirmationCopy(kind: ConfirmationKind) {
 }
 
 function confirmationDetails(opts: ConfirmationInput): Array<[string, string]> {
+  const isPartner = ['partner', 'partner-submission'].includes(confirmationKind(opts))
   const values: Array<[string, string]> = [
     ['Name', opts.name],
     ...confirmationFields
-      .map(({ label, keys }) => [label, submissionValue(opts.rows, ...keys)] as [string, string])
+      .map(({ label, keys }) => [isPartner && label === 'Project Requirements' ? 'Partnership Proposal' : isPartner && label === 'Website / System URL' ? 'Company Website' : label, submissionValue(opts.rows, ...keys)] as [string, string])
       .filter(([, value]) => Boolean(value && value.trim() && value !== 'undefined')),
   ]
   // Omit empty rows and avoid repeating the reference number in the detail listing.
@@ -561,7 +576,7 @@ export function staffNotificationEmail(opts: {
   return renderEmailTemplate(opts.formType === 'CAREERS' ? careersStaffNotificationTemplate : staffNotificationTemplate, {
     FORM_TYPE: escapeHtml(opts.formType),
     TITLE: escapeHtml(opts.formType === 'CAREERS' ? 'New job application received' : 'New ' + opts.formType.toLowerCase() + ' submission'),
-    PARTY_LABEL: escapeHtml(opts.formType === 'CAREERS' ? 'applicant' : opts.formType === 'ACADEMY' ? 'learner' : 'customer'),
+    PARTY_LABEL: escapeHtml(opts.formType === 'CAREERS' ? 'applicant' : opts.formType === 'ACADEMY' ? 'learner' : opts.formType === 'PARTNERSHIP' ? 'partner' : 'customer'),
     REFERENCE_ID: escapeHtml(opts.referenceId),
     EMAIL: escapeHtml(opts.email),
     SUBMITTED_AT: escapeHtml(opts.submittedAt),

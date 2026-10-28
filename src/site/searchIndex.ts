@@ -34,6 +34,7 @@ const pages: SearchEntry[] = [
   { title: 'Remote-First Model', path: '/about/remote-first-model', section: 'About', text: 'remote global talent expansion vision pagudpud' },
   { title: 'Corporate Registration', path: '/about/corporate-registration', section: 'About', text: 'sec bir incorporation registration compliance data privacy' },
   { title: 'Contact Us', path: '/contact', section: 'Contact', text: 'inquiry talk to us email' },
+  { title: 'Partnerships', path: '/partnerships', section: 'Company', text: 'partner partnership strategic alliance integrations referral reseller channel outsourcing delivery collaboration business proposal' },
   { title: 'Request a Quote', path: '/quote', section: 'Contact', text: 'quotation proposal pricing' },
   { title: 'Contact Directory', path: '/contacts', section: 'Contact', text: 'email hr billing compliance whatsapp departments' },
   { title: 'Document Verification', path: '/verification', section: 'Contact', text: 'verify certificate reference id' },
