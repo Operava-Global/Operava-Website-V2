@@ -96,18 +96,21 @@ html[data-theme="light"] #site-shell .photo-overlay .bg-accent-solid { color:#ff
 html[data-theme="light"] #site-shell .site-mega-menu .photo-overlay { background:#100b17!important; }
 html[data-theme="light"] #site-shell .copyright-chip { background:#fff; border-color:#d0c4df; color:#29173b; }
 html[data-theme="light"] #site-shell .ecosystem-float { background:rgba(255,255,255,.94); border-color:#dfd3ee; box-shadow:0 14px 35px rgba(60,28,106,.1); }
-html[data-theme="light"] #site-shell .ecosystem-logo { background:#faf8fd; border-color:#e9e0f0; }
 
-/* Maintain contrast for the brand-supplied light/mint logo artwork.
-   The regular dark-wordmark logos retain their light cards. */
+/* Shared footer brand grid on every route: each card is completely opaque,
+   pure white (#FFFFFF), regardless of theme, hover, selection, or logo asset. */
+html #site-shell .ecosystem-logo,
+html[data-theme="light"] #site-shell .ecosystem-logo,
 html #site-shell .ecosystem-logo.ecosystem-logo--contrast,
 html[data-theme="light"] #site-shell .ecosystem-logo.ecosystem-logo--contrast {
-  background:#092731!important;
-  border-color:#245060!important;
+  background-color:#FFFFFF!important;
+  background-image:none!important;
+  opacity:1!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
 }
-html #site-shell .ecosystem-logo.ecosystem-logo--contrast p,
-html[data-theme="light"] #site-shell .ecosystem-logo.ecosystem-logo--contrast p {
-  color:#f5fffb!important;
+html[data-theme="light"] #site-shell .ecosystem-logo {
+  border-color:#e9e0f0;
 }
 html #site-shell .ecosystem-logo img {
   content-visibility:visible!important;
