@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - 'src/pages/AvaScreening.*'
+      - 'src/utils/avaCamera.ts'
+      - 'public/_headers'
+      - 'tests/avaCameraBrowser.test.mjs'
       - 'src/pages/RecruitmentAdmin.*'
       - 'src/site/Layout.tsx'
       - 'src/site/CookieNotice.tsx'
@@ -30,6 +33,9 @@ on:
     paths:
       - 'wrangler.jsonc'
       - 'src/pages/AvaScreening.*'
+      - 'src/utils/avaCamera.ts'
+      - 'public/_headers'
+      - 'tests/avaCameraBrowser.test.mjs'
       - 'src/pages/RecruitmentAdmin.*'
       - 'functions/api/ava-screening.ts'
       - 'functions/recruitment-admin/**'
@@ -56,7 +62,7 @@ jobs:
       - name: Build Cloudflare Pages frontend
         run: npm run build:pages
       - name: AVA portal security and feature regression contracts
-        run: node --test tests/avaV3Contracts.test.mjs tests/avaHorizontalFlow.test.mjs tests/avaViewportProctor.test.mjs tests/avaOwnedIdentity.test.mjs
+        run: node --test tests/avaV3Contracts.test.mjs tests/avaHorizontalFlow.test.mjs tests/avaViewportProctor.test.mjs tests/avaOwnedIdentity.test.mjs tests/avaCameraBrowser.test.mjs
       - name: Non-invasive production Ava API smoke
         if: github.event_name != 'pull_request'
         run: node tests/avaProductionSmoke.mjs

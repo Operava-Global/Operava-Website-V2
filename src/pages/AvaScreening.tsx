@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { CheckCircle2, ChevronRight, ClipboardCheck, ClipboardList, FileCheck2, Clock3, Headphones, Sparkles, LockKeyhole, MailCheck, Mic, MonitorCheck, ShieldCheck, Smartphone, TriangleAlert, LogOut } from 'lucide-react'
 import { usePageMeta } from '../site/seo'
+import { cameraErrorMessage, cameraIsLive, inspectCameraBrowser, requestIdentityCamera, type CameraCheck } from '../utils/avaCamera'
 import ThemeToggle from '../site/ThemeToggle'
 import './AvaScreening.css'
 
@@ -150,6 +151,9 @@ export default function AvaScreening() {
   const [identityFrames,setIdentityFrames]=useState<{document:Blob|null;selfie:Blob|null;motion:Blob|null}>({document:null,selfie:null,motion:null})
   const identityStream=useRef<MediaStream|null>(null)
   const identityVideo=useRef<HTMLVideoElement|null>(null)
+  const identityCameraGeneration=useRef(0)
+  const [identityCameraStatus,setIdentityCameraStatus]=useState<'idle'|'requesting'|'ready'|'blocked'|'unsupported'|'interrupted'>('idle')
+  const [identityBrowser,setIdentityBrowser]=useState<CameraCheck|null>(null)
   const [fullscreen, setFullscreen] = useState(false)
   const consentRef = useRef(false)
   const sessionRef = useRef(session)
@@ -345,6 +349,9 @@ export default function AvaScreening() {
   }
   const logout = async () => {
     stopCapture()
+    stopIdentityCamera()
+    setIdentityChallenge(null)
+    setIdentityFrames({document:null,selfie:null,motion:null})
     try {await submit('logout')} catch { /* expiration also invalidates the browser session */ }
     try {sessionStorage.removeItem(SESSION_KEY)} catch { /* private browsing */ }
     recognition.current?.stop()
@@ -371,7 +378,8 @@ export default function AvaScreening() {
   const checkCameraMic = async () => {
     setError('');setPermissionTest('testing');setCameraChecked(false)
     try {
-      if(!navigator.mediaDevices?.getUserMedia)throw Error('Camera and microphone require a supported HTTPS browser.')
+      if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia)
+        throw Error('Camera and microphone require a current HTTPS browser. Open the applicant portal directly.')
       const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true})
       try {
         if(!stream.getVideoTracks().length||!stream.getAudioTracks().length)
@@ -379,7 +387,7 @@ export default function AvaScreening() {
         setCameraChecked(true);setPermissionTest('camera-ok')
         setNotice('Camera and microphone were accessible. No diagnostic recording was saved.')
       } finally {stream.getTracks().forEach(track=>track.stop())}
-    } catch(e){setPermissionTest('unsupported');setError(e instanceof Error?e.message:'Camera or microphone permission was denied.')}
+    } catch(e){setPermissionTest('unsupported');setError(cameraErrorMessage(e))}
   }
   const checkScreenShare = async () => {
     setError('');setPermissionTest('testing');setScreenChecked(false)
@@ -397,28 +405,101 @@ export default function AvaScreening() {
     } catch(e){setPermissionTest('unsupported');setError(e instanceof Error?e.message:'Screen recording permission was denied.')}
   }
   const stopIdentityCamera=()=>{
+    // Invalidate pending permission prompts. A late stream must be discarded
+    // after cancel, logout, leaving this step or switching cameras.
+    identityCameraGeneration.current+=1
     identityStream.current?.getTracks().forEach(track=>track.stop())
     identityStream.current=null
     if(identityVideo.current)identityVideo.current.srcObject=null
+    setIdentityCameraStatus('idle')
   }
-  const startIdentityCamera=async(facing:'environment'|'user')=>{
-    if(!navigator.mediaDevices?.getUserMedia)throw Error('A secure HTTPS browser with a camera is required.')
-    stopIdentityCamera()
-    const stream=await navigator.mediaDevices.getUserMedia({video:{
-      facingMode:{ideal:facing},width:{ideal:1280},height:{ideal:720}},audio:false})
-    identityStream.current=stream
-    if(identityVideo.current){
-      identityVideo.current.srcObject=stream
-      await identityVideo.current.play().catch(()=>{})
-    }
-  }
+  const inspectIdentityBrowser=useCallback(async()=>{
+    try {setIdentityBrowser(await inspectCameraBrowser())}
+    catch {setIdentityBrowser(null)}
+  },[])
   useEffect(()=>{
-    if(identityChallenge&&identityStep<3&&identityStream.current&&identityVideo.current){
-      identityVideo.current.srcObject=identityStream.current
-      void identityVideo.current.play().catch(()=>{})
+    void inspectIdentityBrowser()
+    const update=()=>void inspectIdentityBrowser()
+    window.addEventListener('focus',update)
+    navigator.mediaDevices?.addEventListener?.('devicechange',update)
+    return ()=>{
+      window.removeEventListener('focus',update)
+      navigator.mediaDevices?.removeEventListener?.('devicechange',update)
     }
-  },[identityChallenge,identityStep])
-  useEffect(()=>()=>{identityStream.current?.getTracks().forEach(track=>track.stop())},[])
+  },[inspectIdentityBrowser])
+  const startIdentityCamera=async(facing:'environment'|'user')=>{
+    stopIdentityCamera()
+    const generation=identityCameraGeneration.current
+    setIdentityCameraStatus('requesting')
+    setError('')
+    let stream:MediaStream|null=null
+    try{
+      if(!window.isSecureContext)
+        throw Error('The camera only works on a secure HTTPS site. Open the OPERAVA applicant portal directly.')
+      const policy=document as Document & {permissionsPolicy?:{allowsFeature:(feature:string)=>boolean};featurePolicy?:{allowsFeature:(feature:string)=>boolean}}
+      if((policy.permissionsPolicy||policy.featurePolicy)?.allowsFeature('camera')===false)
+        throw Error('This page is blocked by its browser Camera Permissions Policy. Reload this website and try again.')
+      // The native permission request is started directly from this button
+      // event, before any asynchronous inspection or network operation.
+      stream=await requestIdentityCamera(facing)
+      if(generation!==identityCameraGeneration.current){
+        stream.getTracks().forEach(t=>t.stop())
+        return
+      }
+      const video=identityVideo.current
+      const track=stream.getVideoTracks()[0]
+      if(!video||!track||!cameraIsLive(stream))
+        throw Error('No live video track is available. Check the device camera and retry.')
+      identityStream.current=stream
+      track.addEventListener('ended',()=>{
+        if(generation!==identityCameraGeneration.current)return
+        stopIdentityCamera()
+        setIdentityCameraStatus('interrupted')
+        setError('Camera disconnected or permission ended. Allow the camera again to continue.')
+      },{once:true})
+      track.addEventListener('mute',()=>{
+        if(generation!==identityCameraGeneration.current)return
+        setIdentityCameraStatus('interrupted')
+        setError('Camera video is paused. Resume it in the browser or device settings, then enable the camera again.')
+      })
+      video.srcObject=stream
+      // Muted playsInline previews normally autoplay on mobile, but never
+      // silently treat a rejected play() or zero video dimensions as success.
+      let playbackTimeout:number|undefined
+      try{
+        await Promise.race([
+          video.play(),
+          new Promise<void>((_,reject)=>{
+            playbackTimeout=window.setTimeout(()=>reject(Error('Live preview did not start. Allow camera playback, update the browser or retry.')),8000)
+          })
+        ])
+      }finally{if(playbackTimeout!==undefined)window.clearTimeout(playbackTimeout)}
+      if(video.readyState<2||video.videoWidth===0){
+        await new Promise<void>((resolve,reject)=>{
+          const timeout=window.setTimeout(()=>{clear();reject(Error('Camera opened but no video frame appeared. Retry the camera or update your browser.'))},8000)
+          const clear=()=>{window.clearTimeout(timeout);video.removeEventListener('loadeddata',check);video.removeEventListener('loadedmetadata',check)}
+          const check=()=>{if(video.readyState>=2&&video.videoWidth>0){clear();resolve()}}
+          video.addEventListener('loadeddata',check)
+          video.addEventListener('loadedmetadata',check)
+          check()
+        })
+      }
+      if(generation!==identityCameraGeneration.current)return
+      if(!cameraIsLive(stream)||video.videoWidth<160||video.videoHeight<120)
+        throw Error('The camera has not produced a usable video frame. Retry or choose another camera.')
+      setIdentityCameraStatus('ready')
+      setNotice('Camera access confirmed with a live preview. Capture this image to advance to the next step.')
+      void inspectIdentityBrowser()
+    }catch(e){
+      if(generation!==identityCameraGeneration.current)return
+      const message=cameraErrorMessage(e)
+      stopIdentityCamera()
+      setIdentityCameraStatus(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia?'unsupported':'blocked')
+      setError(message)
+      void inspectIdentityBrowser()
+    }
+  }
+  useEffect(()=>()=>{identityCameraGeneration.current+=1;identityStream.current?.getTracks().forEach(track=>track.stop())},[])
   const requestIdentity=async()=>{
     setIdentityBusy(true);setError('')
     try {
@@ -429,8 +510,8 @@ export default function AvaScreening() {
       setIdentityFrames({document:null,selfie:null,motion:null})
       setIdentityStep(0)
       setIdentityChallenge({token:result.challenge,code:result.challengeCode,expires:result.expiresAt})
-      await startIdentityCamera('environment')
-      setNotice('Capture the document, then two different live selfie moments. Images are reviewed by OPERAVA employees only.')
+      setIdentityCameraStatus('idle')
+      setNotice('Your secure challenge is ready. Select Enable back camera to open the browser permission request, then capture your ID and two selfie moments.')
     }catch(e){setError(e instanceof Error?e.message:'Unable to begin owned identity capture.')}
     finally{setIdentityBusy(false)}
   }
@@ -438,9 +519,11 @@ export default function AvaScreening() {
     setIdentityBusy(true);setError('')
     try {
       if(!identityChallenge||Date.now()>identityChallenge.expires)throw Error('The camera challenge expired. Start again.')
+      if(identityCameraStatus!=='ready'||!cameraIsLive(identityStream.current))
+        throw Error('Enable the camera and verify a live preview before taking a photo.')
       const video=identityVideo.current
-      if(!video||video.readyState<2||video.videoWidth<320)
-        throw Error('Camera is not ready. Allow access and wait for the live preview.')
+      if(!video||video.readyState<2||video.videoWidth<160||video.videoHeight<120)
+        throw Error('Camera preview is not ready. Retry Enable camera and check the live image.')
       const canvas=document.createElement('canvas')
       const ratio=Math.min(1,1280/video.videoWidth)
       canvas.width=Math.round(video.videoWidth*ratio);canvas.height=Math.round(video.videoHeight*ratio)
@@ -452,13 +535,17 @@ export default function AvaScreening() {
       if(shot.size<8000||shot.size>2_500_000)throw Error('Photo quality is insufficient or image too large. Try again.')
       const key=(['document','selfie','motion'] as const)[identityStep]
       setIdentityFrames(previous=>({...previous,[key]:shot}))
-      if(identityStep===0) {
+      if(identityStep===0){
+        stopIdentityCamera()
         setIdentityStep(1)
-        await startIdentityCamera('user')
-      } else if(identityStep===1) {
+        setNotice('ID photo captured. Select Enable front camera to open the selfie camera, then take your first selfie.')
+      }else if(identityStep===1){
         setIdentityStep(2)
-      } else {
-        setIdentityStep(3);stopIdentityCamera()
+        setNotice('First selfie saved. Turn your face slightly and capture a second distinct moment with the camera still active.')
+      }else{
+        stopIdentityCamera()
+        setIdentityStep(3)
+        setNotice('All three live camera images captured. Review and submit them privately for human identity verification.')
       }
     }catch(e){setError(e instanceof Error?e.message:'Unable to capture identity photo.')}
     finally{setIdentityBusy(false)}
@@ -510,7 +597,7 @@ export default function AvaScreening() {
     recorders.current.length===2&&recorders.current.every(r=>r.state==='recording'))
   const startCapture = async () => {
     if(!recordingConsent){setError('Explicit recording consent is required.');return}
-    if(!screen?.verifiedApplicantProfile){setError('Complete certified live identity verification before starting recording.');return}
+    if(!screen?.verifiedApplicantProfile){setError('OPERAVA identity review must be approved before starting recording.');return}
     if(!screen?.recordingStorageReady){setError('Secure private recording storage is not yet configured.');return}
     if(captures.current)stopCapture()
     setProctorBusy(true);setError('');setProctorSaved({camera:false,screen:false})
@@ -809,16 +896,46 @@ export default function AvaScreening() {
                       <option value="national_id">National ID</option><option value="passport">Passport</option><option value="drivers_license">Driver’s licence</option>
                     </select></label>
                     <label className="ava-check"><input type="checkbox" checked={identityConsent} onChange={e=>setIdentityConsent(e.target.checked)}/><span>I consent to taking and privately storing three camera photos of my identity document and face, exclusively for authorized OPERAVA human identity review, subject to the <Link to="/privacy" target="_blank">Privacy Policy</Link>. The stored images automatically expire after 30 days. I understand automated biometric matching is not used.</span></label>
-                    <button type="button" className="ava-secondary" disabled={identityBusy||!identityConsent||!screen?.identityProviderAvailable} onClick={()=>void requestIdentity()}><Smartphone size={16}/>{identityBusy?'Starting camera…':'Begin OPERAVA live identity capture'}</button>
+                    <div className="ava-camera-preflight" role="status" aria-label="Camera browser compatibility">
+                      <span className={identityBrowser?.secureContext&&identityBrowser?.available&&identityBrowser?.policyAllowed?'ava-status-good':'ava-status-warn'}>
+                        {identityBrowser
+                          ? !identityBrowser.secureContext?'Camera unavailable: HTTPS required'
+                          : !identityBrowser.available?'Camera unavailable in this browser'
+                          : !identityBrowser.policyAllowed?'Camera blocked by website permissions policy'
+                          : 'Browser camera API supported'
+                          : 'Checking browser camera support…'}
+                      </span>
+                      <span>Permission: {identityBrowser?.permission==='granted'?'allowed':identityBrowser?.permission==='denied'?'blocked':identityBrowser?.permission==='prompt'?'ask on use':'not reported (normal on some browsers)'}</span>
+                      <button className="ava-text-button" type="button" onClick={()=>void inspectIdentityBrowser()}>Recheck browser permissions</button>
+                    </div>
+                    <button type="button" className="ava-secondary" disabled={identityBusy||!identityConsent||!screen?.identityProviderAvailable||identityBrowser?.secureContext===false||identityBrowser?.available===false||identityBrowser?.policyAllowed===false} onClick={()=>void requestIdentity()}><Smartphone size={16}/>{identityBusy?'Creating secure challenge…':'Continue to secure camera check'}</button>
                   </>}
                   {identityChallenge&&screen?.identityStatus!=='pending_review'&&<div className="ava-owned-id">
                     <p className="ava-label">ONE-TIME CAPTURE CHALLENGE · {identityChallenge.code}</p>
                     <p>{['Hold the document flat in the camera with all edges visible. Avoid glare and reflections.','Look directly at the camera for a neutral selfie.','Turn your face slightly to one side and take a second selfie.','Review and submit all three camera frames.'][identityStep]}</p>
-                    {identityStep<3?<><video ref={identityVideo} data-facing={identityStep===0?'environment':'user'} playsInline autoPlay muted aria-label="Live identity verification camera preview"/>
-                      <div className="ava-slide-actions">
-                        <button type="button" className="ava-primary" disabled={identityBusy} onClick={()=>void captureIdentity()}>{identityBusy?'Capturing…':['Capture ID','Capture first selfie','Capture turned selfie'][identityStep]} <ChevronRight size={16}/></button>
-                        <button type="button" className="ava-secondary" disabled={identityBusy} onClick={()=>void startIdentityCamera(identityStep===0?'environment':'user').catch(e=>setError(e instanceof Error?e.message:'Camera unavailable.'))}>Enable camera</button>
-                      </div></>:<>
+                    <div className="ava-camera-stepper" aria-label="Identity camera progress">{['ID document','Neutral selfie','Turned selfie'].map((label,index)=><span key={label} className={index<identityStep?'is-complete':index===identityStep?'is-current':''}>{index<identityStep?'✓':index+1} · {label}</span>)}</div>
+                    {identityStep<3?<><div className="ava-camera-preview">
+                      <video ref={identityVideo} data-facing={identityStep===0?'environment':'user'} playsInline autoPlay muted aria-label="Live identity verification camera preview"/>
+                      {identityCameraStatus!=='ready'&&<div className="ava-camera-placeholder" aria-live="polite">{identityCameraStatus==='requesting'?'Waiting for camera permission and live video…':identityCameraStatus==='interrupted'?'Camera connection interrupted':identityCameraStatus==='blocked'?'Camera blocked or preview unavailable':'Enable camera to start a live preview'}</div>}
+                    </div>
+                    <p className={identityCameraStatus==='ready'&&cameraIsLive(identityStream.current)?'ava-status-good':'ava-status-warn'} role="status">
+                      {identityCameraStatus==='ready'&&cameraIsLive(identityStream.current)
+                        ? 'Camera is active ✓ · A live frame is detected. Capture the image to move to the next step.'
+                        : identityCameraStatus==='requesting'?'Requesting camera access from your browser…'
+                        : identityCameraStatus==='blocked'||identityCameraStatus==='interrupted'
+                          ? 'Camera not ready. Review browser and operating-system camera settings, then retry.'
+                          : 'Camera not enabled yet. Select the button below to request permission.'}
+                    </p>
+                    <div className="ava-slide-actions">
+                      <button type="button" className="ava-secondary" disabled={identityBusy||identityCameraStatus==='requesting'} onClick={()=>void startIdentityCamera(identityStep===0?'environment':'user')}>
+                        <MonitorCheck size={16}/>{identityCameraStatus==='requesting'?'Opening camera…':identityCameraStatus==='ready'?'Restart camera':identityStep===0?'Enable back camera':'Enable front camera'}
+                      </button>
+                      <button type="button" className="ava-primary" disabled={identityBusy||identityCameraStatus!=='ready'||!cameraIsLive(identityStream.current)} onClick={()=>void captureIdentity()}>
+                        {identityBusy?'Capturing…':['Capture ID & next','Capture first selfie & next','Capture turned selfie & review'][identityStep]} <ChevronRight size={16}/>
+                      </button>
+                    </div>
+                    {(identityCameraStatus==='blocked'||identityCameraStatus==='unsupported'||identityBrowser?.permission==='denied')&&<p className="ava-camera-help">Camera access blocked? Open the camera icon or site settings beside your browser address bar, select <strong>Allow</strong> for Camera, check your phone or computer privacy settings, then retry. If camera capture is unsupported, update your browser or use the latest Chrome, Edge, Firefox, or Safari outside an in-app browser.</p>}
+                    <button type="button" className="ava-text-button" disabled={identityBusy} onClick={()=>void inspectIdentityBrowser()}>Check browser and permission status</button></>:<>
                         <p className="ava-status-good">Three separate camera images captured for authorized human review. No automated identity approval will occur.</p>
                         <button type="button" className="ava-primary" disabled={identityBusy} onClick={()=>void submitIdentity()}>{identityBusy?'Submitting securely…':'Submit identity for human verification'}<ChevronRight size={16}/></button>
                       </>}
@@ -826,7 +943,7 @@ export default function AvaScreening() {
                   </div>}
                   {!screen?.identityProviderAvailable && <p className="ava-small-warning">OPERAVA private identity evidence storage is unavailable. Ask Talent Acquisition to enable the secure verification service.</p>}
                   <button type="button" className="ava-text-button" onClick={() => void refresh()}>Refresh verified profile</button>
-                  <div className="ava-slide-actions"><button type="button" className="ava-primary" onClick={()=>setReadyPage(1)}>Next: proctor permissions <ChevronRight size={17}/></button></div>
+                  <div className="ava-slide-actions"><button type="button" className="ava-primary" disabled={Boolean(identityChallenge)} onClick={()=>{stopIdentityCamera();setReadyPage(1)}}>Next: proctor permissions <ChevronRight size={17}/></button></div>
                 </article>}
                 {readyPage===1 && <article className="ava-check-card">
                   <div className="ava-check-icon"><MonitorCheck size={24}/></div>
