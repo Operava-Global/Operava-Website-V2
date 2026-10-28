@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { CheckCircle2, ChevronRight, ClipboardCheck, ClipboardList, FileCheck2, Clock3, Headphones, Sparkles, LockKeyhole, MailCheck, Mic, MonitorCheck, ShieldCheck, Smartphone, TriangleAlert, LogOut } from 'lucide-react'
 import { usePageMeta } from '../site/seo'
 import { cameraErrorMessage, cameraIsLive, inspectCameraBrowser, requestIdentityCamera, type CameraCheck } from '../utils/avaCamera'
+import { inspectProctorSupport, proctorErrorMessage, proctorTrackIsLive, createProctorRecorder, type ProctorSupport } from '../utils/avaProctorMedia'
 import ThemeToggle from '../site/ThemeToggle'
 import './AvaScreening.css'
 
@@ -132,6 +133,11 @@ export default function AvaScreening() {
   const [speechAvailable, setSpeechAvailable] = useState(false)
   const recognition = useRef<SpeechClient | null>(null)
   const captures = useRef<{screen:MediaStream;camera:MediaStream}|null>(null)
+  const preparedCamera=useRef<MediaStream|null>(null)
+  const [proctorCameraReady,setProctorCameraReady]=useState(false)
+  const [proctorSupport,setProctorSupport]=useState<ProctorSupport|null>(null)
+  const proctorWatchdog=useRef<number|null>(null)
+  const lastRecordingData=useRef({camera:0,screen:0})
   const recorders = useRef<MediaRecorder[]>([])
   const audioContext = useRef<AudioContext|null>(null)
   const soundPoll = useRef<number|null>(null)
@@ -571,11 +577,18 @@ export default function AvaScreening() {
   }
   const stopCapture = () => {
     captureActive.current=false
-    for(const recorder of recorders.current) {if(recorder.state!=='inactive'){try{recorder.stop()}catch{ /* already stopped */ }}}
+    if(proctorWatchdog.current!==null)window.clearInterval(proctorWatchdog.current)
+    proctorWatchdog.current=null
+    for(const recorder of recorders.current){
+      if(recorder.state!=='inactive'){try{recorder.stop()}catch{/* stopped */}}
+    }
     recorders.current=[]
-    captures.current?.screen.getTracks().forEach(t=>t.stop())
-    captures.current?.camera.getTracks().forEach(t=>t.stop())
+    captures.current?.screen.getTracks().forEach(track=>track.stop())
+    captures.current?.camera.getTracks().forEach(track=>track.stop())
     captures.current=null
+    preparedCamera.current?.getTracks().forEach(track=>track.stop())
+    preparedCamera.current=null
+    setProctorCameraReady(false)
     if(soundPoll.current!==null)window.clearInterval(soundPoll.current)
     soundPoll.current=null
     void audioContext.current?.close()
@@ -584,81 +597,129 @@ export default function AvaScreening() {
     setProctorSaved({camera:false,screen:false})
   }
   useEffect(() => {
+    setProctorSupport(inspectProctorSupport())
+    const recheck=()=>setProctorSupport(inspectProctorSupport())
+    window.addEventListener('focus',recheck)
+    return ()=>window.removeEventListener('focus',recheck)
+  },[])
+  useEffect(() => {
     if(screen?.assessmentStatus==='submitted'||screen?.assessmentStatus==='time_expired')stopCapture()
-    // Capture must end promptly when the assessment ends; don't record the result page.
   },[screen?.assessmentStatus])
+  // A user gesture first grants webcam and mic access. A separate user gesture
+  // starts getDisplayMedia, required by the browser's transient-activation rule.
+  const prepareProctorCamera=async()=>{
+    if(!recordingConsent){setError('Please consent to camera, microphone and screen recording first.');return}
+    setProctorBusy(true);setError('')
+    try {
+      stopCapture()
+      if(!navigator.mediaDevices?.getUserMedia)throw Error('Camera and microphone are not supported in this browser.')
+      const camera=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'user'}},audio:{echoCancellation:true,noiseSuppression:true}})
+      if(!proctorTrackIsLive(camera,'video')||!proctorTrackIsLive(camera,'audio')){
+        camera.getTracks().forEach(track=>track.stop())
+        throw Error('The camera and microphone did not become active. Grant both permissions and try again.')
+      }
+      preparedCamera.current=camera
+      for(const track of camera.getTracks()) {
+        track.addEventListener('ended',()=>{
+          if(preparedCamera.current!==camera)return
+          stopCapture()
+          setError('Webcam or microphone was disconnected. Restore permission and try again.')
+        },{once:true})
+      }
+      setProctorCameraReady(true)
+      setNotice('Webcam and microphone are active. Next, select Share entire screen to start the secure recording.')
+    }catch(e){setProctorCameraReady(false);setError(proctorErrorMessage(e,'camera'))}
+    finally{setProctorBusy(false)}
+  }
   const isCaptureLive = () => Boolean(captures.current &&
-    captures.current.screen.getVideoTracks().length &&
-    captures.current.screen.getVideoTracks().every(t=>t.readyState==='live'&&t.enabled&&!t.muted) &&
-    captures.current.camera.getVideoTracks().length &&
-    captures.current.camera.getVideoTracks().every(t=>t.readyState==='live'&&t.enabled&&!t.muted) &&
-    captures.current.camera.getAudioTracks().length &&
-    captures.current.camera.getAudioTracks().every(t=>t.readyState==='live'&&t.enabled&&!t.muted) &&
+    proctorTrackIsLive(captures.current.screen,'video') &&
+    proctorTrackIsLive(captures.current.camera,'video') &&
+    proctorTrackIsLive(captures.current.camera,'audio') &&
     recorders.current.length===2&&recorders.current.every(r=>r.state==='recording'))
   const startCapture = async () => {
     if(!recordingConsent){setError('Explicit recording consent is required.');return}
-    if(!screen?.verifiedApplicantProfile){setError('OPERAVA identity review must be approved before starting recording.');return}
-    if(!screen?.recordingStorageReady){setError('Secure private recording storage is not yet configured.');return}
-    if(captures.current)stopCapture()
+    if(!screen?.verifiedApplicantProfile){setError('OPERAVA human identity approval is required before recording.');return}
+    if(!screen?.recordingStorageReady){setError('Secure private recording storage is not configured.');return}
+    if(!proctorCameraReady||!preparedCamera.current||
+      !proctorTrackIsLive(preparedCamera.current,'video')||
+      !proctorTrackIsLive(preparedCamera.current,'audio')){
+      setError('Enable your webcam and microphone in the previous step before sharing your screen.')
+      return
+    }
     setProctorBusy(true);setError('');setProctorSaved({camera:false,screen:false})
-    let display:MediaStream|null=null,webcam:MediaStream|null=null
+    let display:MediaStream|null=null
+    const webcam=preparedCamera.current
+    let source:'screen'|'camera'|'recorder'|'upload'='screen'
     try {
-      if(!navigator.mediaDevices?.getDisplayMedia||!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined')
-        throw Error('Required screen, camera and microphone capture is not supported in this browser.')
-      // A direct click must initiate the native browser screen-share permission dialog.
+      if(!navigator.mediaDevices?.getDisplayMedia)
+        throw Error('This browser does not support screen sharing. Use a current desktop browser with full-screen capture.')
+      // Must be the first browser permission call in this direct click handler.
       display=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false})
-      webcam=await navigator.mediaDevices.getUserMedia({video:true,audio:true})
-      if(!display.getVideoTracks().length||!webcam.getVideoTracks().length||!webcam.getAudioTracks().length)
-        throw Error('Screen, webcam, and microphone permissions are all required.')
+      if(!proctorTrackIsLive(display,'video'))
+        throw Error('Screen capture did not become active. Select Share in the browser dialog.')
       const surface=display.getVideoTracks()[0]?.getSettings().displaySurface
       if(surface&&surface!=='monitor')
-        throw Error('Please select your entire display, not a single browser tab or window.')
-      // The server records the applicant's explicit, authenticated consent only
-      // after the browser actually granted the three media permissions.
+        throw Error('Share your entire display, not a tab or single application window.')
+      if(!proctorTrackIsLive(webcam,'video')||!proctorTrackIsLive(webcam,'audio'))
+        throw Error('Your webcam or microphone disconnected while screen sharing was enabled.')
+      source='upload'
       await submit('proctorConsent',{recordingConsent:true})
       captures.current={screen:display,camera:webcam}
+      preparedCamera.current=null
       captureActive.current=true
       const onLost=()=>{
         if(!captureActive.current)return
         stopCapture()
-        setError('Screen, webcam or microphone permission ended. Recording stopped; restore all permissions before continuing.')
+        setError('One of the live media permissions ended. Restore webcam, microphone and screen capture to continue.')
       }
       for(const track of [...display.getTracks(),...webcam.getTracks()]){
         track.addEventListener('ended',onLost,{once:true})
         track.addEventListener('mute',onLost)
       }
-      const mime=['video/webm;codecs=vp8,opus','video/webm','video/mp4'].find(x=>MediaRecorder.isTypeSupported(x))
-      if(!mime)throw Error('Recording is not supported with a secure video format in this browser.')
+      source='recorder'
       const sendChunk=(kind:'camera'|'screen',blob:Blob)=>{
         if(!captureActive.current||!blob.size)return
+        lastRecordingData.current[kind]=Date.now()
         const form=new FormData()
         form.append('kind',kind)
-        form.append('chunk',new File([blob],kind+'.recording',{type:blob.type||mime}))
+        form.append('chunk',new File([blob],kind+'.recording',{type:blob.type||'video/webm'}))
         void fetch(API+'?action=proctorChunk',{
-          method:'POST',body:form,headers:{Authorization:`Bearer ${sessionRef.current}`}
+          method:'POST',credentials:'same-origin',cache:'no-store',body:form,
+          headers:{Authorization:`Bearer ${sessionRef.current}`}
         }).then(async response=>{
           const result=await response.json().catch(()=>({})) as {ok?:boolean;error?:string}
-          if(!response.ok||!result.ok)throw Error(result.error||'Recording segment was rejected.')
-          setProctorSaved(prev=>({...prev,[kind]:true}))
+          if(!response.ok||!result.ok)throw Error(result.error||'Private recording upload was rejected.')
+          if(captureActive.current)setProctorSaved(previous=>({...previous,[kind]:true}))
         }).catch(e=>{
           if(!captureActive.current)return
           stopCapture()
-          setError(e instanceof Error?e.message:'A recording segment could not be stored. Restore recording before continuing.')
+          setError(proctorErrorMessage(e,'upload'))
         })
       }
-      for(const [kind,stream] of [['camera',webcam],['screen',display]] as const){
-        const recorder=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:500_000})
+      const now=Date.now()
+      lastRecordingData.current={camera:now,screen:now}
+      for(const [kind,stream] of [['camera',webcam],['screen',display]] as const) {
+        const recorder=createProctorRecorder(stream,kind)
         recorder.ondataavailable=event=>sendChunk(kind,event.data)
         recorder.onerror=onLost
         recorders.current.push(recorder)
         recorder.start(8000)
       }
-      try {
+      proctorWatchdog.current=window.setInterval(()=>{
+        if(!captureActive.current)return
+        for(const [index,kind] of ['camera','screen'].entries()){
+          const recorder=recorders.current[index]
+          if(recorder?.state==='recording'&&Date.now()-lastRecordingData.current[kind as 'camera'|'screen']>14_000){
+            try{recorder.requestData()}catch{/* onLost handles recorder failure */}
+          }
+        }
+      },5000)
+      try{
         const context=new AudioContext()
         audioContext.current=context
-        const source=context.createMediaStreamSource(webcam)
+        const sourceNode=context.createMediaStreamSource(webcam)
         const analyser=context.createAnalyser();analyser.fftSize=512
-        source.connect(analyser)
+        sourceNode.connect(analyser)
         const samples=new Uint8Array(analyser.fftSize)
         let sustained=0,lastEvent=0
         soundPoll.current=window.setInterval(()=>{
@@ -672,15 +733,14 @@ export default function AvaScreening() {
             void submit('event',{event:'sound_flag'}).catch(()=>{})
           }
         },1000)
-      } catch{ /* Background sound analysis is advisory only. */ }
+      }catch{/* Sound events are only advisory. */}
       setProctorReady(true)
-      setNotice('Live recording started. Allow the first secure screen and camera segments to upload before beginning.')
+      setNotice('Screen, webcam and microphone recording has started. The assessment opens after both private recording segments are saved.')
     }catch(e){
-      display?.getTracks().forEach(t=>t.stop())
-      webcam?.getTracks().forEach(t=>t.stop())
+      display?.getTracks().forEach(track=>track.stop())
       stopCapture()
-      setError(e instanceof Error?e.message:'Recording permissions are required.')
-    } finally{setProctorBusy(false)}
+      setError(proctorErrorMessage(e,source))
+    }finally{setProctorBusy(false)}
   }
   const beginAssessment = async () => {
     if(!screen?.verifiedApplicantProfile||!proctorReady||!proctorSaved.camera||!proctorSaved.screen||!isCaptureLive()){
