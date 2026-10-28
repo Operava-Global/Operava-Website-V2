@@ -42,7 +42,7 @@ test('Onboarding is application-scoped, R2 private and recruiter protected',()=>
 
 test('Applicant identity cannot self-attest and live capture has hard gates',()=>{
   assert.match(backend,/identityStart/)
-  assert.match(backend,/Only certified live mobile ID capture is permitted/)
+  assert.match(backend,/Legacy identity uploads are disabled/)
   assert.match(backend,/if\(row\.identity_status!=='approved'\|\|!verified\)/)
   assert.match(backend,/AVA_PROCTOR_BUCKET/)
   assert.match(callback,/event\.livenessPassed===true/)
@@ -105,8 +105,8 @@ test('AVA assessment recording requires separate explicit consent and verified i
   assert.match(backend,/action === 'proctorConsent'/)
   assert.match(backend,/data\?\.recordingConsent!==true/)
   assert.match(backend,/proctor_consent_at/)
-  assert.match(backend,/Certified identity verification must complete before recording/)
-  assert.match(backend,/Live identity verification must pass before recording/)
+  assert.match(backend,/OPERAVA identity review must complete before recording/)
+  assert.match(backend,/OPERAVA identity review must pass before recording/)
   assert.match(backend,/if\(!row\.proctor_consent_at\)/)
   assert.match(schema,/proctor_consent_at INTEGER/)
   assert.match(applicant,/submit\('proctorConsent',\{recordingConsent:true\}\)/)
