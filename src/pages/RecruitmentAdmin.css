@@ -95,3 +95,9 @@ html[data-theme="light"] .ra-workspace .ra-report-detail{background:#f1ecf8}
 .ra-proctor-events span{font-size:11px;border:1px solid var(--ra-border);background:var(--ava-card);border-radius:8px;padding:8px 10px;white-space:normal}
 .ra-proctor-segments{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .ra-proctor-segments .ava-secondary{display:inline-flex;gap:7px;align-items:center;font-size:10px;margin:0}
+
+/* Evidence checks only within Cloudflare Access-protected identity review. */
+.ra-identity-checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;margin:12px 0}
+.ra-identity-checks .ava-check{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.45}
+.ra-identity-checks input{accent-color:#A000F0}
+@media(max-width:650px){.ra-identity-checks{grid-template-columns:1fr}}
