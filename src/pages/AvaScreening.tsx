@@ -465,7 +465,15 @@ export default function AvaScreening() {
       video.srcObject=stream
       // Muted playsInline previews normally autoplay on mobile, but never
       // silently treat a rejected play() or zero video dimensions as success.
-      await video.play()
+      let playbackTimeout:number|undefined
+      try{
+        await Promise.race([
+          video.play(),
+          new Promise<void>((_,reject)=>{
+            playbackTimeout=window.setTimeout(()=>reject(Error('Live preview did not start. Allow camera playback, update the browser or retry.')),8000)
+          })
+        ])
+      }finally{if(playbackTimeout!==undefined)window.clearTimeout(playbackTimeout)}
       if(video.readyState<2||video.videoWidth===0){
         await new Promise<void>((resolve,reject)=>{
           const timeout=window.setTimeout(()=>{clear();reject(Error('Camera opened but no video frame appeared. Retry the camera or update your browser.'))},8000)
