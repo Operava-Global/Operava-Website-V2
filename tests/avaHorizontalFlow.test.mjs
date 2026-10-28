@@ -48,11 +48,12 @@ test('API refuses cross-origin attempts, stale identity and post-deadline record
 })
 
 test('AVA presents a one-question board instead of a character sidecar', () => {
-  assert.match(applicant, /ava-ai-board/)
-  assert.match(applicant, /AVA · Instructions/)
-  assert.match(applicant, /ava-ai-message--question/)
-  assert.match(applicant, /Submit & next question/)
-  assert.doesNotMatch(applicant, /ava-proctor-mermaid\\.svg|ava-proctor-dock/)
+  assert.ok(ui.includes('ava-ai-board'))
+  assert.ok(ui.includes('AVA · Instructions'))
+  assert.ok(ui.includes('ava-ai-message--question'))
+  assert.ok(ui.includes('Submit & next question'))
+  assert.ok(!ui.includes('ava-proctor-mermaid.svg'))
+  assert.ok(!ui.includes('ava-proctor-dock'))
   assert.match(css, /ava-board-question-enter/)
   assert.match(css, /prefers-reduced-motion:reduce/)
 })
