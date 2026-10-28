@@ -654,6 +654,15 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       }
       if(decision==='approved'&&(!identityReviewChecksValid(data?.checks)||note.length<12))
         return error('A reviewer must confirm four checks and provide a meaningful rationale.',400)
+      if(decision==='approved') {
+        if(!env.AVA_ID_BUCKET)return error('Private identity evidence storage unavailable.',503)
+        // Evidence must still exist after lifecycle expiry; absent photos must
+        // never be approved via only the D1 metadata or browser checkboxes.
+        const media=await Promise.all([owned.document_key,owned.selfie_key,owned.motion_key]
+          .map(key=>env.AVA_ID_BUCKET!.head(key!)))
+        if(media.some(item=>!item))
+          return error('Identity photo evidence has expired. Request fresh camera capture.',409)
+      }
       if(decision==='needs_resubmission'&&note.length<12)
         return error('Provide the applicant with a clear resubmission reason.',400)
       const now=Date.now()
