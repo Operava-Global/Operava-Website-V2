@@ -34,7 +34,8 @@ test('Assessment recovery blocks questions until fresh explicit capture is resto
   assert.match(ui, /!proctorReady\|\|!proctorSaved\.camera\|\|!proctorSaved\.screen\|\|!isCaptureLive\(\)/)
   assert.match(ui, /onClick=\{\(\)=>void startCapture\(\)\}/)
   assert.match(ui, /if\(!recordingConsent\)/)
-  assert.match(ui, /stopCapture\(\)[\s\S]*?A recording segment could not be stored/)
+  assert.match(ui, /stopCapture\\(\\)[\\s\\S]*?proctorErrorMessage\\(e,'upload'\\)/)
+  assert.match(ui, /recorder.requestData\\(\\)/)
 })
 
 test('API refuses cross-origin attempts, stale identity and post-deadline recordings', () => {
