@@ -983,36 +983,94 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       return json({ok:true,proctorConsentGiven:true})
     }
     if (action === 'identityStart') {
-      if (!row.profile || !row.consent_at || !row.monitor_consent_at) return error('Complete the applicant profile and required consents first.',403)
-      if (!env.AVA_IDV_API_URL || !env.AVA_IDV_API_KEY || !env.AVA_IDV_WEBHOOK_SECRET) return error('Certified live identity verification is not configured. Contact Talent Acquisition.',503)
-      const recentIntent=await db.prepare('SELECT created_at FROM ava_screening_identity_intents WHERE session_id=?')
-        .bind(row.id).first<{created_at:number}>()
-      if(recentIntent && Date.now()-recentIntent.created_at<60_000)
-        return error('A verification link was recently requested. Check your email before retrying.',429)
-      let legalName=row.name
+      if(!row.profile||!row.consent_at||!row.monitor_consent_at)
+        return error('Complete your profile and privacy terms first.',403)
+      if(row.assessment_status!=='not_started'||row.identity_status==='approved'||row.identity_status==='pending_review')
+        return error('Identity capture is not available in this application state.',409)
+      if(!env.AVA_ID_BUCKET)return error('Private OPERAVA identity storage is not configured.',503)
+      // Server-issued, single-use, short-lived challenge; do not log the token.
+      // It prevents stale or duplicate uploads, but does not prove true liveness.
+      const now=Date.now()
+      const previous=await db.prepare('SELECT * FROM ava_screening_owned_identity WHERE session_id=?')
+        .bind(row.id).first<OwnedIdentity>()
+      const attempts=previous&&now-previous.issued_at<24*60*60_000?previous.attempts+1:1
+      if(attempts>5)return error('Identity capture limit reached. Contact Talent Acquisition.',429)
+      if(previous&&now-previous.issued_at<45_000)
+        return error('A live identity capture was recently started. Try again shortly.',429)
+      const challenge=crypto.randomUUID()
+      const hash=await digest(row.id+':'+challenge)
+      await db.prepare(`INSERT INTO ava_screening_owned_identity
+        (session_id,challenge_hash,issued_at,expires_at,attempts,submitted_at)
+        VALUES (?,?,?,?,?,NULL)
+        ON CONFLICT(session_id) DO UPDATE SET
+          challenge_hash=excluded.challenge_hash,issued_at=excluded.issued_at,
+          expires_at=excluded.expires_at,attempts=excluded.attempts,submitted_at=NULL`)
+        .bind(row.id,hash,now,now+OWNED_ID_TTL_MS,attempts).run()
+      return json({ok:true,mode:'operava_owned_human_review',challenge,
+        challengeCode:challenge.slice(-6).toUpperCase(),expiresAt:now+OWNED_ID_TTL_MS,
+        required:['document','selfie','motion']})
+    }
+    if (action === 'identitySubmit') {
+      if(request.headers.get('Origin')!==new URL(request.url).origin)
+        return error('Identity media must be submitted from this secure site.',403)
+      if(!env.AVA_ID_BUCKET)return error('Private OPERAVA identity storage is unavailable.',503)
+      if(!row.profile||!row.consent_at||!row.monitor_consent_at||
+        row.assessment_status!=='not_started'||!['not_submitted','needs_resubmission'].includes(row.identity_status))
+        return error('Identity capture is unavailable in the current application state.',403)
+      if(!type.includes('multipart/form-data'))return error('Expected live camera images.',415)
+      const raw=await readLimitedBody(request,8_000_000)
+      const form=await new Response(raw.buffer as ArrayBuffer,{headers:{'Content-Type':type}}).formData()
+      const token=String(form.get('challenge')||'')
+      const documentType=form.get('documentType')
+      if(!/^[a-f0-9-]{36}$/.test(token)||!validOwnedDocumentType(documentType)||form.get('consent')!=='true')
+        return error('A valid live challenge, identity type and explicit consent are required.',400)
+      const previous=await db.prepare('SELECT * FROM ava_screening_owned_identity WHERE session_id=?')
+        .bind(row.id).first<OwnedIdentity>()
+      const now=Date.now(),challengeHash=await digest(row.id+':'+token)
+      if(!previous||previous.expires_at<=now||previous.submitted_at||
+        !timingSafeEqualStr(previous.challenge_hash,challengeHash))
+        return error('Identity camera challenge expired or was already used. Restart capture.',409)
+      let document:Uint8Array,selfie:Uint8Array,motion:Uint8Array
       try {
-        const identityProfile=JSON.parse(row.profile) as {fullName?:string}
-        if(identityProfile.fullName?.trim())legalName=identityProfile.fullName.trim()
-      } catch { /* Profile presence was verified above. */ }
-      // Provider adapter: never send face/ID photos to the general application API.
-      // Credentials must only be available as Cloudflare encrypted secrets.
-      const endpoint=new URL(env.AVA_IDV_API_URL)
-      if(endpoint.protocol!=='https:') return error('Identity provider configuration is unsafe.',503)
-      const external=await fetch(endpoint.toString(),{
-        method:'POST',headers:{Authorization:`Bearer ${env.AVA_IDV_API_KEY}`,'Content-Type':'application/json'},
-        body:JSON.stringify({reference:row.id,subject:{name:legalName},workflow:'live-face-document-passport-nfc',
-          callbackUrl:new URL('/api/ava-identity-callback',request.url).toString()})
-      })
-      if(!external.ok) return error('Identity verification provider is unavailable.',503)
-      const result=await external.json() as {verificationUrl?:string;reference?:string}
-      if(!result.verificationUrl||!result.reference) return error('Identity provider did not return a live verification session.',503)
-      await db.prepare('INSERT INTO ava_screening_identity_intents(session_id,vendor_reference,created_at) VALUES (?,?,?) ON CONFLICT(session_id) DO UPDATE SET vendor_reference=excluded.vendor_reference,created_at=excluded.created_at').bind(row.id,String(result.reference).slice(0,200),Date.now()).run()
-      const url=new URL(result.verificationUrl)
-      if(url.protocol!=='https:') return error('Identity provider returned an invalid URL.',503)
-      await sendEmail(env,{from:resolveFromEnv(env),to:[row.email],subject:'OPERAVA | Live identity verification',
-        text:`Hello ${row.name},\n\nTo verify your applicant profile, open this secure live identity verification link on your mobile phone:\n${url.toString()}\n\nOnly proceed if you requested this link. The provider will ask permission to access your camera. A selfie and live ID capture are required; uploading existing pictures is not accepted.\n\nOPERAVA Talent Acquisition`,
-        html:`<p>Hello ${escapeHtml(row.name)},</p><p>Your live identity verification link is ready.</p><p><a href="${escapeHtml(url.toString())}">Open secure verification on your mobile phone</a></p><p>The identity provider will ask permission to use your camera. Existing photo uploads are not accepted. Ignore this message if you did not request verification.</p><p>OPERAVA Talent Acquisition</p>`})
-      return json({ok:true,verificationUrl:url.toString(),message:'Live verification link sent to your confirmed email. Use your phone to complete it.'})
+        document=await validateCameraJpeg(form.get('document'),'document')
+        selfie=await validateCameraJpeg(form.get('selfie'),'selfie')
+        motion=await validateCameraJpeg(form.get('motion'),'motion')
+      }catch{return error('Capture three clear live JPEG images using your camera.',400)}
+      const [selfieDigest,motionDigest]=await Promise.all([
+        crypto.subtle.digest('SHA-256',selfie),crypto.subtle.digest('SHA-256',motion)])
+      if(new Uint8Array(selfieDigest).every((b,i)=>b===new Uint8Array(motionDigest)[i]))
+        return error('Please capture two different selfie moments for manual review.',400)
+      const root=`ava-owned-id/${row.id}/${crypto.randomUUID()}`
+      const keys=[root+'/document.jpg',root+'/selfie.jpg',root+'/motion.jpg']
+      try {
+        for(const [i,bytes] of [document,selfie,motion].entries())
+          await env.AVA_ID_BUCKET.put(keys[i],bytes,{
+            httpMetadata:{contentType:'image/jpeg'},
+            customMetadata:{category:'private-manual-identity-review',part:['document','selfie','motion'][i]}
+          })
+        const updated=await db.prepare(`UPDATE ava_screening_owned_identity SET
+          document_key=?,selfie_key=?,motion_key=?,document_type=?,consent_at=?,
+          submitted_at=?,reviewer_note=NULL,reviewed_at=NULL
+          WHERE session_id=? AND challenge_hash=? AND expires_at>? AND submitted_at IS NULL`)
+          .bind(keys[0],keys[1],keys[2],documentType,now,now,row.id,challengeHash,now).run()
+        if(!updated.meta.changes)throw Error('CHALLENGE_CONSUMED')
+        const status=await db.prepare(`UPDATE ava_screening_sessions SET
+          identity_status='pending_review',identity_key=?,identity_kind=?,
+          identity_submitted=?,identity_reviewed=NULL
+          WHERE id=? AND assessment_status='not_started'
+          AND identity_status IN ('not_submitted','needs_resubmission')`)
+          .bind(keys[0],documentType,now,row.id).run()
+        if(!status.meta.changes)throw Error('IDENTITY_STATE_CHANGED')
+      } catch {
+        for(const key of keys)await env.AVA_ID_BUCKET.delete(key).catch(()=>{})
+        await db.prepare('UPDATE ava_screening_owned_identity SET document_key=NULL,selfie_key=NULL,motion_key=NULL,submitted_at=NULL WHERE session_id=? AND challenge_hash=? AND submitted_at=?')
+          .bind(row.id,challengeHash,now).run().catch(()=>{})
+        return error('Identity upload could not be completed. Restart secure capture.',409)
+      }
+      for(const old of [previous.document_key,previous.selfie_key,previous.motion_key])
+        if(old&&!keys.includes(old))await env.AVA_ID_BUCKET.delete(old).catch(()=>{})
+      return json({ok:true,identityStatus:'pending_review',
+        message:'Captured images saved privately for OPERAVA human identity review.'})
     }
     if (action === 'proctorChunk') {
       if(!env.AVA_PROCTOR_BUCKET) return error('Private assessment recording storage is unavailable.',503)
