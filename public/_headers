@@ -28,24 +28,28 @@
 # Keep camera/microphone disabled on every other website route.
 # Both the legacy screening URL and the applicant portal share the same React SPA.
 /ava-screening/*
+  ! Permissions-Policy
   Permissions-Policy: camera=(self), microphone=(self), geolocation=()
   Referrer-Policy: no-referrer
   X-Robots-Tag: noindex, nofollow, noarchive
   Cache-Control: no-store
 
 /ava-screening
+  ! Permissions-Policy
   Permissions-Policy: camera=(self), microphone=(self), geolocation=()
   Referrer-Policy: no-referrer
   X-Robots-Tag: noindex, nofollow, noarchive
   Cache-Control: no-store
 
 /applicant-portal/*
+  ! Permissions-Policy
   Permissions-Policy: camera=(self), microphone=(self), geolocation=()
   Referrer-Policy: no-referrer
   X-Robots-Tag: noindex, nofollow, noarchive
   Cache-Control: no-store
 
 /applicant-portal
+  ! Permissions-Policy
   Permissions-Policy: camera=(self), microphone=(self), geolocation=()
   Referrer-Policy: no-referrer
   X-Robots-Tag: noindex, nofollow, noarchive
