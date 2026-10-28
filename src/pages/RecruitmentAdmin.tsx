@@ -60,6 +60,8 @@ export default function RecruitmentAdmin() {
   const [onboardingType,setOnboardingType]=useState('education_certificate')
   const [onboardingNote,setOnboardingNote]=useState('')
   const [reviewNote,setReviewNote]=useState('')
+  const [identityNotes,setIdentityNotes]=useState<Record<string,string>>({})
+  const [identityChecks,setIdentityChecks]=useState<Record<string,Record<string,boolean>>>({})
   const [proctorSegments,setProctorSegments]=useState<ProctorSegment[]>([])
   const [proctorCounts,setProctorCounts]=useState<ProctorCount[]>([])
   const [selected,setSelected]=useState<string|null>(null)
@@ -100,26 +102,31 @@ export default function RecruitmentAdmin() {
       setName('');setEmail('')},'Invitation email sent. The candidate has seven days to open it.')
   }
   const identity=(item:Pending,decision:'approved'|'needs_resubmission')=>{
+    const note=identityNotes[item.id]?.trim()||''
+    const checks=identityChecks[item.id]||{}
+    if(note.length<12){setError('Record a specific review rationale or resubmission reason first.');return}
+    if(decision==='approved'&&!['documentReadable','nameMatches','faceVisuallyConsistent','motionReviewed'].every(k=>checks[k])){
+      setError('Confirm all four manual evidence checks before approving.');return
+    }
     if(!window.confirm(decision==='approved'
-      ?'Confirm that you have inspected the original identity document and approve this applicant for assessment?'
-      :'Request a new document from this candidate?')) return
-    void act(()=>send('reviewIdentity',{id:item.id,decision}),decision==='approved'
-      ?'Identity approved by a human reviewer.':'Identity resubmission requested.')
+      ?'You confirm having visually inspected all three live-capture frames and personally approve this applicant?'
+      :'Request a new capture from this applicant?'))return
+    void act(()=>send('reviewIdentity',{id:item.id,decision,note,checks}),decision==='approved'
+      ?'OPERAVA-owned identity review approved and recorded.':'New owned identity capture requested.')
   }
-  const download=async(id:string)=>{
+  const download=async(id:string,part:'document'|'selfie'|'motion')=>{
     setBusy(true);setError('')
     try{
       const response=await fetch(API,{method:'POST',credentials:'same-origin',cache:'no-store',
-        headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'identityDocument',id})})
-      if(!response.ok) { const text=await response.text();throw new Error(text.slice(0,200)||'Unable to download evidence.') }
+        headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'identityDocument',id,part})})
+      if(!response.ok){const text=await response.text();throw Error(text.slice(0,200)||'Unable to retrieve restricted evidence.')}
       const blob=await response.blob()
-      const ext=blob.type.includes('pdf')?'pdf':blob.type.includes('png')?'png':'jpg'
-      const objectUrl=URL.createObjectURL(blob)
-      const a=document.createElement('a')
-      a.href=objectUrl;a.download='ava-restricted-evidence-'+id+'.'+ext
-      document.body.appendChild(a);a.click();a.remove()
-      window.setTimeout(()=>URL.revokeObjectURL(objectUrl),60000)
-      setMessage('Private evidence downloaded. Store it only in approved secure locations.')
+      const url=URL.createObjectURL(blob)
+      const anchor=document.createElement('a')
+      anchor.href=url;anchor.download='ava-owned-identity-'+part+'.jpg'
+      document.body.appendChild(anchor);anchor.click();anchor.remove()
+      window.setTimeout(()=>URL.revokeObjectURL(url),60000)
+      setMessage('Restricted identity evidence downloaded. Handle as sensitive applicant data.')
     }catch(e){setError(e instanceof Error?e.message:'Unable to retrieve evidence.')}
     finally{setBusy(false)}
   }
@@ -259,15 +266,39 @@ export default function RecruitmentAdmin() {
       {tab==='identity'&&<><div className="ra-section-title"><div><p className="ava-label">HUMAN VERIFICATION REQUIRED</p><h2>Identity review</h2></div><span>{pending.length} awaiting review</span></div>
         {pending.length? <div className="ra-list">{pending.map(item=><article className="ra-record" key={item.id}>
           <div className="ra-record-header"><img src="/media/ava-assessment-identity.svg" alt="" width={62} height={62}/><div><h3>{item.name}</h3><p>{item.email} · {ROLES[item.role]}</p><small>{item.identity_kind} · Submitted {date(item.identity_submitted)}</small></div></div>
-          <p>Inspect the original document before making a decision. Uploaded evidence is not automated authenticity verification.</p>
-          <div className="ra-actions"><button disabled={busy} className="ava-secondary" onClick={()=>void download(item.id)}><FileDown size={15}/>Download private evidence</button>
-          <button disabled={busy} className="ava-primary" onClick={()=>identity(item,'approved')}><BadgeCheck size={15}/>Approve document</button>
-          <button disabled={busy} className="ava-secondary" onClick={()=>identity(item,'needs_resubmission')}><XCircle size={15}/>Request resubmission</button></div></article>)}</div>:<Empty>No identity documents are pending a human review.</Empty>}</>}
+          <p>Inspect the document, neutral selfie and turned-head selfie. Compare the legal name with the applicant record. These camera images do not cryptographically prove authenticity or liveness: record a human judgement and uncertainties.</p>
+          <div className="ra-actions">
+            <button disabled={busy} className="ava-secondary" onClick={()=>void download(item.id,'document')}><FileDown size={15}/>Document</button>
+            <button disabled={busy} className="ava-secondary" onClick={()=>void download(item.id,'selfie')}><FileDown size={15}/>Neutral selfie</button>
+            <button disabled={busy} className="ava-secondary" onClick={()=>void download(item.id,'motion')}><FileDown size={15}/>Turned selfie</button>
+          </div>
+          <div className="ra-identity-checks">
+            {([['documentReadable','Document is legible, unexpired and visibly consistent'],
+              ['nameMatches','Legal name matches the applicant profile'],
+              ['faceVisuallyConsistent','Portrait and selfie appear visually consistent'],
+              ['motionReviewed','Both different selfie moments have been reviewed']] as const).map(([key,label])=>
+                <label className="ava-check" key={key}><input type="checkbox"
+                  checked={identityChecks[item.id]?.[key]||false}
+                  onChange={event=>setIdentityChecks(prev=>({...prev,
+                    [item.id]:{...prev[item.id],[key]:event.target.checked}}))}/><span>{label}</span></label>)}
+          </div>
+          <label className="ava-field">Required reviewer rationale or recapture instructions
+            <textarea rows={2} maxLength={750} value={identityNotes[item.id]||''}
+              onChange={event=>setIdentityNotes(prev=>({...prev,[item.id]:event.target.value}))}
+              placeholder="Document and selfie visual checks; any uncertainty or reasons for recapture"/>
+          </label>
+          <div className="ra-actions">
+            <button disabled={busy||!(identityNotes[item.id]?.trim().length>=12)||
+              !['documentReadable','nameMatches','faceVisuallyConsistent','motionReviewed'].every(key=>identityChecks[item.id]?.[key])}
+              className="ava-primary" onClick={()=>identity(item,'approved')}><BadgeCheck size={15}/>Approve manual identity review</button>
+            <button disabled={busy||!(identityNotes[item.id]?.trim().length>=12)} className="ava-secondary"
+              onClick={()=>identity(item,'needs_resubmission')}><XCircle size={15}/>Request new capture</button>
+          </div></article>)}</div>:<Empty>No identity documents are pending a human review.</Empty>}</>}
       {tab==='onboarding'&&<>
         <div className="ra-section-title"><div>
           <p className="ava-label">PRIVATE RECRUITMENT · ONBOARDING</p><h2>Request &amp; review documents</h2>
         </div><span>{onboardingDocuments.length} requests</span></div>
-        <p className="ra-intro">Request documentation only after assessment completion. Requests and human decisions synchronize with the candidate's selected application. ID/passport verification is handled separately through certified live phone capture.</p>
+        <p className="ra-intro">Request documentation only after assessment completion. Requests and human decisions synchronize with the candidate's selected application. ID/passport review uses OPERAVA-owned private camera capture and human approval.</p>
         {!onboardingConfigured && <p className="ava-alert" role="status">Private onboarding storage is not yet configured. Requests can be created, but applicants cannot upload until secure storage is activated.</p>}
         <form className="ra-onboarding-form" onSubmit={requestOnboarding}>
           <label className="ava-field">Applicant / application
