@@ -486,7 +486,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
           .bind(id).first<OwnedIdentity>()
         const key=part==='document'?(owned?.document_key||applicant.identity_key):
           part==='selfie'?owned?.selfie_key:owned?.motion_key
-        if(!key||!key.startsWith(owned?.document_key?.split('/').slice(0,-1).join('/')||'ava-owned-id/'))
+        if(!key||!(part==='document'&&key===applicant.identity_key)&&!key.startsWith('ava-owned-id/'+id+'/'))
           return error('Evidence unavailable.',404)
         const object=await env.AVA_ID_BUCKET.get(key)
         if(!object)return error('Evidence missing from private storage.',404)
@@ -640,8 +640,18 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         return error('Pending identity review not found.',404)
       const owned=await db.prepare('SELECT * FROM ava_screening_owned_identity WHERE session_id=?')
         .bind(id).first<OwnedIdentity>()
-      if(!owned?.document_key||!owned.selfie_key||!owned.motion_key||!owned.submitted_at)
-        return error('Complete owned identity evidence is required for a review decision.',409)
+      if(!owned?.document_key||!owned.selfie_key||!owned.motion_key||!owned.submitted_at) {
+        // Old manual-upload applicants cannot be approved as newly reviewed
+        // live-capture applicants. Allow a reviewer to request recapture.
+        if(decision!=='needs_resubmission'||note.length<12)
+          return error('Complete owned identity evidence is required. Request new live capture.',409)
+        const legacy=await db.prepare("UPDATE ava_screening_sessions SET identity_status='needs_resubmission',identity_reviewed=? WHERE id=? AND identity_status='pending_review'")
+          .bind(Date.now(),id).run()
+        if(!legacy.meta.changes)return error('Review status changed. Refresh queue.',409)
+        await db.prepare('INSERT INTO ava_screening_review_events(session_id,action,detail,recorded_at) VALUES (?,?,?,?)')
+          .bind(id,'legacy_identity_recapture',`reviewer:${reviewer}; ${note}`,Date.now()).run()
+        return json({ok:true,identityStatus:'needs_resubmission'})
+      }
       if(decision==='approved'&&(!identityReviewChecksValid(data?.checks)||note.length<12))
         return error('A reviewer must confirm four checks and provide a meaningful rationale.',400)
       if(decision==='needs_resubmission'&&note.length<12)
@@ -987,7 +997,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       return json(await state(db, env, (await get(db, row.id))!))
     }
     if (action === 'identity') {
-      if(env.AVA_LEGACY_ID_UPLOAD_ENABLED!=='true')return error('Only certified live mobile ID capture is permitted. Use your emailed live verification link.',403)
+      if(env.AVA_LEGACY_ID_UPLOAD_ENABLED!=='true')return error('Legacy identity uploads are disabled. Use OPERAVA owned live camera capture.',403)
       if (row.assessment_status !== 'not_started') return error('Identity submission is closed after the assessment begins.', 409)
       if (!env.AVA_ID_BUCKET) return error('Secure identity document storage is not yet configured. Please contact Talent Acquisition.', 503)
       if (row.identity_status === 'approved' || row.identity_status === 'pending_review') return error('Identity evidence is already submitted for review.', 409)
@@ -1018,7 +1028,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if(!env.AVA_PROCTOR_BUCKET)return error('Private recording storage is unavailable.',503)
       const attestation=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status IN ('verified','manual_verified')")
         .bind(row.id).first()
-      if(row.identity_status!=='approved'||!attestation)return error('Live identity verification must pass before recording.',403)
+      if(row.identity_status!=='approved'||!attestation)return error('OPERAVA identity review must pass before recording.',403)
       if(data?.recordingConsent!==true)
         return error('Explicit camera, microphone and screen recording consent is required.',403)
       await db.prepare('UPDATE ava_screening_sessions SET proctor_consent_at=? WHERE id=? AND assessment_status IN (\'not_started\',\'in_progress\')')
@@ -1119,7 +1129,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if(!env.AVA_PROCTOR_BUCKET) return error('Private assessment recording storage is unavailable.',503)
       if(!row.consent_at||!row.monitor_consent_at||!row.profile||!row.proctor_consent_at) return error('Explicit screen, camera and microphone recording consent is required.',403)
       const attestation=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status IN ('verified','manual_verified')").bind(row.id).first()
-      if(row.identity_status!=='approved'||!attestation)return error('Certified identity verification must complete before recording.',403)
+      if(row.identity_status!=='approved'||!attestation)return error('OPERAVA identity review must complete before recording.',403)
       if(row.assessment_status!=='not_started'&&row.assessment_status!=='in_progress') return error('Assessment is not accepting recordings.',409)
       if(row.assessment_status==='in_progress'&&(!row.deadline||Date.now()>=row.deadline))
         return error('Assessment time elapsed. Recording upload has closed.',409)
@@ -1152,7 +1162,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (!row.profile || !row.consent_at || !row.monitor_consent_at) return error('Complete the profile and monitoring consent before starting.', 403)
       if (row.assessment_status !== 'not_started') return error('Assessment already started or submitted.', 409)
       const verified=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status IN ('verified','manual_verified')").bind(row.id).first()
-      if(row.identity_status!=='approved'||!verified) return error('Live identity and document verification must pass before the assessment.',403)
+      if(row.identity_status!=='approved'||!verified) return error('OPERAVA human identity review must be approved before the assessment.',403)
       if(!row.proctor_consent_at)return error('Explicit camera, microphone and screen recording consent is required.',403)
       if(!env.AVA_PROCTOR_BUCKET) return error('Secure live proctor recording is not configured.',503)
       const evidence=await db.prepare("SELECT kind,MAX(recorded_at) AS last_seen FROM ava_screening_proctor_evidence WHERE session_id=? GROUP BY kind")
