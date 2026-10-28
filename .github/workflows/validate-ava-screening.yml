@@ -16,6 +16,9 @@ on:
       - 'db/submissions.sql'
       - 'wrangler.jsonc'
       - 'tests/avaProductionSmoke.mjs'
+      - 'functions/lib/avaOwnedIdentity.ts'
+      - 'tests/avaOwnedIdentity.test.mjs'
+      - 'prompts/**'
       - 'tests/avaV3Contracts.test.mjs'
       - 'tests/avaHorizontalFlow.test.mjs'
       - 'tests/avaViewportProctor.test.mjs'
@@ -53,7 +56,7 @@ jobs:
       - name: Build Cloudflare Pages frontend
         run: npm run build:pages
       - name: AVA portal security and feature regression contracts
-        run: node --test tests/avaV3Contracts.test.mjs tests/avaHorizontalFlow.test.mjs tests/avaViewportProctor.test.mjs
+        run: node --test tests/avaV3Contracts.test.mjs tests/avaHorizontalFlow.test.mjs tests/avaViewportProctor.test.mjs tests/avaOwnedIdentity.test.mjs
       - name: Non-invasive production Ava API smoke
         if: github.event_name != 'pull_request'
         run: node tests/avaProductionSmoke.mjs
