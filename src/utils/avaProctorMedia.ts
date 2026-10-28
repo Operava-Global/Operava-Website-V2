@@ -11,11 +11,18 @@ export type ProctorSupport = {
 }
 const policyPermits=(feature:string):boolean=>{
   const doc=document as Document&{
-    permissionsPolicy?:{allowsFeature:(feature:string)=>boolean}
-    featurePolicy?:{allowsFeature:(feature:string)=>boolean}
+    permissionsPolicy?:{allowsFeature:(feature:string)=>boolean;features?:()=>string[]}
+    featurePolicy?:{allowsFeature:(feature:string)=>boolean;features?:()=>string[]}
   }
-  try {return (doc.permissionsPolicy||doc.featurePolicy)?.allowsFeature(feature)!==false}
-  catch{return true}
+  try {
+    const policy=doc.permissionsPolicy||doc.featurePolicy
+    if(!policy)return true
+    // A browser may implement Permissions Policy yet not implement the
+    // display-capture feature name. Unknown features must not disable a
+    // working getDisplayMedia picker.
+    if(typeof policy.features==='function'&&!policy.features().includes(feature))return true
+    return policy.allowsFeature(feature)!==false
+  }catch{return true}
 }
 export function inspectProctorSupport():ProctorSupport {
   const secure=window.isSecureContext
