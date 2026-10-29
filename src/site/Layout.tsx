@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import SiteHeader from './SiteHeader'
 import SiteFooter from './SiteFooter'
 import EcosystemLogos from '../components/EcosystemLogos'
+import PhilgepsApproved from '../components/PhilgepsApproved'
 
 /** Adds `.visible` to every `.reveal` element as it scrolls into view — including ones rendered later. */
 function useRevealObserver(pathname: string) {
@@ -130,6 +131,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <EcosystemLogos />
+      <PhilgepsApproved />
       <SiteFooter />
     </div>
   )
