@@ -1,42 +1,28 @@
 /* PhilGEPS "Approved Merchant / Partner" band, shown above the site footer.
    Mobile (<768px): stacked 4:3 composition. Wider screens: panorama with the
-   heading on the left and the logo on the right. The building art has a
-   transparent sky, so the card surface shows through in both themes.
-   The PS + PhilGEPS logo is a separate, unmodified image layer. */
+   heading on the left and the logo on the right. Full-bleed (edge to edge,
+   no card): the building art has a transparent sky, so the page background
+   shows through in both themes. The PS + PhilGEPS logo is a separate,
+   unmodified image layer. */
 
 .pg-approved {
-  --pg-surface: #24242b;
-  --pg-border: #3b3b46;
-  --pg-shadow: 0 22px 55px rgba(0, 0, 0, .25);
-  --pg-wash: rgba(36, 36, 43, .9);
+  --pg-bg: #1b1b21;
+  --pg-wash: rgba(27, 27, 33, .9);
   --pg-word: linear-gradient(180deg, #4ade80 0%, #1f9a4a 100%);
   --pg-pill-ring: rgba(255, 255, 255, .18);
   --pg-logo-shadow: drop-shadow(0 1.4cqw 1.8cqw rgba(0, 0, 0, .45));
   --pg-art-filter: brightness(.82) saturate(.9);
-  padding: 0 1rem 2.5rem;
+  position: relative;
+  width: 100%;
+  overflow: hidden;
 }
 html[data-theme="light"] .pg-approved {
-  --pg-surface: #ffffff;
-  --pg-border: #dfd3ee;
-  --pg-shadow: 0 14px 35px rgba(60, 28, 106, .1);
-  --pg-wash: rgba(255, 255, 255, .92);
+  --pg-bg: #f7f5fb;
+  --pg-wash: rgba(247, 245, 251, .92);
   --pg-word: linear-gradient(180deg, #1b7a3c 0%, #0d4f27 100%);
   --pg-pill-ring: rgba(255, 255, 255, .14);
   --pg-logo-shadow: drop-shadow(0 1.4cqw 1.8cqw rgba(11, 35, 80, .28));
   --pg-art-filter: none;
-}
-@media (min-width: 640px) { .pg-approved { padding: 0 1.5rem 3rem; } }
-@media (min-width: 1024px) { .pg-approved { padding: 0 3rem 3.5rem; } }
-
-.pg-card {
-  position: relative;
-  max-width: 1480px;
-  margin: 0 auto;
-  overflow: hidden;
-  border-radius: 1rem;
-  border: 1px solid var(--pg-border);
-  background: var(--pg-surface);
-  box-shadow: var(--pg-shadow);
 }
 
 /* Art stage: all positions are percentages of the artwork so layers stay aligned. */
@@ -52,14 +38,14 @@ html[data-theme="light"] .pg-approved {
   height: 100%;
   filter: var(--pg-art-filter);
 }
-/* Fades tower tops into the card and softens the facade behind the logo. */
+/* Fades tower tops into the page and softens the facade behind the logo. */
 .pg-wash {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background:
     radial-gradient(ellipse 49% 39% at 50% 58.5%, var(--pg-wash) 0%, var(--pg-wash) 38%, transparent 100%),
-    linear-gradient(180deg, var(--pg-surface) 0%, transparent 28%);
+    linear-gradient(180deg, var(--pg-bg) 0%, transparent 28%);
 }
 .pg-logo {
   position: absolute;
@@ -154,7 +140,7 @@ html[data-theme="light"] .pg-approved {
   .pg-wash {
     background:
       radial-gradient(ellipse 32% 46% at 70% 51%, var(--pg-wash) 0%, var(--pg-wash) 40%, transparent 100%),
-      linear-gradient(180deg, var(--pg-surface) 0%, transparent 22%);
+      linear-gradient(180deg, var(--pg-bg) 0%, transparent 22%);
   }
   .pg-logo { left: 44.167%; top: 15.625%; width: 51.667%; }
   .pg-head {
