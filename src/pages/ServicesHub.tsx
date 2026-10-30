@@ -4,7 +4,7 @@ import { Page, Crumbs, PageHero, NumberPanel, SectionHead, Section, CtaBanner, A
 import { SERVICE_CATEGORIES, CATEGORY_ORDER } from '../site/content/serviceCategories'
 import { DELIVERY_MODELS } from '../site/content/company'
 import { serviceHref } from '../site/nav'
-import { LOCAL, PHOTO, SERVICE_ELEMENT } from '../site/media'
+import { LOCAL, PHOTO } from '../site/media'
 
 export default function ServicesHub() {
   usePageMeta({
@@ -24,7 +24,6 @@ export default function ServicesHub() {
         gradient="right"
         align="center"
         brightness="brightness-[0.55]"
-        element={SERVICE_ELEMENT.hub}
         title={
           <>
             Technology,

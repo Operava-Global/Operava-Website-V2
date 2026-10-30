@@ -17,7 +17,7 @@ import {
 import { SERVICE_CATEGORIES, CATEGORY_ORDER, type ServiceCat } from '../site/content/serviceCategories'
 import { DELIVERY_MODELS } from '../site/content/company'
 import { serviceHref } from '../site/nav'
-import { PHOTO, SERVICE_ELEMENT } from '../site/media'
+import { PHOTO } from '../site/media'
 import NotFound from './NotFound'
 
 export default function ServiceCategory({ cat: forced }: { cat?: ServiceCat }) {
@@ -45,7 +45,6 @@ export default function ServiceCategory({ cat: forced }: { cat?: ServiceCat }) {
         gradient="right"
         align="center"
         brightness="brightness-[0.55]"
-        element={SERVICE_ELEMENT[id]}
         title={
           <>
             {cat.title[0]}
