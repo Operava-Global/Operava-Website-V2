@@ -77,7 +77,9 @@ export default function PhilgepsApproved() {
           Philippine Government Electronic Procurement System
         </p>
         <p className="pg-verify">
-          <span className="pg-member">Red Membership</span>
+          <span className="pg-member">
+            Red Membership<b>/</b>Corporation
+          </span>
           <span className="pg-verify-sep" aria-hidden="true">—</span>
           <a className="pg-verify-link" href={VERIFY_URL} target="_blank" rel="noopener noreferrer" title={VERIFY_TITLE}>
             Verify here

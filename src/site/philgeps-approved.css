@@ -167,10 +167,12 @@ html[data-theme="light"] .pg-approved {
   color: #ffffff;
   font-size: .82em;
   font-weight: 800;
-  letter-spacing: .16em;
+  letter-spacing: .14em;
   text-transform: uppercase;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28);
 }
+.pg-member b { font-weight: 800; opacity: .75; padding: 0 .35em; }
+@media (max-width: 479px) { .pg-verify-sep { display: none; } }
 .pg-verify-sep { opacity: .55; }
 .pg-verify-link {
   display: inline-flex;
