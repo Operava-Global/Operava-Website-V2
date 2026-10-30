@@ -47,13 +47,27 @@ html[data-theme="light"] .pg-approved {
     radial-gradient(ellipse 49% 39% at 50% 58.5%, var(--pg-wash) 0%, var(--pg-wash) 38%, transparent 100%),
     linear-gradient(180deg, var(--pg-bg) 0%, transparent 28%);
 }
-.pg-logo {
+/* The logo doubles as the verification link (PhilGEPS Open Data). */
+.pg-logo-link {
   position: absolute;
   left: 12.083%;
   top: 28.485%;
   width: 75.833%;
+  display: block;
+  border-radius: 999px;
+  transition: transform .3s ease;
+}
+.pg-logo-link:hover { transform: translateY(-.4cqw); }
+.pg-logo-link:focus-visible { outline: 3px solid #f6cf1a; outline-offset: 4px; }
+.pg-logo {
+  display: block;
+  width: 100%;
   height: auto;
   filter: var(--pg-logo-shadow);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pg-logo-link { transition: none; }
+  .pg-logo-link:hover { transform: none; }
 }
 
 .pg-head {
@@ -114,16 +128,16 @@ html[data-theme="light"] .pg-approved {
 /* Caption bar (same in both themes, like the original artwork). */
 .pg-caption {
   position: relative;
-  margin: 0;
-  padding: .95em 1.2em .85em;
+  padding: .95em 1.2em 1em;
   background: linear-gradient(180deg, #0e2b5f, #0a1f47);
   color: #ffffff;
   text-align: center;
-  font-size: clamp(.72rem, 1.55vw, 1.2rem);
+  font-size: clamp(.8rem, 1.55vw, 1.2rem);
   font-weight: 600;
   letter-spacing: .02em;
   line-height: 1.35;
 }
+.pg-caption-title { margin: 0; }
 .pg-caption::before {
   content: '';
   position: absolute;
@@ -131,8 +145,49 @@ html[data-theme="light"] .pg-approved {
   height: 4px;
   background: linear-gradient(90deg, #0a5fcf 0 33.33%, #e8304f 33.33% 66.66%, #f6cf1a 66.66% 100%);
 }
-.pg-caption b { color: #f6cf1a; font-weight: 800; }
-.pg-caption span { opacity: .55; padding: 0 .25em; }
+.pg-caption-title b { color: #f6cf1a; font-weight: 800; }
+.pg-caption-title span { opacity: .55; padding: 0 .25em; }
+
+/* Red Membership + "Verify here" row under the PhilGEPS line. */
+.pg-verify {
+  margin: .6em 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: .4em .7em;
+  font-size: .92em;
+}
+.pg-member {
+  display: inline-flex;
+  align-items: center;
+  padding: .3em .95em .32em 1.1em;
+  border-radius: 999px;
+  background: #d61f3c;
+  color: #ffffff;
+  font-size: .82em;
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28);
+}
+.pg-verify-sep { opacity: .55; }
+.pg-verify-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .35em;
+  padding: .4em .25em;
+  border-radius: 4px;
+  color: #f6cf1a;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: .22em;
+  text-decoration-thickness: 1.5px;
+  transition: color .2s ease;
+}
+.pg-verify-link:hover { color: #ffffff; }
+.pg-verify-link:focus-visible { outline: 2px solid #f6cf1a; outline-offset: 3px; }
+.pg-verify-link svg { width: .95em; height: .95em; flex: none; }
 
 /* Wider screens: panorama layout. */
 @media (min-width: 768px) {
@@ -142,7 +197,7 @@ html[data-theme="light"] .pg-approved {
       radial-gradient(ellipse 32% 46% at 70% 51%, var(--pg-wash) 0%, var(--pg-wash) 40%, transparent 100%),
       linear-gradient(180deg, var(--pg-bg) 0%, transparent 22%);
   }
-  .pg-logo { left: 44.167%; top: 15.625%; width: 51.667%; }
+  .pg-logo-link { left: 44.167%; top: 15.625%; width: 51.667%; }
   .pg-head {
     top: 14%;
     left: 4.6%;

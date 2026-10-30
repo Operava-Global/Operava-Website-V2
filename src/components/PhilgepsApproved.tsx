@@ -6,6 +6,8 @@ import '../site/philgeps-approved.css'
  * The Procurement Service + PhilGEPS logo is shown unmodified as its own layer.
  */
 const ART = '/media/philgeps'
+const VERIFY_URL = 'https://open.philgeps.gov.ph/analytics/load/merchantInfo'
+const VERIFY_TITLE = 'Verify OPERAVA Global Solutions on PhilGEPS Open Data'
 
 export default function PhilgepsApproved() {
   return (
@@ -24,15 +26,24 @@ export default function PhilgepsApproved() {
           />
         </picture>
         <div className="pg-wash" aria-hidden="true" />
-        <img
-          className="pg-logo"
-          src={`${ART}/philgeps-ps-logo.webp`}
-          width={1800}
-          height={980}
-          alt="Procurement Service and PhilGEPS (Philippine Government Electronic Procurement System) logo"
-          loading="lazy"
-          decoding="async"
-        />
+        <a
+          className="pg-logo-link"
+          href={VERIFY_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={VERIFY_TITLE}
+          aria-label={`${VERIFY_TITLE} (opens in a new tab)`}
+        >
+          <img
+            className="pg-logo"
+            src={`${ART}/philgeps-ps-logo.webp`}
+            width={1800}
+            height={980}
+            alt="PhilGEPS Approved Merchant Seal: Procurement Service and PhilGEPS logo"
+            loading="lazy"
+            decoding="async"
+          />
+        </a>
         <h2 id="pg-approved-title" className="pg-head">
           <span className="pg-approved-row">
             <svg className="pg-shield" viewBox="0 0 120 140" aria-hidden="true" focusable="false">
@@ -59,11 +70,26 @@ export default function PhilgepsApproved() {
           </span>
         </h2>
       </div>
-      <p className="pg-caption">
-        <b>PhilGEPS</b>{' '}
-        <span aria-hidden="true">—</span>{' '}
-        Philippine Government Electronic Procurement System
-      </p>
+      <div className="pg-caption">
+        <p className="pg-caption-title">
+          <b>PhilGEPS</b>{' '}
+          <span aria-hidden="true">—</span>{' '}
+          Philippine Government Electronic Procurement System
+        </p>
+        <p className="pg-verify">
+          <span className="pg-member">Red Membership</span>
+          <span className="pg-verify-sep" aria-hidden="true">—</span>
+          <a className="pg-verify-link" href={VERIFY_URL} target="_blank" rel="noopener noreferrer" title={VERIFY_TITLE}>
+            Verify here
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+              <path d="M14 4h6v6" />
+              <path d="M20 4 10 14" />
+              <path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5" />
+            </svg>
+            <span className="sr-only"> on PhilGEPS Open Data (opens in a new tab)</span>
+          </a>
+        </p>
+      </div>
     </section>
   )
 }
