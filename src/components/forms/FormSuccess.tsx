@@ -25,11 +25,6 @@ export default function FormSuccess({ formType, name, referenceId, emailWarning 
       {emailWarning && <p role="alert" className="text-sm text-amber-300 border border-amber-500/30 p-3">{emailWarning}</p>}
       <p className="pt-4 text-[10px] uppercase tracking-widest text-neutral-500">{formType === 'CAREERS' ? 'Application reference ID' : 'Reference ID'}</p>
       <p className="font-mono text-xl font-bold text-white border border-neutral-800 inline-block px-5 py-3">{referenceId}</p>
-      {formType === 'CAREERS' && (
-        <a href="/applicant-portal" className="block mx-auto w-fit rounded-lg bg-[#A000F0] px-6 py-4 text-xs font-bold uppercase tracking-widest text-white">
-          Applicant login · Track &amp; complete assessment →
-        </a>
-      )}
       {formType === 'ACADEMY' && (
         <a
           href="https://academy.operavaglobal.com"

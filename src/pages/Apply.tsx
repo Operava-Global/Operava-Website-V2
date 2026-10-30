@@ -41,7 +41,6 @@ export default function Apply() {
         {
           title: 'Hiring help',
           items: [
-            { label: 'Applicant login / status', value: 'Application tracking and assessment', href: '/applicant-portal' },
             { label: 'Talent Acquisition', value: COMPANY.email.talents, href: `mailto:${COMPANY.email.talents}` },
             { label: 'Hiring process', value: 'Five steps to day one', href: '/careers/hiring-process' },
           ],
