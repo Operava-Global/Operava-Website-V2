@@ -122,7 +122,7 @@ export default function Home() {
           <div className="lg:w-[60%] relative hero-in" style={{ ['--d' as string]: '0.3s' }}>
             <div aria-hidden className="hero-aura absolute -inset-10 pointer-events-none" />
             <div
-              className="relative h-[600px] lg:h-[600px] bg-[#0f0f0f] rounded-[12px] border border-neutral-900 overflow-hidden glow"
+              className="relative h-[680px] lg:h-[700px] bg-[#0f0f0f] rounded-[12px] border border-neutral-900 overflow-hidden glow"
               onMouseEnter={() => setPaused(true)}
               onMouseLeave={() => setPaused(false)}
               onFocusCapture={() => setPaused(true)}
@@ -148,21 +148,21 @@ export default function Home() {
                       aria-roledescription="slide"
                       aria-label={`${n + 1} of ${SLIDES.length}`}
                     >
-                      <div className="lg:w-[45%] p-8 lg:p-10 flex flex-col justify-between">
+                      <div className="w-full lg:w-[50%] lg:flex-none min-w-0 p-6 sm:p-8 lg:p-8 xl:p-10 pb-24 lg:pb-24 flex flex-col justify-between gap-8">
                         <div className={n === i ? 'hero-in' : ''} style={{ ['--d' as string]: '0.25s' }}>
                           <p className="text-[10px] tracking-[0.25em] uppercase text-accent font-bold mb-6">{s.kicker}</p>
-                          <h3 className="text-[26px] sm:text-[28px] lg:text-[34px] font-bold leading-[0.95] tracking-tight uppercase">{s.title}</h3>
-                          <p className="mt-6 text-sm text-neutral-400 leading-relaxed">{s.desc}</p>
+                          <h3 className="text-[26px] sm:text-[28px] lg:text-[clamp(24px,2.1vw,34px)] font-bold leading-[1.08] tracking-tight uppercase break-words [overflow-wrap:anywhere]">{s.title}</h3>
+                          <p className="mt-6 text-sm lg:text-[15px] text-neutral-300 leading-relaxed break-words [overflow-wrap:anywhere]">{s.desc}</p>
                         </div>
                         <Link
                           to={s.to}
                           tabIndex={n === i ? 0 : -1}
-                          className="mt-8 text-[11px] tracking-widest uppercase border-b border-white w-fit pb-2 hover:border-accent hover:text-accent transition-colors lg:mb-10"
+                          className="mt-8 text-[11px] tracking-widest uppercase border-b border-white w-fit max-w-full pb-2 hover:border-accent hover:text-accent transition-colors lg:mb-2 whitespace-normal"
                         >
                           {s.cta} <span className="arrow-nudge">→</span>
                         </Link>
                       </div>
-                      <div className="lg:w-[55%] relative flex-1 lg:h-full overflow-hidden min-h-[200px]">
+                      <div className="w-full lg:w-[50%] lg:flex-none relative flex-1 lg:h-full overflow-hidden min-h-[200px]">
                         <Img
                           src={s.img}
                           alt={s.title}
