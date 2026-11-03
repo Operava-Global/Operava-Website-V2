@@ -68,7 +68,6 @@ html[data-theme="light"] .pg-approved {
   box-shadow: none !important;
   filter: none !important;
   text-shadow: none !important;
-  outline: 0 !important;
   border: 0 !important;
   background: transparent !important;
 }
