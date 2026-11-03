@@ -148,7 +148,7 @@ export default function Home() {
                       aria-roledescription="slide"
                       aria-label={`${n + 1} of ${SLIDES.length}`}
                     >
-                      <div className="w-full lg:w-[50%] lg:flex-none min-w-0 p-6 sm:p-8 lg:p-8 xl:p-10 pb-24 lg:pb-24 flex flex-col justify-between gap-8">
+                      <div className="w-full lg:w-[50%] lg:flex-none min-w-0 p-6 sm:p-8 lg:p-8 xl:p-10 pb-24 lg:pb-24 flex flex-col justify-between gap-8 lg:overflow-y-auto">
                         <div className={n === i ? 'hero-in' : ''} style={{ ['--d' as string]: '0.25s' }}>
                           <p className="text-[10px] tracking-[0.25em] uppercase text-accent font-bold mb-6">{s.kicker}</p>
                           <h3 className="text-[26px] sm:text-[28px] lg:text-[clamp(24px,2.1vw,34px)] font-bold leading-[1.08] tracking-tight uppercase break-words [overflow-wrap:anywhere]">{s.title}</h3>
