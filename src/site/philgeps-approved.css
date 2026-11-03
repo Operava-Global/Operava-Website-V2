@@ -199,7 +199,8 @@ html[data-theme="light"] .pg-approved {
       radial-gradient(ellipse 32% 46% at 70% 51%, var(--pg-wash) 0%, var(--pg-wash) 40%, transparent 100%),
       linear-gradient(180deg, var(--pg-bg) 0%, transparent 22%);
   }
-  .pg-logo-link { left: 44.167%; top: 15.625%; width: 51.667%; }
+  /* Desktop only: reduce the PhilGEPS logo to half width while keeping it centered in its right-side area. */
+  .pg-logo-link { left: 57.083%; top: 15.625%; width: 25.833%; }
   .pg-head {
     top: 14%;
     left: 4.6%;
