@@ -59,11 +59,26 @@ html[data-theme="light"] .pg-approved {
 }
 .pg-logo-link:hover { transform: translateY(-.4cqw); }
 .pg-logo-link:focus-visible { outline: 3px solid #f6cf1a; outline-offset: 4px; }
+.pg-logo-link,
+.pg-logo-link::before,
+.pg-logo-link::after,
+.pg-logo,
+.pg-logo::before,
+.pg-logo::after {
+  box-shadow: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+  outline: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
 .pg-logo {
   display: block;
   width: 100%;
   height: auto;
-  filter: none;
+  filter: none !important;
+  box-shadow: none !important;
+  -webkit-filter: none !important;
 }
 @media (prefers-reduced-motion: reduce) {
   .pg-logo-link { transition: none; }
