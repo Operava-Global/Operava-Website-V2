@@ -316,17 +316,46 @@ export default function AvaScreening() {
   useEffect(() => {
     const log = (event: string) => {
       if (!consentRef.current || !sessionRef.current) return
+      const pauseEvents=['focus_lost','visibility_hidden','fullscreen_exited','capture_interrupted','microphone_denied','microphone_muted','audio_interrupted']
+      const active=screenRef.current?.assessmentStatus==='in_progress'&&screenRef.current.total===30
+      if(active&&pauseEvents.includes(event)&&!pauseEventSent.current){
+        pauseEventSent.current=true
+        setFocusPaused(true)
+        setAnswer('')
+        setAnswerSource('typed')
+        recognition.current?.stop()
+        setIsSpeaking(false)
+        stopCaptureRef.current()
+        setNotice('Assessment paused. Your unsaved answer was cleared; previously submitted answers remain saved.')
+      }
       void fetch(API, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionRef.current}` }, body: JSON.stringify({ action: 'event', event }) }).catch(() => {})
     }
     const visibility = () => log(document.visibilityState === 'hidden' ? 'visibility_hidden' : 'visibility_visible')
     const blur = () => log('focus_lost')
     const focus = () => log('focus_returned')
     const changed = () => { setFullscreen(Boolean(document.fullscreenElement)); if (!document.fullscreenElement) log('fullscreen_exited') }
+    const clipboard=(event:Event)=>{
+      if(screenRef.current?.assessmentStatus==='in_progress'&&screenRef.current.total===30){
+        event.preventDefault()
+        log('clipboard_blocked')
+      }
+    }
     document.addEventListener('visibilitychange', visibility)
     window.addEventListener('blur', blur)
     window.addEventListener('focus', focus)
     document.addEventListener('fullscreenchange', changed)
-    return () => { document.removeEventListener('visibilitychange', visibility); window.removeEventListener('blur', blur); window.removeEventListener('focus', focus); document.removeEventListener('fullscreenchange', changed) }
+    document.addEventListener('copy',clipboard)
+    document.addEventListener('cut',clipboard)
+    document.addEventListener('paste',clipboard)
+    return () => {
+      document.removeEventListener('visibilitychange', visibility)
+      window.removeEventListener('blur', blur)
+      window.removeEventListener('focus', focus)
+      document.removeEventListener('fullscreenchange', changed)
+      document.removeEventListener('copy',clipboard)
+      document.removeEventListener('cut',clipboard)
+      document.removeEventListener('paste',clipboard)
+    }
   }, [])
   useEffect(() => () => {
     recognition.current?.stop()
