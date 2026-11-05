@@ -38,7 +38,7 @@ type Applicant = {
   identity_reviewed: number | null; identity_consent_at?: number | null; profile: string | null; consent_at: number | null;
   monitor_consent_at: number | null; ai_consent_at: number | null; proctor_consent_at?: number | null;
   proctor_paused_at?: number | null; proctor_pause_reason?: string | null; proctor_incidents?: number;
-  assessment_rules_accepted_at?: number | null;
+  proctor_heartbeat_at?: number | null; assessment_rules_accepted_at?: number | null;
   assessment_status: string; assessment_version?: number; assessment_started: number | null; deadline: number | null;
   completed: number | null; created_at: number
 }
@@ -135,7 +135,7 @@ async function ensure(db: D1Database) {
       identity_key TEXT, identity_kind TEXT, identity_submitted INTEGER, identity_reviewed INTEGER,
       identity_consent_at INTEGER, profile TEXT, consent_at INTEGER, monitor_consent_at INTEGER, ai_consent_at INTEGER,
       proctor_paused_at INTEGER, proctor_pause_reason TEXT, proctor_incidents INTEGER NOT NULL DEFAULT 0,
-      assessment_rules_accepted_at INTEGER,
+      proctor_heartbeat_at INTEGER, assessment_rules_accepted_at INTEGER,
       assessment_status TEXT NOT NULL DEFAULT 'not_started', assessment_started INTEGER,
       deadline INTEGER, completed INTEGER, created_at INTEGER NOT NULL)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_answers (
@@ -210,6 +210,7 @@ async function ensure(db: D1Database) {
     'proctor_paused_at INTEGER',
     'proctor_pause_reason TEXT',
     'proctor_incidents INTEGER NOT NULL DEFAULT 0',
+    'proctor_heartbeat_at INTEGER',
     'assessment_rules_accepted_at INTEGER',
   ]) {
     try { await db.prepare(`ALTER TABLE ava_screening_sessions ADD COLUMN ${column}`).run() }
@@ -947,7 +948,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const saved = await get(db, invite.id)
       return json({ ...(await state(db, env, saved!)), sessionToken })
     }
-    if(['state','applications','selectApplication','onboardingDocuments','submitOnboardingDocument','proctorConsent','proctorChunk','proctorResume','acceptAssessmentRules','identityStart','identitySubmit'].includes(action)) await ensure(db)
+    if(['state','applications','selectApplication','onboardingDocuments','submitOnboardingDocument','proctorConsent','proctorChunk','proctorResume','proctorHeartbeat','acceptAssessmentRules','identityStart','identitySubmit'].includes(action)) await ensure(db)
     const row = await authorized(request, env, db)
     if (!row) return error('Your secure screening session is missing or expired.', 401)
     if (action === 'state') return json(await state(db, env, row))
@@ -1343,8 +1344,8 @@ OPERAVA Talent Acquisition`,
       if(!latest.get('screen')||!latest.get('camera')||Date.now()-latest.get('screen')!>30_000||Date.now()-latest.get('camera')!>30_000)
         return error('Enable screen, camera and microphone recording and allow initial segments to save before starting.',403)
       const now = Date.now()
-      await db.prepare("UPDATE ava_screening_sessions SET assessment_status='in_progress', assessment_started=?, deadline=?, assessment_version=2,proctor_paused_at=NULL,proctor_pause_reason=NULL,proctor_incidents=0 WHERE id=? AND assessment_status='not_started'")
-        .bind(now, now + ASSESSMENT_MS, row.id).run()
+      await db.prepare("UPDATE ava_screening_sessions SET assessment_status='in_progress', assessment_started=?, deadline=?, assessment_version=2,proctor_paused_at=NULL,proctor_pause_reason=NULL,proctor_incidents=0,proctor_heartbeat_at=? WHERE id=? AND assessment_status='not_started'")
+        .bind(now, now + ASSESSMENT_MS, now, row.id).run()
       return json(await state(db, env, (await get(db, row.id))!))
     }
     if (action === 'answer') {
@@ -1356,6 +1357,14 @@ OPERAVA Talent Acquisition`,
       }
       if((row.assessment_version||1)>=2) {
         if(row.proctor_paused_at)return error('Assessment paused after a focus or capture interruption. Restore recording and explicitly resume before answering.',409)
+        if(!row.proctor_heartbeat_at||Date.now()-row.proctor_heartbeat_at>10_000){
+          const now=Date.now()
+          await db.prepare(`UPDATE ava_screening_sessions SET proctor_paused_at=COALESCE(proctor_paused_at,?),
+            proctor_pause_reason=CASE WHEN proctor_paused_at IS NULL THEN 'heartbeat_timeout' ELSE proctor_pause_reason END,
+            proctor_incidents=CASE WHEN proctor_paused_at IS NULL THEN proctor_incidents+1 ELSE proctor_incidents END
+            WHERE id=? AND assessment_status='in_progress'`).bind(now,row.id).run()
+          return error('Proctor focus heartbeat expired. The assessment is paused; restore both recordings and explicitly resume.',409)
+        }
         if(!row.proctor_consent_at)return error('Proctoring consent is required for this assessment.',403)
         if(!await identityVerified(db,row))
           return error('Identity verification must remain approved throughout the assessment.',403)
@@ -1387,6 +1396,16 @@ OPERAVA Talent Acquisition`,
       if (row.ai_consent_at && env.AI) context.waitUntil(maybeReview(env, db, row, current.id, actualPrompt, answer))
       return json(await state(db, env, (await get(db, row.id))!))
     }
+    if (action === 'proctorHeartbeat') {
+      if(row.assessment_status!=='in_progress'||row.proctor_paused_at)
+        return error('Assessment is not in an active recording state.',409)
+      if(!row.proctor_consent_at||!await identityVerified(db,row))
+        return error('Verified identity and recording consent are required.',403)
+      const now=Date.now()
+      await db.prepare("UPDATE ava_screening_sessions SET proctor_heartbeat_at=? WHERE id=? AND assessment_status='in_progress' AND proctor_paused_at IS NULL")
+        .bind(now,row.id).run()
+      return json({ok:true,heartbeatAt:now})
+    }
     if (action === 'proctorResume') {
       if(row.assessment_status!=='in_progress')
         return error('Only an active assessment can be resumed.',409)
@@ -1408,14 +1427,14 @@ OPERAVA Talent Acquisition`,
       if(!pausedAt){
         // If the browser lost focus but its keepalive event was dropped, fresh
         // private segments still prove the user restored capture. Record recovery.
-        await db.prepare('UPDATE ava_screening_sessions SET proctor_incidents=proctor_incidents+1 WHERE id=? AND assessment_status=\'in_progress\'')
-          .bind(row.id).run()
+        await db.prepare('UPDATE ava_screening_sessions SET proctor_incidents=proctor_incidents+1,proctor_heartbeat_at=? WHERE id=? AND assessment_status=\'in_progress\'')
+          .bind(now,row.id).run()
         await db.prepare('INSERT INTO ava_screening_events(session_id,event_type,occurred_at) VALUES (?,?,?)')
           .bind(row.id,'proctor_resume_recovered',now).run()
         return json(await state(db,env,(await get(db,row.id))!))
       }
-      const resumed=await db.prepare("UPDATE ava_screening_sessions SET proctor_paused_at=NULL,proctor_pause_reason=NULL WHERE id=? AND assessment_status='in_progress' AND proctor_paused_at=?")
-        .bind(row.id,pausedAt).run()
+      const resumed=await db.prepare("UPDATE ava_screening_sessions SET proctor_paused_at=NULL,proctor_pause_reason=NULL,proctor_heartbeat_at=? WHERE id=? AND assessment_status='in_progress' AND proctor_paused_at=?")
+        .bind(now,row.id,pausedAt).run()
       if(!resumed.meta.changes)return error('Assessment pause changed. Refresh and retry.',409)
       await db.prepare('INSERT INTO ava_screening_events(session_id,event_type,occurred_at) VALUES (?,?,?)')
         .bind(row.id,'proctor_resumed',now).run()
