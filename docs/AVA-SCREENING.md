@@ -113,19 +113,32 @@ Identity and personal data require an approved data-retention/deletion policy, r
 - Test dark/light, desktop/mobile, no speech recognition, microphone denied, refresh/resume, time expiry, offline, and screen readers.
 - Confirm Pages build, TypeScript, Cloudflare deployment success, and WAF/CAPTCHA/rate limiting before setting `AVA_SCREENING_ENABLED=true`.
 - Confirm HR/legal approved bias controls, AI consent practices, and human-reviewed results.
-## V2 release and external-provider integration contract
+## Veriff hosted mobile identity and proctoring behavior
 
-**Release status:** this is a staging feature specification. A UI, mocked callback, test webcam, manually approved identity photo, raw OCR comparison, or score estimated by a general-purpose AI model **must never** set `Verified Applicant Profile`.
+The public applicant flow uses a provider-hosted identity journey. The OPERAVA backend creates a Veriff session using the integration's HTTPS base URL and API key, authenticates the raw create-session response with the Veriff HMAC shared secret, and emails a short-lived, single-use OPERAVA redirect link. The desktop portal polls the server-owned identity status; it never trusts a browser-supplied approval boolean or receives the Veriff session URL.
 
-- Applicant login: `/applicant-portal`, using the existing email OTP registration and session. A signed-in applicant can see existing verified Careers form submissions from `form_submissions` using the server-side verified email and select the corresponding application's independent assessment session. An outstanding assessment shows `Complete Profile & Assessment`, `Complete Assessment`, or `Continue Assessment`.
-- The `/api/ava-screening` `identityStart` action creates an external provider verification session, stores the vendor reference and emails the vendor-hosted HTTPS link to the verified applicant. The provider supplies its own live camera interface. Do not expose local file upload or allow users to pass arbitrary result scores.
-- The example external provider **adapter contract must be verified and adapted** to the chosen SDK/API. It currently expects an HTTPS JSON POST accepting a `reference` and `callbackUrl` and replying `verificationUrl` plus `reference`. It is not a claim that a specific vendor already implements those fields.
-- The provider callback is `POST /api/ava-identity-callback` and expects raw-body HMAC-SHA256 `X-Ava-Identity-Signature` using `AVA_IDV_WEBHOOK_SECRET`, a recent `timestamp` (epoch milliseconds), a known vendor `reference`, and authoritative booleans for `livenessPassed`, `documentAuthentic`, `passportNfcPassed`, with `documentType`, `documentFullName` and a calibrated `faceMatchScore` in 0–100. The specific provider's signed payload and signature scheme **must be translated and tested** before activation. Include replay protection, provider account verification and event-id deduplication in the production adapter.
-- No claim that the score of 95% corresponds to a universal assurance or FAR/FMR threshold across vendors. Select and calibrate the metric and false-match protections according to the provider's validated guidance. A negative or uncertain result needs an accessible human-review path.
-- `proctorChunk` accepts only streamed recordings by an authenticated profile holder and saves the associated private R2 key. The server checks recently stored screen and camera segments before and during assessment. Configure strict file retention, authorized access, deletion, cost quotas, abuse rate limits and support/appeals before production.
-- These new recording and identity requirements intentionally **block** new assessment starts on environments lacking an external verification provider or private proctor R2 binding. Existing sessions with assessment_version 1 retain their ten-question bank and saved work.
-- **Do not merge or deploy V2** until the external provider, signed callbacks, secure R2 buckets, retention policy, data-protection/biometric consent, accessibility alternatives and controlled live tests have been approved. Document explicit lawful basis and access/deletion procedures for recordings and biometric identity signals.
+The email redirect uses a scanner-safe GET interstitial: GET does not consume the token. A deliberate same-origin POST consumes the token once and redirects to the provider-hosted HTTPS session URL. The token hash, provider URL, expiry and used timestamp are stored in D1; the raw token is only sent by email. Veriff's decision webhook is accepted only after checking X-AUTH-CLIENT and HMAC-SHA256 over the exact raw request body in X-HMAC-SIGNATURE. Event/attempt IDs are deduplicated.
 
+Only a Veriff decision with verification.status=approved, verification.code=9001, a document type, and an exact normalized match between the provider's verified name and the saved applicant legal name sets identity_status=approved. Provider review, decline, resubmission, expired, abandoned, incomplete, unknown, or mismatched-name results never unlock the assessment. Do not fabricate a face-match score or independent liveness booleans from fields Veriff does not return; configure the Veriff integration for document + selfie IDV with liveness and document-authenticity checks, and rely only on its final approved decision.
+
+### Required provider setup
+
+- Set AVA_VERIFF_BASE_URL to the exact HTTPS base URL in the Veriff integration portal.
+- Set AVA_VERIFF_API_KEY and AVA_VERIFF_SHARED_SECRET as encrypted Cloudflare Pages secrets.
+- Configure the Veriff Decision webhook URL to https://www.operavaglobal.com/api/ava-identity-callback.
+- Enable a document + selfie verification product that includes live liveness and document authenticity. Verify supported IDs and countries for OPERAVA's candidate population.
+- Complete the provider contract/data-processing agreement, cross-border transfer review, provider retention settings, privacy impact assessment and applicant notice before live identity capture.
+- No Veriff credentials are currently connected to the Cloudflare Pages project. Until the three variables and provider webhook are configured and tested, identityProviderAvailable remains false, the email-link action is disabled, and the assessment stays locked. Public email-OTP registration remains available.
+
+For the Veriff-hosted flow, ID images and selfie/liveness media are sent directly to Veriff. OPERAVA stores the provider reference, status/decision code, document type/country, name-match flag and timestamps in D1, not the provider's raw ID media in AVA_ID_BUCKET. Veriff's media retention follows its service agreement and account settings. Proctor recordings remain separate in private AVA_PROCTOR_BUCKET and are deleted by the 30-day R2 lifecycle.
+
+### Pre-start briefing and proctor enforcement
+
+The candidate must complete three readiness panels: verified identity, assessment instructions/prohibited conduct, then device/recording permissions. The rules acknowledgment is recorded server-side and begin rejects sessions without it. The candidate must separately consent to camera, microphone and screen recording, share the entire display, and enter browser full-screen mode before starting.
+
+During the assessment, supported focus_lost, visibility_hidden, fullscreen_exited, microphone and capture interruption events set proctor_paused_at in D1. The answer endpoint rejects submissions while paused. The client clears the current unsaved draft; previously submitted answers remain saved. The 45-minute timer continues. Resumption requires fresh screen and camera/microphone segments recorded after the pause and an explicit Resume assessment action. If a browser keepalive focus event is dropped, fresh streams are still required before the client can recover; the recovery is logged.
+
+The app blocks copy/cut/paste during the active assessment and logs those events. Browser APIs cannot reliably detect every operating-system window switch, screenshot, external device, virtualized environment or off-screen assistance. Do not describe browser proctoring as tamper-proof or as guaranteed full-device surveillance.
 
 ## V3 applicant portal, document-center and protected review enhancements
 
@@ -185,73 +198,31 @@ Do not claim that new applicants can pass identity verification or start a
 recorded exam until the provider and private R2 bindings have been confirmed
 in the actual Cloudflare **production** environment.
 
-## Identity and proctoring readiness hardening (October 2026)
+## Identity and proctoring readiness hardening (November 2026)
 
 ### Provisioned infrastructure
 
-The isolated Cloudflare R2 bucket `operava-ava-proctor-evidence` has been
-created in the APAC region and is bound in Cloudflare Pages as
-`AVA_PROCTOR_BUCKET`. It has **no public r2.dev access** and uses an R2
-lifecycle rule expiring `ava-proctor/` recording objects 30 days after
-creation (plus automatic abort of incomplete multipart uploads after one day).
-The R2 binding is also declared in `wrangler.jsonc`. The R2 lifecycle is a
-technical maximum, **not** a completed HR/legal retention-policy approval.
-The final processing notice, storage location assessment and any stricter
-required retention period need an owner/privacy review before applicants are
-invited to record. Do not expose a public bucket endpoint.
+The private R2 bucket operava-ava-proctor-evidence is provisioned in APAC and bound in Pages as AVA_PROCTOR_BUCKET. It has no public r2.dev access and deletes ava-proctor/ recording objects after 30 days. Incomplete multipart uploads are aborted after one day. The separate legacy identity evidence bucket is private; the Veriff hosted flow does not write raw ID/selfie media to it. The R2 lifecycle is a technical configuration and does not replace the required privacy/legal retention approval.
 
 ### Consent, permission and capture sequence
 
-1. The applicant first completes email OTP, profile, monitoring notice and
-   signed, **certified live identity** verification. A verified badge requires
-   independent provider-attested liveness, authenticity, matching legal name,
-   a 95% calibrated face-match score, and NFC for passports. The existing
-   generic provider adapter needs a provider-specific contract, three secure
-   `AVA_IDV_*` configuration values and real certification checks.
-   **These values are currently absent and the identity step cannot pass**;
-   never substitute plain OCR, a manual photo, mock events or a local selfie.
-2. From a directly clicked diagnostic button, the applicant may separately
-   test camera + microphone and entire-screen capture. The browser requests
-   access and stops those short-lived test streams immediately. **No diagnostic
-   media is transmitted or saved**. Phone browsers that do not support
-   `getDisplayMedia` must use a supported desktop browser for the assessment;
-   the actual mobile phone remains the required live ID/passport workflow.
-3. With an actual provider-verified identity and the R2 binding in place, the
-   applicant affirmatively checks the recording-consent box and clicks **Allow
-   screen, webcam & mic**. Only after all three browser permissions are
-   granted does the client POST `proctorConsent` with a confirmed boolean.
-   The server persists `proctor_consent_at` in D1; no local/test permission
-   action records applicant consent. The server must reject any recording
-   uploads without this timestamp and an authentic verified attestation.
-4. Only then do `MediaRecorder` streams begin sending 8-second chunks to
-   private R2. Both camera-with-audio and whole-screen tracks must
-   successfully upload initial chunks before the server allows `begin`.
-   During the exam the server rejects answers when recent recorded chunks
-   are missing. Revoked permissions stop both media streams and candidate
-   progression until recording is re-established. All recorded anomalies
-   need human review. Browser-level capture is not proof of another person's
-   absence or a full device/extension lockdown.
+1. Applicant completes public email OTP registration/sign-in and profile. Identity verification requires a separate explicit Veriff consent and a verified email address.
+2. The backend creates the Veriff session and sends the one-time email link. The applicant opens it on a phone and completes Veriff's hosted live ID + selfie/liveness capture. The desktop stays open and polls for the signed provider decision. Only final approved + code 9001, exact legal-name match and a document type unlock identity.
+3. The applicant reads the assessment rules and prohibited-conduct briefing. The server records the acknowledgment in assessment_rules_accepted_at; the begin endpoint rejects unacknowledged sessions.
+4. The applicant separately consents to screen, webcam and microphone recording. Device diagnostics stop their temporary streams and never upload test media. For the assessment, webcam+microphone and the entire desktop display are captured. Full-screen mode is required before the begin request.
+5. Two MediaRecorder streams (camera+audio and screen) upload private 8-second segments. Both tracks must have fresh server-stored segments before the assessment begins and before each answer can be submitted.
+6. Focus loss, hidden-page, full-screen exit, capture or microphone interruption pauses the session server-side. The current unsaved answer is cleared; already submitted answers remain saved; the 45-minute timer continues. The candidate must restore all required capture streams and explicitly resume. Repeated incidents are recorded for recruiter review.
+7. The candidate is told that browser monitoring cannot guarantee detection of every operating-system action, external device, screenshot or off-screen activity. It is not presented as a full device lock or tamper-proof proctoring.
 
-**Activation state:** Private proctor storage/permissions can be checked now,
-but certified ID verification is not configured. New assessments remain
-intentionally blocked. No real ID-passport-NFC authenticity or face-liveness
-provider has been onboarded and tested; a fully passed identity verification
-must not be claimed until that work is complete.
+Activation state: Production public email-OTP registration is enabled and the private proctor R2 bucket is bound with a 30-day lifecycle. The Veriff base URL, API key and shared secret are not currently present in Cloudflare Pages, so automatic phone identity verification is not yet available and the assessment cannot begin. Add the provider credentials, configure the Veriff Decision webhook and complete sandbox plus controlled real-device testing before treating the full journey as live. Do not send real applicants into a flow that cannot verify identity.
 
 ### Validation
 
-Test independently in Chrome/Edge on supported desktop OSes, with physical
-webcam and microphone, with screen sharing granted and denied, muted tracks,
-revoked permissions, refreshed page, and disconnected upload. Verify the R2
-bucket access policy and lifecycle, reviewer-only retrieval, D1 consent
-timestamp and human review. Test phone camera permission and the vendor's
-certified passport NFC flow using approved synthetic/demo identities. Complete
-privacy-policy/biometric consent and accessibility accommodations before
-collecting real applicants' data.
+Test in Veriff sandbox first: provider session creation and response HMAC; email delivery; GET scanner prefetch without token consumption; one-time POST redirect; expired/replayed token rejection; webhook HMAC rejection/acceptance; duplicate webhook deduplication; name mismatch; approved/declined/review/resubmission statuses; desktop polling; and assessment gate behavior. Then test supported desktop browsers with physical webcam/microphone, entire-display sharing, denied/revoked permissions, focus/visibility/fullscreen events, clipboard blocking, dropped keepalive recovery, 8-second R2 chunks, refresh/resume, and timer expiry. Verify Access-only reviewer retrieval, private R2 lifecycle, D1 metadata retention/deletion, privacy notice and accessible alternatives before live applicant use.
 
 ## AVA lateral assessment workspace and permission recovery (28 October 2026)
 
-- The applicant workspace retains Bolekpad's fixed `100dvh`, compact 60px toolbar, shared Inter typography, theme toggle, and OPERAVA `#A000F0` accent. The workspace now presents one horizontal animated scene at a time, including the individual assessment question. Profile collection uses three panels; identity check and capture permissions use two panels. A contained overflow fallback remains for zoom, assistive technology and small displays; the outer page does not scroll. Reduced-motion preferences remove slide movement.
+- The applicant workspace retains Bolekpad's fixed `100dvh`, compact 60px toolbar, shared Inter typography, theme toggle, and OPERAVA `#A000F0` accent. The workspace now presents one horizontal animated scene at a time, including the individual assessment question. Profile collection uses three panels; identity verification, assessment rules and capture permissions use three panels. A contained overflow fallback remains for zoom, assistive technology and small displays; the outer page does not scroll. Reduced-motion preferences remove slide movement.
 - The former animated cyber-mermaid visual guide has been retired from the AVA applicant portal. It is not an identity-validation or scoring agent.
 - A resumed or interrupted 30-question assessment hides the active question behind an explicit **Restore screen, camera and microphone** consent/permission action. No answer can be submitted while browser capture is unavailable, and failed R2 segment uploads stop capture rather than leaving a misleading healthy state. The server separately verifies the authenticated session, approved live identity attestation, recording consent, fresh stored media evidence and server-controlled deadline.
 - The API rejects cross-origin browser requests, rate-limits repeat identity-provider link issuance, uses the saved legal profile name in the provider request, requires an approved identity to remain approved on every v2 answer, and stops accepting media uploads after expiry.
