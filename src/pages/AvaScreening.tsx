@@ -693,6 +693,7 @@ export default function AvaScreening() {
     setProctorReady(false)
     setProctorSaved({camera:false,screen:false})
   }
+  stopCaptureRef.current=stopCapture
   useEffect(() => {
     setProctorSupport(inspectProctorSupport())
     const recheck=()=>setProctorSupport(inspectProctorSupport())
@@ -766,8 +767,11 @@ export default function AvaScreening() {
       captureActive.current=true
       const onLost=()=>{
         if(!captureActive.current)return
+        if(screenRef.current?.assessmentStatus==='in_progress')
+          void submit('event',{event:'capture_interrupted'}).catch(()=>{})
         stopCapture()
-        setError('One of the live media permissions ended. Restore webcam, microphone and screen capture to continue.')
+        setFocusPaused(screenRef.current?.assessmentStatus==='in_progress')
+        setError('A required camera, microphone or screen stream ended. The assessment is paused; restore all three permissions before resuming.')
       }
       for(const track of [...display.getTracks(),...webcam.getTracks()]){
         track.addEventListener('ended',onLost,{once:true})
@@ -840,16 +844,36 @@ export default function AvaScreening() {
     }finally{setProctorBusy(false)}
   }
   const beginAssessment = async () => {
+    if(!instructionAcknowledged||!screen?.assessmentRulesAccepted){
+      setError('Read and acknowledge the assessment rules before starting.')
+      return
+    }
     if(!screen?.verifiedApplicantProfile||!proctorReady||!proctorSaved.camera||!proctorSaved.screen||!isCaptureLive()){
       setError('Allow screen, webcam and microphone recording and wait until both streams are securely saved.')
       return
     }
-    const ok = await perform(() => submit('begin'), 'Your 45-minute assessment has started.')
-    if (ok && document.fullscreenEnabled) {
-      try { await document.documentElement.requestFullscreen() } catch { /* Fullscreen is optional; record only actual exits. */ }
+    if(!document.fullscreenEnabled){
+      setError('This browser does not support the required full-screen assessment mode. Use a current desktop browser.')
+      return
     }
+    try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen()}
+    catch{setError('Full-screen mode is required. Allow full-screen mode and try again.');return}
+    const ok = await perform(() => submit('begin'), 'Your 45-minute assessment has started.')
+    if(ok){setFocusPaused(false);pauseEventSent.current=false}
+  }
+  const resumeAssessment=async()=>{
+    if(!proctorReady||!proctorSaved.camera||!proctorSaved.screen||!isCaptureLive()){
+      setError('Restore screen, webcam and microphone recording and wait for both private segments before resuming.')
+      return
+    }
+    const ok=await perform(()=>submit('proctorResume'),'Assessment resumed. Your unsaved response was reset; submitted answers remain saved.')
+    if(ok){setFocusPaused(false);pauseEventSent.current=false}
   }
   const sendAnswer = async () => {
+    if(screen?.proctorPausedAt||focusPaused){
+      setError('The assessment is paused. Restore recording and explicitly resume before submitting an answer.')
+      return
+    }
     if(screen?.total===30&&(!proctorReady||!proctorSaved.camera||!proctorSaved.screen||!isCaptureLive())){
       setError('Screen, webcam and microphone recording must remain active before answering.')
       return
