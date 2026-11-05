@@ -8,7 +8,7 @@ import {
 
 test('Veriff tenant endpoints require secure public HTTPS hosts and expected paths',()=>{
   assert.equal(veriffApiEndpoint('https://stationapi.veriff.com/'),'https://stationapi.veriff.com/v1/sessions')
-  assert.equal(veriffApiEndpoint('https://tenant-api.example.com/v1'),'https://tenant-api.example.com/v1/sessions')
+  assert.throws(()=>veriffApiEndpoint('https://tenant-api.example.com/v1'))
   assert.equal(veriffHostedUrl('https://magic.veriff.me/v/one-time-token'),'https://magic.veriff.me/v/one-time-token')
   assert.equal(veriffHostedUrl('https://tenant.example.com/v/session-token'),'https://tenant.example.com/v/session-token')
   assert.throws(()=>veriffApiEndpoint('http://stationapi.veriff.com/'))
