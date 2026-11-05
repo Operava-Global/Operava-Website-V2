@@ -1374,8 +1374,8 @@ OPERAVA Talent Acquisition`,
       return json(await state(db, env, (await get(db, row.id))!))
     }
     if (action === 'proctorResume') {
-      if(row.assessment_status!=='in_progress'||!row.proctor_paused_at)
-        return error('There is no paused assessment to resume.',409)
+      if(row.assessment_status!=='in_progress')
+        return error('Only an active assessment can be resumed.',409)
       if(!row.deadline||Date.now()>=row.deadline){
         await db.prepare("UPDATE ava_screening_sessions SET assessment_status='time_expired',completed=? WHERE id=? AND assessment_status='in_progress'")
           .bind(Date.now(),row.id).run()
@@ -1386,11 +1386,20 @@ OPERAVA Talent Acquisition`,
       const evidence=await db.prepare("SELECT kind,MAX(recorded_at) AS last_seen FROM ava_screening_proctor_evidence WHERE session_id=? GROUP BY kind")
         .bind(row.id).all<{kind:string;last_seen:number}>()
       const latest=new Map((evidence.results||[]).map(item=>[item.kind,item.last_seen]))
-      const now=Date.now(),pausedAt=row.proctor_paused_at
+      const now=Date.now(),pausedAt=row.proctor_paused_at||0
       if(!latest.get('screen')||!latest.get('camera')||
-        latest.get('screen')!<=pausedAt||latest.get('camera')!<=pausedAt||
+        (pausedAt>0&&(latest.get('screen')!<=pausedAt||latest.get('camera')!<=pausedAt))||
         now-latest.get('screen')!>30_000||now-latest.get('camera')!>30_000)
         return error('Restore both screen and webcam/microphone recordings and wait for fresh private segments before resuming.',403)
+      if(!pausedAt){
+        // If the browser lost focus but its keepalive event was dropped, fresh
+        // private segments still prove the user restored capture. Record recovery.
+        await db.prepare('UPDATE ava_screening_sessions SET proctor_incidents=proctor_incidents+1 WHERE id=? AND assessment_status=\'in_progress\'')
+          .bind(row.id).run()
+        await db.prepare('INSERT INTO ava_screening_events(session_id,event_type,occurred_at) VALUES (?,?,?)')
+          .bind(row.id,'proctor_resume_recovered',now).run()
+        return json(await state(db,env,(await get(db,row.id))!))
+      }
       const resumed=await db.prepare("UPDATE ava_screening_sessions SET proctor_paused_at=NULL,proctor_pause_reason=NULL WHERE id=? AND assessment_status='in_progress' AND proctor_paused_at=?")
         .bind(row.id,pausedAt).run()
       if(!resumed.meta.changes)return error('Assessment pause changed. Refresh and retry.',409)
