@@ -292,18 +292,28 @@ async function state(db: D1Database, env: AvaEnv, row: Applicant) {
   if(result.question && (row.assessment_version||1)>=2) {
     result.question.prompt = await questionPrompt(db,env,row,result.question.number)
   }
-  const [attestation,provider]=await Promise.all([
+  const [attestation,provider,identityIntent]=await Promise.all([
     db.prepare('SELECT status,face_score FROM ava_screening_identity_attestations WHERE session_id=?')
       .bind(row.id).first<{status:string;face_score:number}>(),
     db.prepare('SELECT provider_status,decision_code,name_match FROM ava_screening_identity_provider_decisions WHERE session_id=?')
       .bind(row.id).first<{provider_status:string;decision_code:number|null;name_match:number}>(),
+    db.prepare('SELECT provider_status,link_expires_at,link_used_at FROM ava_screening_identity_intents WHERE session_id=?')
+      .bind(row.id).first<{provider_status:string;link_expires_at:number|null;link_used_at:number|null}>(),
   ])
+  if(identityIntent?.provider_status==='created'&&!identityIntent.link_used_at&&
+    identityIntent.link_expires_at&&identityIntent.link_expires_at<=Date.now()){
+    await db.prepare("UPDATE ava_screening_identity_intents SET provider_status='link_expired',link_token_hash=NULL,provider_url=NULL WHERE session_id=? AND provider_status='created'")
+      .bind(row.id).run()
+    await db.prepare("UPDATE ava_screening_sessions SET identity_status='needs_resubmission' WHERE id=? AND identity_status='pending_verification'")
+      .bind(row.id).run()
+    row.identity_status='needs_resubmission'
+  }
   const verified=await identityVerified(db,row)
   return {...result,applicationReference:link?.reference_id||null,
     verifiedApplicantProfile:verified,
     identityConsentGiven:Boolean(row.identity_consent_at),
     assessmentRulesAccepted:Boolean(row.assessment_rules_accepted_at),
-    identityVerification:provider?.provider_status||attestation?.status||'required',
+    identityVerification:identityIntent?.provider_status||provider?.provider_status||attestation?.status||'required',
     faceMatchScore:attestation?.status==='verified'?attestation.face_score:null,
     identityProviderAvailable:veriffConfigured(env),identityMode:'veriff_hosted_mobile',
     recordingStorageReady:Boolean(env.AVA_PROCTOR_BUCKET),
@@ -1121,10 +1131,13 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         return error('Explicit consent for live ID and selfie verification is required.',403)
       if(!veriffConfigured(env))return error('Automatic phone identity verification is not configured. Contact Talent Acquisition before continuing.',503)
       const now=Date.now()
-      const previous=await db.prepare('SELECT created_at,attempt_count,provider_status FROM ava_screening_identity_intents WHERE session_id=?')
-        .bind(row.id).first<{created_at:number;attempt_count:number;provider_status:string}>()
+      const previous=await db.prepare('SELECT created_at,attempt_count,provider_status,link_expires_at,link_used_at FROM ava_screening_identity_intents WHERE session_id=?')
+        .bind(row.id).first<{created_at:number;attempt_count:number;provider_status:string;link_expires_at:number|null;link_used_at:number|null}>()
       const attempts=previous&&now-previous.created_at<24*60*60_000?(previous.attempt_count||1)+1:1
       if(attempts>5)return error('Identity verification link limit reached. Contact Talent Acquisition.',429)
+      if(previous&&previous.provider_status==='created'&&now-previous.created_at<24*60*60_000&&
+        (previous.link_used_at||Number(previous.link_expires_at||0)>now))
+        return error('Your identity verification is already in progress. Open the secure email link on your phone and wait for the result on this page.',409)
       if(previous&&now-previous.created_at<45_000)
         return error('A secure verification link was recently sent. Check your email before requesting another.',429)
 
