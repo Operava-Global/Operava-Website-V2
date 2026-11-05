@@ -1235,7 +1235,7 @@ html[data-theme="light"] .ava-preview-login a{color:#6c27bc}
 @media(max-width:767px){.ava-instruction-columns{grid-template-columns:1fr;gap:10px}.ava-instruction-columns section{padding:13px}}
 
 
-.ava-identity-return{width:min(100% - 32px,540px);margin:clamp(48px,12vh,120px) auto;padding:clamp(24px,5vw,40px);border:1px solid var(--ava-border,#e8e2ef);border-radius:22px;background:var(--ava-surface,#fff);box-shadow:0 24px 70px #1b12200d;text-align:center}
+.ava-identity-return{width:min(540px,calc(100% - 32px));margin:clamp(48px,12vh,120px) auto;padding:clamp(24px,5vw,40px);border:1px solid var(--ava-border,#e8e2ef);border-radius:22px;background:var(--ava-surface,#fff);box-shadow:0 24px 70px #1b12200d;text-align:center}
 .ava-identity-return .ava-check-icon{margin:0 auto 18px}
 .ava-identity-return h1{margin:10px 0 14px;font-size:clamp(26px,5vw,38px);line-height:1.12}
 .ava-identity-return>p:not(.ava-label){color:var(--ava-muted,#716d78);font-size:14px;line-height:1.7}
