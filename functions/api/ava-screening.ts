@@ -1104,29 +1104,90 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if(!row.profile||!row.consent_at||!row.monitor_consent_at)
         return error('Complete your profile and privacy terms first.',403)
       if(row.assessment_status!=='not_started'||row.identity_status==='approved'||row.identity_status==='pending_review')
-        return error('Identity capture is not available in this application state.',409)
-      if(!env.AVA_ID_BUCKET)return error('Private OPERAVA identity storage is not configured.',503)
-      // Server-issued, single-use, short-lived challenge; do not log the token.
-      // It prevents stale or duplicate uploads, but does not prove true liveness.
+        return error('Identity verification is not available in this application state.',409)
+      if(data?.identityConsent!==true)
+        return error('Explicit consent for live ID and selfie verification is required.',403)
+      if(!veriffConfigured(env))return error('Automatic phone identity verification is not configured. Contact Talent Acquisition before continuing.',503)
       const now=Date.now()
-      const previous=await db.prepare('SELECT * FROM ava_screening_owned_identity WHERE session_id=?')
-        .bind(row.id).first<OwnedIdentity>()
-      const attempts=previous&&now-previous.issued_at<24*60*60_000?previous.attempts+1:1
-      if(attempts>5)return error('Identity capture limit reached. Contact Talent Acquisition.',429)
-      if(previous&&now-previous.issued_at<45_000)
-        return error('A live identity capture was recently started. Try again shortly.',429)
-      const challenge=crypto.randomUUID()
-      const hash=await digest(row.id+':'+challenge)
-      await db.prepare(`INSERT INTO ava_screening_owned_identity
-        (session_id,challenge_hash,issued_at,expires_at,attempts,submitted_at)
-        VALUES (?,?,?,?,?,NULL)
-        ON CONFLICT(session_id) DO UPDATE SET
-          challenge_hash=excluded.challenge_hash,issued_at=excluded.issued_at,
-          expires_at=excluded.expires_at,attempts=excluded.attempts,submitted_at=NULL`)
-        .bind(row.id,hash,now,now+OWNED_ID_TTL_MS,attempts).run()
-      return json({ok:true,mode:'operava_owned_human_review',challenge,
-        challengeCode:challenge.slice(-6).toUpperCase(),expiresAt:now+OWNED_ID_TTL_MS,
-        required:['document','selfie','motion']})
+      const previous=await db.prepare('SELECT created_at,attempt_count,provider_status FROM ava_screening_identity_intents WHERE session_id=?')
+        .bind(row.id).first<{created_at:number;attempt_count:number;provider_status:string}>()
+      const attempts=previous&&now-previous.created_at<24*60*60_000?(previous.attempt_count||1)+1:1
+      if(attempts>5)return error('Identity verification link limit reached. Contact Talent Acquisition.',429)
+      if(previous&&now-previous.created_at<45_000)
+        return error('A secure verification link was recently sent. Check your email before requesting another.',429)
+
+      let profile:Record<string,unknown>={}
+      try{profile=JSON.parse(row.profile||'{}') as Record<string,unknown>}catch{/* use verified registration name */}
+      const legalName=clean(profile.fullName,120)||row.name
+      const nameParts=legalName.trim().split(/\\s+/)
+      const firstName=nameParts.shift()||legalName
+      const lastName=nameParts.join(' ')
+      const callback=new URL('/ava-screening/?identity=complete',request.url).toString()
+      const consentText='I consent to Veriff processing my live identity document and selfie for identity verification on behalf of OPERAVA Global Solutions. I have reviewed the Veriff privacy information and the OPERAVA Privacy Policy.'
+      const payload={verification:{
+        callback,vendorData:row.id,endUserId:row.id,
+        person:{firstName,lastName,email:row.email},
+        consents:[{type:'general',approved:true,text:consentText,timestamp:new Date(now).toISOString()}],
+      }}
+      let external:Response
+      try{
+        external=await fetch(veriffApiEndpoint(env.AVA_VERIFF_BASE_URL!),{
+          method:'POST',headers:{'X-AUTH-CLIENT':env.AVA_VERIFF_API_KEY!,'Content-Type':'application/json'},
+          body:JSON.stringify(payload),signal:AbortSignal.timeout(12000),
+        })
+      }catch{return error('The identity provider could not be reached. Please retry shortly.',503)}
+      const raw=await external.text()
+      if(!external.ok)return error('The identity provider could not create a verification session. Contact Talent Acquisition if this continues.',503)
+      const signature=external.headers.get('X-HMAC-SIGNATURE')||external.headers.get('x-hmac-signature')||''
+      const echoedKey=external.headers.get('X-AUTH-CLIENT')||external.headers.get('x-auth-client')
+      if(!signature||!constantTimeHexEqual(signature,await hmacSha256Hex(env.AVA_VERIFF_SHARED_SECRET!,raw))||
+        (echoedKey&&echoedKey!==env.AVA_VERIFF_API_KEY))
+        return error('The identity provider response could not be authenticated.',502)
+      let provider: {status?:string;verification?:{id?:string;url?:string}}
+      try{provider=JSON.parse(raw) as typeof provider}catch{return error('The identity provider returned an invalid session response.',502)}
+      const reference=String(provider.verification?.id||'').trim()
+      let providerUrl=''
+      try{providerUrl=veriffHostedUrl(String(provider.verification?.url||''))}catch{return error('The identity provider returned an invalid secure phone link.',502)}
+      if(provider.status!=='success'||!reference||reference.length>120)
+        return error('The identity provider did not return a valid verification session.',502)
+
+      const token=createOneTimeToken(32)
+      const tokenHash=await digest(token)
+      const linkExpires=now+15*60_000
+      await db.prepare(`INSERT INTO ava_screening_identity_intents
+        (session_id,vendor_reference,created_at,provider_url,link_token_hash,link_expires_at,link_used_at,provider_status,attempt_count)
+        VALUES (?,?,?,?,?,?,NULL,'created',?)
+        ON CONFLICT(session_id) DO UPDATE SET vendor_reference=excluded.vendor_reference,
+          created_at=excluded.created_at,provider_url=excluded.provider_url,
+          link_token_hash=excluded.link_token_hash,link_expires_at=excluded.link_expires_at,
+          link_used_at=NULL,provider_status='created',attempt_count=excluded.attempt_count`)
+        .bind(row.id,reference,now,providerUrl,tokenHash,linkExpires,attempts).run()
+      const link=new URL('/api/ava-identity-link',request.url)
+      link.searchParams.set('token',token)
+      try{
+        await sendEmail(env,{from:resolveFromEnv(env),to:[row.email],
+          subject:'OPERAVA | Secure phone identity verification',
+          text:`Hello ${row.name},
+
+Open this email on your mobile phone and use the secure link below to verify your identity. Veriff will guide you through a live government ID/passport capture and selfie/liveness check. Use the camera when prompted; existing gallery photos are not a substitute for the live check.
+
+${link.toString()}
+
+This link expires in 15 minutes and can be used once. Do not forward it. When you finish, keep your OPERAVA assessment open on your computer; its identity status will update automatically.
+
+If you did not request this check, ignore this message and contact OPERAVA Talent Acquisition.
+
+OPERAVA Talent Acquisition`,
+          html:`<p>Hello ${escapeHtml(row.name)},</p><p>Open this email on your mobile phone and use the secure link below to verify your identity. Veriff will guide you through a live government ID/passport capture and selfie/liveness check. Use the camera when prompted; existing gallery photos are not a substitute for the live check.</p><p><a href="${escapeHtml(link.toString())}">Open secure phone verification</a></p><p><strong>This link expires in 15 minutes and can be used once.</strong> Do not forward it. When you finish, keep your OPERAVA assessment open on your computer; its identity status will update automatically.</p><p>If you did not request this check, ignore this message and contact OPERAVA Talent Acquisition.</p><p>OPERAVA Talent Acquisition</p>`})
+      }catch{
+        await db.prepare("UPDATE ava_screening_identity_intents SET provider_status='email_failed',provider_url=NULL,link_token_hash=NULL WHERE session_id=?")
+          .bind(row.id).run()
+        return error('The verification session was created, but its email could not be sent. Please retry or contact Talent Acquisition.',503)
+      }
+      await db.prepare("UPDATE ava_screening_sessions SET identity_status='pending_verification',identity_consent_at=COALESCE(identity_consent_at,?),identity_reviewed=NULL WHERE id=? AND assessment_status='not_started'")
+        .bind(now,row.id).run()
+      return json({ok:true,identityStatus:'pending_verification',
+        message:'A single-use secure identity link was sent to your verified email. Open it on your phone; this desktop page will update automatically.'})
     }
     if (action === 'identitySubmit') {
       if(request.headers.get('Origin')!==new URL(request.url).origin)
