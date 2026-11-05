@@ -1233,6 +1233,7 @@ OPERAVA Talent Acquisition`,
         message:'A single-use secure identity link was sent to your verified email. Open it on your phone; this desktop page will update automatically.'})
     }
     if (action === 'identitySubmit') {
+      return error('Legacy identity uploads are disabled. Use the secure Veriff phone verification link.',410)
       if(request.headers.get('Origin')!==new URL(request.url).origin)
         return error('Identity media must be submitted from this secure site.',403)
       if(!env.AVA_ID_BUCKET)return error('Private OPERAVA identity storage is unavailable.',503)
