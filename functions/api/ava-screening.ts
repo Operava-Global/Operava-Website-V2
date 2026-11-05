@@ -606,7 +606,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         })
         const events = (await db.prepare('SELECT event_type, COUNT(*) AS count FROM ava_screening_events WHERE session_id=? GROUP BY event_type').bind(id).all()).results || []
         const manualReview = await db.prepare('SELECT review_status, reviewer_note, reviewed_at FROM ava_screening_manual_reviews WHERE session_id=?').bind(id).first()
-        const identityProvider = await db.prepare(`SELECT provider_status,decision_code,document_type,document_country,name_match,decision_time
+        const identityProvider = await db.prepare(`SELECT vendor_reference,provider_status,decision_code,document_type,document_country,name_match,decision_time
           FROM ava_screening_identity_provider_decisions WHERE session_id=?`).bind(id).first()
         let profile: Record<string, unknown> = {}
         try { profile = JSON.parse(applicant.profile || '{}') as Record<string, unknown> } catch { /* empty profile */ }
