@@ -54,7 +54,7 @@ type ApplicationRecord = {
   requiredAction: string | null; isSelected: boolean
 }
 type ApiPayload = ScreenState & {
-  error?: string; sessionToken?: string; maskedEmail?: string; turnstileSiteKey?: string;
+  error?: string; message?: string; sessionToken?: string; maskedEmail?: string; turnstileSiteKey?: string;
   applicationReference?: string | null; applications?: ApplicationRecord[]; verificationUrl?: string
   challenge?: string; challengeCode?: string; expiresAt?: number
   documents?: OnboardingRecord[]; configured?: boolean
@@ -558,20 +558,20 @@ export default function AvaScreening() {
   }
   useEffect(()=>()=>{identityCameraGeneration.current+=1;identityStream.current?.getTracks().forEach(track=>track.stop())},[])
   const requestIdentity=async()=>{
-    setIdentityBusy(true);setError('')
+    setIdentityBusy(true);setError('');setNotice('')
     try {
-      if(!identityConsent)throw Error('Review and consent to private identity photo capture first.')
-      const result=await submit('identityStart')
-      if(!result.challenge||!result.challengeCode||!result.expiresAt)
-        throw Error('Unable to obtain a secure camera challenge.')
-      setIdentityFrames({document:null,selfie:null,motion:null})
-      setIdentityCaptureMode('live_preview')
-      setIdentityStep(0)
-      setIdentityChallenge({token:result.challenge,code:result.challengeCode,expires:result.expiresAt})
-      setIdentityCameraStatus('idle')
-      setNotice('Your secure challenge is ready. Select Enable back camera to open the browser permission request, then capture your ID and two selfie moments.')
-    }catch(e){setError(e instanceof Error?e.message:'Unable to begin owned identity capture.')}
+      if(!identityConsent)throw Error('Consent to the secure Veriff ID and live selfie check before requesting your link.')
+      if(!screen?.identityProviderAvailable)throw Error('Automatic phone identity verification is not configured yet. Contact Talent Acquisition.')
+      const result=await submit('identityStart',{identityConsent:true})
+      setNotice(result.message||'A secure verification link was sent to your verified email. Open it on your phone; this desktop page will update automatically.')
+      await refresh()
+    }catch(e){setError(e instanceof Error?e.message:'Unable to send the secure phone verification link.')}
     finally{setIdentityBusy(false)}
+  }
+  const acceptAssessmentRules=async()=>{
+    if(!instructionAcknowledged){setError('Read the instructions and confirm that you understand the assessment rules.');return}
+    const ok=await perform(()=>submit('acceptAssessmentRules',{accepted:true}),'Assessment rules acknowledged. Continue to device permissions.')
+    if(ok)setReadyPage(2)
   }
   const captureIdentity=async()=>{
     setIdentityBusy(true);setError('')
