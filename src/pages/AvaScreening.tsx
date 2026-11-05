@@ -1179,15 +1179,19 @@ export default function AvaScreening() {
                   <span style={{width:`${((screen?.answered || 0) / (screen?.total || 1)) * 100}%`}} />
                 </div>
               </div>
-              {screen?.total===30 && (!proctorReady||!proctorSaved.camera||!proctorSaved.screen||!isCaptureLive()) ? <div className="ava-proctor-reconnect" role="status">
-                <MonitorCheck size={24}/><h2>Restore assessment permissions</h2>
-                <p>The timer continues, but questions and answer submission are paused until live screen, webcam and microphone recording is restored. Browsers require you to approve screen sharing again.</p>
+              {screen?.total===30 && (focusPaused||Boolean(screen.proctorPausedAt)||!proctorReady||!proctorSaved.camera||!proctorSaved.screen||!isCaptureLive()) ? <div className="ava-proctor-reconnect" role="status">
+                <MonitorCheck size={24}/><h2>{focusPaused||screen.proctorPausedAt?'Assessment paused — focus or capture change detected':'Restore assessment permissions'}</h2>
+                <p>{focusPaused||screen.proctorPausedAt
+                  ? 'The current unsaved answer has been cleared and reset. Previously submitted answers remain saved. Your 45-minute timer continues. Return to this assessment window, restore the required recordings, and explicitly resume.'
+                  : 'The timer continues, but questions and answer submission are paused until live screen, webcam and microphone recording is restored. Browsers require you to approve screen sharing again.'}</p>
                 <label className="ava-check"><input type="checkbox" checked={recordingConsent} onChange={e=>setRecordingConsent(e.target.checked)}/><span>I consent to continuing screen, webcam and microphone recording for this assessment.</span></label>
                 <div className="ava-proctor-device-steps">
                   <button type="button" className="ava-secondary" disabled={proctorBusy||!recordingConsent||!screen?.verifiedApplicantProfile||!screen.recordingStorageReady} onClick={()=>void prepareProctorCamera()}>{proctorCameraReady?'Webcam & microphone active ✓':'1 · Enable webcam & microphone'}</button>
                   <button type="button" className="ava-primary" disabled={proctorBusy||!proctorCameraReady||!proctorSupport?.screen} onClick={()=>void startCapture()}>2 · Restore entire screen sharing <ChevronRight size={17}/></button>
                 </div>
-                <p className="ava-muted">{proctorReady?'Capture restarted; waiting for private recordings to save.':'No recording permission means no further assessment answers.'}</p>
+                <p className="ava-muted">{proctorReady&&proctorSaved.camera&&proctorSaved.screen?'Fresh private recordings are saved. You can now resume.':'No recording permission means no further assessment answers.'}</p>
+                {(focusPaused||Boolean(screen.proctorPausedAt))&&<button type="button" className="ava-primary" disabled={busy||proctorBusy||!proctorReady||!proctorSaved.camera||!proctorSaved.screen||!isCaptureLive()} onClick={()=>void resumeAssessment()}>Resume assessment <ChevronRight size={17}/></button>}
+                {Boolean(screen.proctorIncidentCount)&&<p className="ava-muted">Recorded proctor interruptions: {screen.proctorIncidentCount}</p>}
               </div> : <>
                 <div className="ava-ai-conversation" aria-label="AVA questions and instructions">
                   <div className="ava-ai-message ava-ai-message--instructions">
