@@ -63,7 +63,7 @@ export const onRequestPost:PagesFunction<Env> = async ({request,env}) => {
   if(!applicant||!applicant.identity_consent_at||applicant.assessment_status!=='not_started')
     return respond('Applicant verification is no longer active.',409)
   const decisionTime=timestamp(v.decisionTime||v.submissionTime)
-  const eventId=String(v.attemptId||`${v.id}:${v.status}:${v.decisionTime||v.submissionTime||'decision'}`).slice(0,128)
+  const eventId=String(`${v.attemptId||v.id}:${v.status}:${v.decisionTime||v.submissionTime||'decision'}`).slice(0,128)
   const reserved=await db.prepare(`INSERT OR IGNORE INTO ava_screening_provider_events(event_id,session_id,received_at)
     VALUES (?,?,?)`).bind(eventId,intent.session_id,Date.now()).run()
   if(!reserved.meta.changes)return respond('Duplicate decision event accepted.',200)
