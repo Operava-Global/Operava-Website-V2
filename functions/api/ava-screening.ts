@@ -944,7 +944,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const saved = await get(db, invite.id)
       return json({ ...(await state(db, env, saved!)), sessionToken })
     }
-    if(['state','applications','selectApplication','onboardingDocuments','submitOnboardingDocument','proctorConsent','proctorChunk','identityStart','identitySubmit'].includes(action)) await ensure(db)
+    if(['state','applications','selectApplication','onboardingDocuments','submitOnboardingDocument','proctorConsent','proctorChunk','proctorResume','acceptAssessmentRules','identityStart','identitySubmit'].includes(action)) await ensure(db)
     const row = await authorized(request, env, db)
     if (!row) return error('Your secure screening session is missing or expired.', 401)
     if (action === 'state') return json(await state(db, env, row))
