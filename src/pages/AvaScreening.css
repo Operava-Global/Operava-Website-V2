@@ -1240,5 +1240,3 @@ html[data-theme="light"] .ava-preview-login a{color:#6c27bc}
 .ava-identity-return h1{margin:10px 0 14px;font-size:clamp(26px,5vw,38px);line-height:1.12}
 .ava-identity-return>p:not(.ava-label){color:var(--ava-muted,#716d78);font-size:14px;line-height:1.7}
 .ava-identity-return .ava-secondary{display:inline-flex;justify-content:center;margin-top:14px;text-decoration:none}
-
-.ava-app-shell{display:contents}
