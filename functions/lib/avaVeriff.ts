@@ -11,23 +11,27 @@ export function veriffConfigured(env:VeriffEnv):boolean {
   try{veriffApiEndpoint(env.AVA_VERIFF_BASE_URL||'');return true}catch{return false}
 }
 
+function safeHostname(hostname:string):boolean {
+  const host=hostname.toLowerCase()
+  return host!=='localhost'&&!host.endsWith('.localhost')&&!/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)&&
+    host.includes('.')&&!host.includes(':')
+}
 export function veriffApiEndpoint(raw:string):string {
-  const url=new URL(raw)
-  const host=url.hostname.toLowerCase()
-  if(url.protocol!=='https:'||url.username||url.password||
-    !(['veriff.com','veriff.me'].some(domain=>host===domain||host.endsWith('.'+domain)))||
-    (url.port&&url.port!=='443')||url.pathname!=='/'||url.search||url.hash)
-    throw new Error('Invalid Veriff API base URL.')
-  return url.origin+'/v1/sessions'
+  let url:URL
+  try{url=new URL(raw)}catch{throw new Error('Invalid Veriff API base URL.')}
+  const path=url.pathname.replace(/\/+$/,'')
+  if(url.protocol!=='https:'||!safeHostname(url.hostname)||url.username||url.password||
+    url.search||url.hash||(path!==''&&path!=='/v1')||(url.port&&url.port!=='443'))
+    throw new Error('Veriff API base URL must be a trusted HTTPS host with no credentials or unexpected path.')
+  return `${url.origin}/v1/sessions`
 }
 
 export function veriffHostedUrl(raw:string):string {
-  const url=new URL(raw)
-  const host=url.hostname.toLowerCase()
-  if(url.protocol!=='https:'||url.username||url.password||
-    !(['veriff.com','veriff.me'].some(domain=>host===domain||host.endsWith('.'+domain)))||
-    (url.port&&url.port!=='443'))
-    throw new Error('Invalid Veriff hosted verification URL.')
+  let url:URL
+  try{url=new URL(raw)}catch{throw new Error('Invalid Veriff hosted session URL.')}
+  if(url.protocol!=='https:'||!safeHostname(url.hostname)||url.username||url.password||url.hash||
+    !url.pathname.startsWith('/v/')||url.pathname.length<5)
+    throw new Error('Veriff returned an unsafe hosted session URL.')
   return url.toString()
 }
 
