@@ -13,7 +13,7 @@ type Profile = { fullName: string; phone: string; education: string; experience:
 type ScreenState = {
   ok: boolean
   applicant: { name: string; email: string; role: Role; roleTitle: string }
-  identityStatus: 'not_submitted' | 'pending_review' | 'approved' | 'needs_resubmission'
+  identityStatus: 'not_submitted' | 'pending_verification' | 'pending_review' | 'approved' | 'needs_resubmission'
   identityKind: string | null
   identityVerification?: string
   verifiedApplicantProfile?: boolean
@@ -21,6 +21,11 @@ type ScreenState = {
   identityProviderAvailable?: boolean
   recordingStorageReady?: boolean
   proctorConsentGiven?: boolean
+  identityConsentGiven?: boolean
+  assessmentRulesAccepted?: boolean
+  proctorPausedAt?: number | null
+  proctorPauseReason?: string | null
+  proctorIncidentCount?: number
   applicationReference?: string | null
   profile: Partial<Profile>
   consentGiven: boolean
@@ -107,6 +112,8 @@ export default function AvaScreening() {
   const [workspaceView,setWorkspaceView] = useState<'assessment'|'applications'|'documents'>('assessment')
   const [profilePage,setProfilePage] = useState(0)
   const [readyPage,setReadyPage] = useState(0)
+  const [instructionAcknowledged,setInstructionAcknowledged] = useState(false)
+  const [focusPaused,setFocusPaused] = useState(false)
   const [itemPage,setItemPage] = useState(0)
   const deckRef=useRef<HTMLDivElement|null>(null)
   const [registerName,setRegisterName] = useState('')
@@ -149,6 +156,9 @@ export default function AvaScreening() {
   const [cameraChecked,setCameraChecked] = useState(false)
   const [screenChecked,setScreenChecked] = useState(false)
   const captureActive = useRef(false)
+  const screenRef=useRef<ScreenState|null>(null)
+  const stopCaptureRef=useRef<()=>void>(()=>{})
+  const pauseEventSent=useRef(false)
   const [identityBusy,setIdentityBusy] = useState(false)
   const [identityChallenge,setIdentityChallenge]=useState<{token:string;code:string;expires:number}|null>(null)
   const [identityStep,setIdentityStep]=useState(0)
@@ -166,6 +176,7 @@ export default function AvaScreening() {
   const consentRef = useRef(false)
   const sessionRef = useRef(session)
   useEffect(() => { consentRef.current = Boolean(screen?.consentGiven && screen.assessmentStatus === 'in_progress') }, [screen])
+  useEffect(() => { screenRef.current = screen }, [screen])
   useEffect(() => { sessionRef.current = session }, [session])
 
   const submit = useCallback(async (action: string, body: Record<string, unknown> = {}, form?: FormData): Promise<ApiPayload> => {
@@ -219,6 +230,10 @@ export default function AvaScreening() {
       setPrivacyConsent(value.consentGiven)
       setMonitorConsent(value.consentGiven)
       setAiConsent(value.aiConsentGiven)
+      setIdentityConsent(Boolean(value.identityConsentGiven))
+      setInstructionAcknowledged(Boolean(value.assessmentRulesAccepted))
+      setFocusPaused(Boolean(value.proctorPausedAt))
+      if(!value.proctorPausedAt)pauseEventSent.current=false
       setError('')
     } catch (e) {
       if (/expired|missing|unauthorized/i.test(String(e))) {
@@ -230,6 +245,11 @@ export default function AvaScreening() {
     }
   }, [submit])
   useEffect(() => { if (session) void refresh() }, [session, refresh])
+  useEffect(()=>{
+    if(!session||screen?.identityStatus!=='pending_verification')return
+    const timer=window.setInterval(()=>void refresh(),5000)
+    return ()=>window.clearInterval(timer)
+  },[session,screen?.identityStatus,refresh])
   useEffect(() => {
     if(screen?.applicant.email) setWorkspaceView(screen.assessmentStatus==='in_progress'?'assessment':'applications')
   },[screen?.applicant.email])
