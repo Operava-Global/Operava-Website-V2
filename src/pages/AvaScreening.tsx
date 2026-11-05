@@ -13,7 +13,7 @@ type Profile = { fullName: string; phone: string; education: string; experience:
 type ScreenState = {
   ok: boolean
   applicant: { name: string; email: string; role: Role; roleTitle: string }
-  identityStatus: 'not_submitted' | 'pending_verification' | 'pending_review' | 'approved' | 'needs_resubmission'
+  identityStatus: 'not_submitted' | 'pending_verification' | 'pending_review' | 'approved' | 'needs_resubmission' | 'rejected'
   identityKind: string | null
   identityVerification?: string
   verifiedApplicantProfile?: boolean
@@ -1077,12 +1077,13 @@ export default function AvaScreening() {
                       screen?.identityStatus==='pending_verification'?'Secure link sent · Waiting for phone verification':
                       screen?.identityStatus==='pending_review'?'Additional review is required':
                       screen?.identityStatus==='needs_resubmission'?'A new identity verification attempt is required':
+                      screen?.identityStatus==='rejected'?'Identity verification was not approved · Contact Talent Acquisition':
                       'Required · Not yet verified'}
                   </p>
                   {!screen?.verifiedApplicantProfile&&screen?.identityProviderAvailable&&<>
                     <label className="ava-check"><input type="checkbox" checked={identityConsent} onChange={e=>setIdentityConsent(e.target.checked)}/>
                       <span>I consent to sharing my name and email with Veriff and to Veriff processing my government ID and live selfie/video for identity and liveness verification on behalf of OPERAVA. I have read the <a href="https://www.veriff.com/privacy" target="_blank" rel="noreferrer">Veriff privacy information</a> and the <Link to="/privacy" target="_blank">OPERAVA Privacy Policy</Link>. OPERAVA receives the verification decision and limited status metadata; the identity media is processed by Veriff under its service and retention terms.</span></label>
-                    <button type="button" className="ava-primary" disabled={identityBusy||!identityConsent||screen?.identityStatus==='pending_verification'||screen?.identityStatus==='pending_review'} onClick={()=>void requestIdentity()}>
+                    <button type="button" className="ava-primary" disabled={identityBusy||!identityConsent||screen?.identityStatus==='pending_verification'||screen?.identityStatus==='pending_review'||screen?.identityStatus==='rejected'} onClick={()=>void requestIdentity()}>
                       <MailCheck size={16}/>{identityBusy?'Sending secure link…':'Email me a secure phone verification link'}<ChevronRight size={17}/>
                     </button>
                   </>}
@@ -1091,7 +1092,8 @@ export default function AvaScreening() {
                     <Smartphone size={20}/><span>Open your email on your phone and tap the secure link. It expires after 15 minutes and can be used once. Keep this desktop page open; it checks for the provider result automatically every five seconds. If the link expires before you use it, request a new one.</span>
                   </div>}
                   {screen?.identityStatus==='needs_resubmission'&&<p className="ava-muted">The previous provider attempt was not approved or needs another capture. Review your email and document quality, then request a fresh secure link. If the provider declined your identity, contact Talent Acquisition.</p>}
-                  {screen?.identityStatus==='pending_review'&&<p className="ava-muted">The provider has referred this verification for additional review. The assessment will remain locked until a final approved result is received.</p>}
+                  {screen?.identityStatus==='pending_review'&&<p className="ava-muted">Additional review is required. The assessment remains locked until Talent Acquisition resolves the exception.</p>}
+                  {screen?.identityStatus==='rejected'&&<p className="ava-muted">The provider did not approve this identity. Contact Talent Acquisition; another verification link cannot be requested from this account.</p>}
                   <button type="button" className="ava-text-button" onClick={()=>void refresh()}>Refresh verification status</button>
                   <div className="ava-slide-actions">
                     <button type="button" className="ava-primary" disabled={!screen?.verifiedApplicantProfile} onClick={()=>setReadyPage(1)}>Next: assessment rules <ChevronRight size={17}/></button>
