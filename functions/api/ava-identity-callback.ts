@@ -1,110 +1,109 @@
 /**
- * Server-to-server certified identity provider adapter.
- * This is NOT a browser endpoint. A provider integration must sign the exact
- * raw body with HMAC-SHA256 using AVA_IDV_WEBHOOK_SECRET, and report audited
- * liveness, document authenticity, document name and face comparison results.
- * A 95% face similarity alone never verifies an identity.
+ * Veriff decision webhook. The raw body is HMAC-authenticated before parsing.
+ * Only a final Veriff-approved ID + selfie decision with an exact applicant-name
+ * match unlocks AVA. Provider review/decline/resubmission never self-approves.
  */
-type Env = { SUBMISSIONS_DB?: D1Database; AVA_IDV_WEBHOOK_SECRET?: string }
-type ProviderEvent = {
-  reference?: string
-  eventId?: string
-  status?: string
-  timestamp?: number
-  documentType?: string
-  documentFullName?: string
-  faceMatchScore?: number
-  livenessPassed?: boolean
-  documentAuthentic?: boolean
-  passportNfcPassed?: boolean
+import { constantTimeHexEqual, hmacSha256Hex, normalizeIdentityName } from '../lib/avaVeriff'
+
+type Env = {
+  SUBMISSIONS_DB?: D1Database
+  AVA_VERIFF_API_KEY?: string
+  AVA_VERIFF_SHARED_SECRET?: string
+}
+type VeriffDecision = {
+  status?:string
+  verification?:{
+    id?:string;attemptId?:string;vendorData?:string;endUserId?:string
+    status?:string;code?:number;decisionTime?:string;submissionTime?:string
+    person?:{firstName?:string|null;lastName?:string|null;fullName?:string|null}
+    document?:{type?:string|null;country?:string|null}
+  }
 }
 function respond(message:string,status:number) {
   return new Response(JSON.stringify({ok:status<400,message}),{
-    status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}
+    status,headers:{'Content-Type':'application/json','Cache-Control':'no-store',
+      'Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'}
   })
 }
-function normalizeName(value:string) {
-  return value.normalize('NFKC').trim().toLocaleLowerCase('en')
-    .replace(/[^\p{L}\p{N}]+/gu,' ').replace(/\s+/g,' ')
-}
-function equalConstant(a:string,b:string) {
-  if(a.length!==b.length) return false
-  let difference=0
-  for(let i=0;i<a.length;i++) difference |= a.charCodeAt(i)^b.charCodeAt(i)
-  return difference===0
+function timestamp(value:unknown):number {
+  if(typeof value!=='string')return Date.now()
+  const parsed=Date.parse(value)
+  return Number.isFinite(parsed)?parsed:Date.now()
 }
 export const onRequestPost:PagesFunction<Env> = async ({request,env}) => {
-  if(!env.SUBMISSIONS_DB||!env.AVA_IDV_WEBHOOK_SECRET||env.AVA_IDV_WEBHOOK_SECRET.length<32)
-    return respond('Identity verification is not configured.',503)
-  const claimed=request.headers.get('X-Ava-Identity-Signature')||''
-  const body=await request.text()
-  if(body.length>8000) return respond('Invalid event.',413)
-  const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(env.AVA_IDV_WEBHOOK_SECRET),
-    {name:'HMAC',hash:'SHA-256'},false,['sign'])
-  const signed=new Uint8Array(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(body)))
-  const expected=Array.from(signed,b=>b.toString(16).padStart(2,'0')).join('')
-  if(!equalConstant(claimed.replace(/^sha256=/,'').toLowerCase(),expected))
+  const db=env.SUBMISSIONS_DB
+  const apiKey=env.AVA_VERIFF_API_KEY?.trim()||''
+  const sharedSecret=env.AVA_VERIFF_SHARED_SECRET?.trim()||''
+  if(!db||apiKey.length<12||sharedSecret.length<24)
+    return respond('Identity verification webhook is not configured.',503)
+  if(request.method!=='POST')return respond('Method not allowed.',405)
+  if(request.headers.get('X-AUTH-CLIENT')!==apiKey)
     return respond('Provider authentication required.',403)
-  let event:ProviderEvent
-  try {event=JSON.parse(body) as ProviderEvent}
-  catch{return respond('Invalid event.',400)}
-  if(!event.reference||typeof event.reference!=='string'||event.reference.length>200||
-    !event.eventId||typeof event.eventId!=='string'||event.eventId.length>128||
-    typeof event.timestamp!=='number'||Math.abs(Date.now()-event.timestamp)>300_000)
-    return respond('Invalid or expired event.',400)
-  const intent=await env.SUBMISSIONS_DB.prepare(
-    'SELECT session_id FROM ava_screening_identity_intents WHERE vendor_reference=?'
-  ).bind(event.reference).first<{session_id:string}>()
-  if(!intent) return respond('Unknown verification reference.',404)
-  await env.SUBMISSIONS_DB.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_provider_events (
-    event_id TEXT PRIMARY KEY, session_id TEXT NOT NULL,received_at INTEGER NOT NULL)`).run()
-  const row=await env.SUBMISSIONS_DB.prepare(
-    'SELECT name,profile,identity_status FROM ava_screening_sessions WHERE id=?'
-  ).bind(intent.session_id).first<{name:string;profile:string|null;identity_status:string}>()
-  if(!row) return respond('Applicant unavailable.',404)
-  let fullName=row.name
-  try {
-    const parsed=JSON.parse(row.profile||'{}') as {fullName?:string}
-    if(parsed.fullName)fullName=parsed.fullName
-  }catch{ /* use verified applicant name */ }
-  const application=await env.SUBMISSIONS_DB.prepare(`SELECT f.name FROM ava_screening_application_links l
-    JOIN form_submissions f ON f.reference_id=l.reference_id WHERE l.session_id=? AND f.form_type='CAREERS' LIMIT 1`)
-    .bind(intent.session_id).first<{name:string}>()
-  const nameMatch=typeof event.documentFullName==='string' &&
-    normalizeName(event.documentFullName)===normalizeName(fullName) &&
-    (!application?.name||normalizeName(event.documentFullName)===normalizeName(application.name))
-  const score=Number(event.faceMatchScore)
-  const validScore=Number.isFinite(score)&&score>=0&&score<=100
-  const nfc=event.documentType==='passport'?event.passportNfcPassed===true:
-    event.documentType==='national_id'
-  const passed=event.status==='completed' && validScore && score>=95 &&
-    event.livenessPassed===true && event.documentAuthentic===true &&
-    nameMatch && nfc
-  const previous=await env.SUBMISSIONS_DB.prepare(
-    'SELECT status FROM ava_screening_identity_attestations WHERE session_id=?'
-  ).bind(intent.session_id).first<{status:string}>()
-  if(previous?.status==='verified')return respond('Already verified.',200)
-  const reserved=await env.SUBMISSIONS_DB.prepare('INSERT OR IGNORE INTO ava_screening_provider_events(event_id,session_id,received_at) VALUES (?,?,?)')
-    .bind(event.eventId,intent.session_id,Date.now()).run()
-  if(!reserved.meta.changes)return respond('Duplicate provider event.',200)
-  await env.SUBMISSIONS_DB.prepare(`INSERT INTO ava_screening_identity_attestations
-    (session_id,vendor_reference,face_score,liveness_pass,document_authentic,
-      document_name_match,passport_nfc_pass,status,checked_at)
+  const raw=await request.text()
+  if(raw.length>24_000)return respond('Decision event is too large.',413)
+  const signature=request.headers.get('X-HMAC-SIGNATURE')||request.headers.get('x-hmac-signature')||''
+  const expected=await hmacSha256Hex(sharedSecret,raw)
+  if(!constantTimeHexEqual(signature,expected))
+    return respond('Provider signature is invalid.',403)
+  let event:VeriffDecision
+  try{event=JSON.parse(raw) as VeriffDecision}catch{return respond('Invalid decision event.',400)}
+  const v=event.verification
+  if(event.status!=='success'||!v||typeof v.id!=='string'||v.id.length>120||
+    typeof v.vendorData!=='string'||v.vendorData.length>100||
+    typeof v.status!=='string'||typeof v.code!=='number')
+    return respond('Decision event is incomplete.',400)
+  const intent=await db.prepare(`SELECT session_id,link_used_at FROM ava_screening_identity_intents
+    WHERE vendor_reference=?`).bind(v.id).first<{session_id:string;link_used_at:number|null}>()
+  if(!intent||intent.session_id!==v.vendorData)
+    return respond('Unknown identity verification session.',404)
+  if(!intent.link_used_at)return respond('The secure applicant link was not opened.',403)
+  const applicant=await db.prepare(`SELECT name,profile,identity_consent_at,assessment_status
+    FROM ava_screening_sessions WHERE id=?`).bind(intent.session_id)
+    .first<{name:string;profile:string|null;identity_consent_at:number|null;assessment_status:string}>()
+  if(!applicant||!applicant.identity_consent_at||applicant.assessment_status!=='not_started')
+    return respond('Applicant verification is no longer active.',409)
+  const decisionTime=timestamp(v.decisionTime||v.submissionTime)
+  const eventId=String(v.attemptId||`${v.id}:${v.status}:${v.decisionTime||v.submissionTime||'decision'}`).slice(0,128)
+  const reserved=await db.prepare(`INSERT OR IGNORE INTO ava_screening_provider_events(event_id,session_id,received_at)
+    VALUES (?,?,?)`).bind(eventId,intent.session_id,Date.now()).run()
+  if(!reserved.meta.changes)return respond('Duplicate decision event accepted.',200)
+
+  let expectedName=applicant.name
+  try{
+    const profile=JSON.parse(applicant.profile||'{}') as {fullName?:string}
+    if(typeof profile.fullName==='string'&&profile.fullName.trim())expectedName=profile.fullName
+  }catch{/* use email-verified applicant name */}
+  const person=v.person||{}
+  const verifiedName=String(person.fullName||[person.firstName,person.lastName].filter(Boolean).join(' ')).trim()
+  const nameMatch=Boolean(verifiedName&&normalizeIdentityName(verifiedName)===normalizeIdentityName(expectedName))
+  const documentType=String(v.document?.type||'').trim().slice(0,40)
+  const documentCountry=String(v.document?.country||'').trim().slice(0,8)
+  const providerStatus=String(v.status).toLowerCase()
+  const approved=providerStatus==='approved'&&v.code===9001&&nameMatch&&Boolean(documentType)
+  const storedStatus=approved?'approved':
+    providerStatus==='review'?'review':
+    providerStatus==='approved'?'approved_unmatched':
+    ['declined','resubmission_requested','expired','abandoned'].includes(providerStatus)?providerStatus:'pending'
+  const applicantStatus=approved?'approved':
+    providerStatus==='review'?'pending_verification':
+    'needs_resubmission'
+  await db.prepare(`INSERT INTO ava_screening_identity_provider_decisions
+    (session_id,vendor_reference,provider_status,decision_code,document_type,document_country,name_match,decision_time,received_at)
     VALUES (?,?,?,?,?,?,?,?,?)
-    ON CONFLICT(session_id) DO UPDATE SET
-      vendor_reference=excluded.vendor_reference,face_score=excluded.face_score,
-      liveness_pass=excluded.liveness_pass,document_authentic=excluded.document_authentic,
-      document_name_match=excluded.document_name_match,passport_nfc_pass=excluded.passport_nfc_pass,
-      status=excluded.status,checked_at=excluded.checked_at`)
-    .bind(intent.session_id,event.reference,validScore?score:0,event.livenessPassed===true?1:0,
-      event.documentAuthentic===true?1:0,nameMatch?1:0,nfc?1:0,
-      passed?'verified':'manual_review',Date.now()).run()
-  if(passed) await env.SUBMISSIONS_DB.prepare(
-    "UPDATE ava_screening_sessions SET identity_status='approved',identity_reviewed=? WHERE id=?"
-  ).bind(Date.now(),intent.session_id).run()
-  else await env.SUBMISSIONS_DB.prepare(
-    "UPDATE ava_screening_sessions SET identity_status='pending_review' WHERE id=? AND identity_status!='approved'"
-  ).bind(intent.session_id).run()
-  return respond('Provider event accepted.',200)
+    ON CONFLICT(session_id) DO UPDATE SET vendor_reference=excluded.vendor_reference,
+      provider_status=excluded.provider_status,decision_code=excluded.decision_code,
+      document_type=excluded.document_type,document_country=excluded.document_country,
+      name_match=excluded.name_match,decision_time=excluded.decision_time,received_at=excluded.received_at`)
+    .bind(intent.session_id,v.id,storedStatus,v.code,documentType||null,documentCountry||null,
+      nameMatch?1:0,decisionTime,Date.now()).run()
+  await db.prepare('UPDATE ava_screening_identity_intents SET provider_status=? WHERE session_id=?')
+    .bind(storedStatus,intent.session_id).run()
+  await db.prepare(`UPDATE ava_screening_sessions SET identity_status=?,identity_reviewed=?
+    WHERE id=? AND assessment_status='not_started'`)
+    .bind(applicantStatus,approved?Date.now():null,intent.session_id).run()
+  await db.prepare(`INSERT INTO ava_screening_review_events(session_id,action,detail,recorded_at)
+    VALUES (?,?,?,?)`).bind(intent.session_id,'veriff_decision',
+      `status:${storedStatus}; code:${v.code}; name_match:${nameMatch?1:0}; document_type:${documentType||'unavailable'}`,Date.now()).run()
+  return respond(approved?'Identity verified.':'Provider decision received; additional verification is required.',200)
 }
 export const onRequestGet:PagesFunction<Env>=async()=>respond('Method not allowed.',405)
