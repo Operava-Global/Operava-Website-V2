@@ -134,7 +134,7 @@ For the Veriff-hosted flow, ID images and selfie/liveness media are sent directl
 
 ### Pre-start briefing and proctor enforcement
 
-The candidate must complete three readiness panels: verified identity, assessment instructions/prohibited conduct, then device/recording permissions. The rules acknowledgment is recorded server-side and begin rejects sessions without it. The candidate must separately consent to camera, microphone and screen recording, share the entire display, and enter browser full-screen mode before starting.
+The candidate must complete three readiness panels: verified identity, assessment instructions/prohibited conduct, then device/recording permissions. The rules acknowledgment is recorded server-side and begin rejects sessions without it. The candidate must separately consent to camera, microphone and screen recording, share a display whose browser-reported surface is monitor (tabs and individual windows are rejected), and enter browser full-screen mode before starting.
 
 During the assessment, supported focus_lost, visibility_hidden, fullscreen_exited, microphone and capture interruption events set proctor_paused_at in D1. The answer endpoint rejects submissions while paused. The client clears the current unsaved draft; previously submitted answers remain saved. The 45-minute timer continues. Resumption requires fresh screen and camera/microphone segments recorded after the pause and an explicit Resume assessment action. A visible, focused, full-screen heartbeat is also required every three seconds; the server pauses answer submission if the heartbeat is missing for more than ten seconds. If a browser keepalive focus event is dropped, the heartbeat timeout and fresh-stream requirement still fail closed; recovery is logged.
 
