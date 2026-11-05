@@ -282,6 +282,9 @@ CREATE TABLE IF NOT EXISTS ava_screening_identity_intents (
   attempt_count INTEGER NOT NULL DEFAULT 1,
   FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ava_identity_link_token_hash
+  ON ava_screening_identity_intents(link_token_hash) WHERE link_token_hash IS NOT NULL;
+
 CREATE TABLE IF NOT EXISTS ava_screening_identity_provider_decisions (
   session_id TEXT PRIMARY KEY,
   vendor_reference TEXT NOT NULL UNIQUE,
