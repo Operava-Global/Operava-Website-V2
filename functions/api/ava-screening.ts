@@ -511,13 +511,15 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (action === 'publicApplicants') {
         const offset=Math.min(10000,Math.max(0,Math.floor(Number(data?.offset)||0)))
         const result=await db.prepare(`SELECT s.id,s.name,s.email,s.role,s.created_at,s.verified_at,
-          s.assessment_status,s.assessment_started,s.completed,
+          s.assessment_status,s.assessment_started,s.completed,s.identity_status,
+          s.proctor_incidents, i.provider_status, i.link_used_at,
           CASE WHEN s.assessment_status='in_progress' AND s.deadline<=? THEN 'time_expired'
             ELSE s.assessment_status END AS current_status,
           CASE WHEN s.profile IS NOT NULL THEN 1 ELSE 0 END AS has_profile,
           COALESCE(r.review_status,'awaiting_human_review') AS review_status
           FROM ava_screening_public_accounts a JOIN ava_screening_sessions s ON s.id=a.session_id
           LEFT JOIN ava_screening_manual_reviews r ON r.session_id=s.id
+          LEFT JOIN ava_screening_identity_intents i ON i.session_id=s.id
           ORDER BY s.created_at DESC LIMIT 100 OFFSET ?`)
           .bind(Date.now(),offset).all()
         return json({ok:true,applicants:result.results||[],offset})
@@ -604,12 +606,16 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         })
         const events = (await db.prepare('SELECT event_type, COUNT(*) AS count FROM ava_screening_events WHERE session_id=? GROUP BY event_type').bind(id).all()).results || []
         const manualReview = await db.prepare('SELECT review_status, reviewer_note, reviewed_at FROM ava_screening_manual_reviews WHERE session_id=?').bind(id).first()
+        const identityProvider = await db.prepare(`SELECT provider_status,decision_code,document_type,document_country,name_match,decision_time
+          FROM ava_screening_identity_provider_decisions WHERE session_id=?`).bind(id).first()
         let profile: Record<string, unknown> = {}
         try { profile = JSON.parse(applicant.profile || '{}') as Record<string, unknown> } catch { /* empty profile */ }
         return json({ ok: true, applicant: { id, name: applicant.name, email: applicant.email, role: applicant.role,
           profile, identityStatus: applicant.identity_status, identityKind: applicant.identity_kind,
           verifiedAt: applicant.verified_at, privacyConsentAt: applicant.consent_at,
           monitoringConsentAt: applicant.monitor_consent_at, aiConsentAt: applicant.ai_consent_at,
+          identityProvider,proctorIncidentCount:applicant.proctor_incidents||0,
+          proctorPauseReason:applicant.proctor_pause_reason||null,
           assessmentStatus: applicant.assessment_status === 'in_progress' && applicant.deadline && Date.now() >= applicant.deadline
             ? 'time_expired' : applicant.assessment_status,
           startedAt: applicant.assessment_started, deadline: applicant.deadline, completedAt: applicant.completed },
