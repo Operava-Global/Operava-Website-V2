@@ -1186,13 +1186,13 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         if(!signature||!constantTimeHexEqual(signature,await hmacSha256Hex(env.AVA_VERIFF_SHARED_SECRET!,raw))||
           (echoedKey&&echoedKey!==env.AVA_VERIFF_API_KEY))
           return error('The identity provider response could not be authenticated.',502)
-        let provider: {status?:string;verification?:{id?:string;url?:string}}
+        let provider: {status?:string;verification?:{id?:string;url?:string;vendorData?:string}}
         try{provider=JSON.parse(raw) as typeof provider}catch{return error('The identity provider returned an invalid session response.',502)}
         reference=String(provider.verification?.id||'').trim()
         try{providerUrl=veriffHostedUrl(String(provider.verification?.url||''))}
         catch{return error('The identity provider returned an invalid secure phone link.',502)}
-        if(provider.status!=='success'||!reference||reference.length>120)
-          return error('The identity provider did not return a valid verification session.',502)
+        if(provider.status!=='success'||!reference||reference.length>120||provider.verification?.vendorData!==row.id)
+          return error('The identity provider did not return a valid session linked to this applicant.',502)
       }
 
       const token=createOneTimeToken(32)
