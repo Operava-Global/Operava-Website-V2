@@ -1093,9 +1093,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if(!row.profile||!row.consent_at||!row.monitor_consent_at)
         return error('Complete your profile and monitoring consent first.',403)
       if(!env.AVA_PROCTOR_BUCKET)return error('Private recording storage is unavailable.',503)
-      const attestation=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status IN ('verified','manual_verified')")
-        .bind(row.id).first()
-      if(row.identity_status!=='approved'||!attestation)return error('OPERAVA identity review must pass before recording.',403)
+      if(!await identityVerified(db,row))return error('Verified identity is required before recording.',403)
       if(data?.recordingConsent!==true)
         return error('Explicit camera, microphone and screen recording consent is required.',403)
       await db.prepare('UPDATE ava_screening_sessions SET proctor_consent_at=? WHERE id=? AND assessment_status IN (\'not_started\',\'in_progress\')')
@@ -1198,8 +1196,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
     if (action === 'proctorChunk') {
       if(!env.AVA_PROCTOR_BUCKET) return error('Private assessment recording storage is unavailable.',503)
       if(!row.consent_at||!row.monitor_consent_at||!row.profile||!row.proctor_consent_at) return error('Explicit screen, camera and microphone recording consent is required.',403)
-      const attestation=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status IN ('verified','manual_verified')").bind(row.id).first()
-      if(row.identity_status!=='approved'||!attestation)return error('OPERAVA identity review must complete before recording.',403)
+      if(!await identityVerified(db,row))return error('Verified identity is required before recording.',403)
       if(row.assessment_status!=='not_started'&&row.assessment_status!=='in_progress') return error('Assessment is not accepting recordings.',409)
       if(row.assessment_status==='in_progress'&&(!row.deadline||Date.now()>=row.deadline))
         return error('Assessment time elapsed. Recording upload has closed.',409)
@@ -1231,8 +1228,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       // actual private live recording segments, not browser-supplied booleans.
       if (!row.profile || !row.consent_at || !row.monitor_consent_at) return error('Complete the profile and monitoring consent before starting.', 403)
       if (row.assessment_status !== 'not_started') return error('Assessment already started or submitted.', 409)
-      const verified=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status IN ('verified','manual_verified')").bind(row.id).first()
-      if(row.identity_status!=='approved'||!verified) return error('OPERAVA human identity review must be approved before the assessment.',403)
+      if(!await identityVerified(db,row)) return error('Verified identity must be approved before the assessment.',403)
       if(!row.proctor_consent_at)return error('Explicit camera, microphone and screen recording consent is required.',403)
       if(!env.AVA_PROCTOR_BUCKET) return error('Secure live proctor recording is not configured.',503)
       const evidence=await db.prepare("SELECT kind,MAX(recorded_at) AS last_seen FROM ava_screening_proctor_evidence WHERE session_id=? GROUP BY kind")
@@ -1254,9 +1250,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       }
       if((row.assessment_version||1)>=2) {
         if(!row.proctor_consent_at)return error('Proctoring consent is required for this assessment.',403)
-        const verified=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status IN ('verified','manual_verified')")
-          .bind(row.id).first()
-        if(row.identity_status!=='approved'||!verified)
+        if(!await identityVerified(db,row))
           return error('Identity verification must remain approved throughout the assessment.',403)
         if(!env.AVA_PROCTOR_BUCKET)return error('Private assessment recording storage is unavailable.',503)
         const segments=await db.prepare("SELECT kind,MAX(recorded_at) AS last_seen FROM ava_screening_proctor_evidence WHERE session_id=? GROUP BY kind")
