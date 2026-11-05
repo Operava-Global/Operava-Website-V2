@@ -760,7 +760,7 @@ export default function AvaScreening() {
     recorders.current.length===2&&recorders.current.every(r=>r.state==='recording'))
   const startCapture = async () => {
     if(!recordingConsent){setError('Explicit recording consent is required.');return}
-    if(!screen?.verifiedApplicantProfile){setError('OPERAVA human identity approval is required before recording.');return}
+    if(!screen?.verifiedApplicantProfile){setError('Verified identity is required before recording.');return}
     if(!screen?.recordingStorageReady){setError('Secure private recording storage is not configured.');return}
     if(!proctorCameraReady||!preparedCamera.current||
       !proctorTrackIsLive(preparedCamera.current,'video')||
@@ -780,8 +780,11 @@ export default function AvaScreening() {
       if(!proctorTrackIsLive(display,'video'))
         throw Error('Screen capture did not become active. Select Share in the browser dialog.')
       const surface=display.getVideoTracks()[0]?.getSettings().displaySurface
-      if(surface&&surface!=='monitor')
-        throw Error('Share your entire display, not a tab or single application window.')
+      if(surface!=='monitor'){
+        display.getTracks().forEach(track=>track.stop())
+        display=null
+        throw Error('Select Entire Screen / Monitor in the browser sharing dialog. Tabs and individual application windows are not accepted.')
+      }
       if(!proctorTrackIsLive(webcam,'video')||!proctorTrackIsLive(webcam,'audio'))
         throw Error('Your webcam or microphone disconnected while screen sharing was enabled.')
       source='upload'
