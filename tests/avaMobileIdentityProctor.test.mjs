@@ -50,7 +50,7 @@ test('focus loss pauses on the server, clears draft, and requires new recordings
   assert.match(backend,/action === 'proctorResume'/)
   assert.match(applicant,/setAnswer\(''\)/)
   assert.match(applicant,/submit\('proctorResume'\)/)
-  assert.match(applicant,/The 45-minute timer continues/)
+  assert.match(applicant,/45-minute timer continues/)
   assert.match(schema,/proctor_paused_at INTEGER/)
 })
 
