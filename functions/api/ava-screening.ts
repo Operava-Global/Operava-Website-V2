@@ -673,6 +673,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
           db.prepare('DELETE FROM ava_screening_identity_attestations WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_owned_identity WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_identity_intents WHERE session_id=?').bind(id),
+          db.prepare('DELETE FROM ava_screening_identity_provider_decisions WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_provider_events WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_questions WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_application_links WHERE session_id=?').bind(id),
@@ -697,8 +698,8 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         const url = `https://www.operavaglobal.com/ava-screening/?invite=${encodeURIComponent(token)}`
         await sendEmail(env, {
           from: resolveFromEnv(env), to: [email], subject: 'OPERAVA | Your Ava Screening invitation',
-          text: `Hello ${name},\n\nYou have been invited to complete the ${ROLES[role]} screening.\n\nOpen this private invitation link within 7 days:\n${url}\n\nYou will confirm your email with a one-time code and complete identity review before the assessment.\n\nIf unexpected, ignore this email.\n\nOPERAVA Talent Acquisition`,
-          html: `<p>Hello ${escapeHtml(name)},</p><p>You are invited to complete the <strong>${escapeHtml(ROLES[role])}</strong> Ava Screening.</p><p><a href="${escapeHtml(url)}">Open your private invitation</a> (valid for 7 days)</p><p>For your security, an additional email code and human identity review are required before the timed assessment.</p><p>OPERAVA Talent Acquisition</p>`,
+          text: `Hello ${name},\n\nYou have been invited to complete the ${ROLES[role]} screening.\n\nOpen this private invitation link within 7 days:\n${url}\n\nYou will confirm your email with a one-time code, then receive a secure phone link for live government ID and selfie verification before the assessment.\n\nIf unexpected, ignore this email.\n\nOPERAVA Talent Acquisition`,
+          html: `<p>Hello ${escapeHtml(name)},</p><p>You are invited to complete the <strong>${escapeHtml(ROLES[role])}</strong> Ava Screening.</p><p><a href="${escapeHtml(url)}">Open your private invitation</a> (valid for 7 days)</p><p>For your security, email OTP and a Veriff-hosted live ID and selfie check are required before the timed assessment.</p><p>OPERAVA Talent Acquisition</p>`,
         })
         await db.prepare(`INSERT INTO ava_screening_invitations(id,email,name,role,sent_at,expires_at,invited_by)
           VALUES (?,?,?,?,?,?,?)`)
