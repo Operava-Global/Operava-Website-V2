@@ -1155,7 +1155,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const consentText='I consent to Veriff processing my live identity document and selfie for identity verification on behalf of OPERAVA Global Solutions. I have reviewed the Veriff privacy information and the OPERAVA Privacy Policy.'
       const payload={verification:{
         callback,vendorData:row.id,endUserId:row.id,
-        person:{firstName,lastName,email:row.email},
+        person:{firstName,...(lastName?{lastName}:{}),email:row.email},
         consents:[{type:'general',approved:true,text:consentText,timestamp:new Date(now).toISOString()}],
       }}
       let reference=''
