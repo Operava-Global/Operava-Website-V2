@@ -1172,7 +1172,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       }}
       let reference=''
       let providerUrl=''
-      const reuseExisting=Boolean(previous&&previous.vendor_reference&&previous.provider_url&&
+      const reuseExisting=Boolean(previous&&now-previous.created_at<6*24*60*60_000&&previous.vendor_reference&&previous.provider_url&&
         ['resubmission_requested','link_expired','email_failed'].includes(previous.provider_status))
       if(reuseExisting){
         reference=previous!.vendor_reference
