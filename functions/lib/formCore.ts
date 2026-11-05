@@ -469,31 +469,43 @@ function confirmationKind(opts: ConfirmationInput, career = false): Confirmation
 }
 
 function confirmationCopy(kind: ConfirmationKind) {
-  if (kind === 'operavian' || kind === 'application') return {
+  if (kind === 'operavian') return {
+    intro: 'Thank you for contacting OPERAVA.',
     received: 'We have received your application to become a Future Operavian. Your submission has been recorded and is now under review.',
     next: 'Our team will review your application and contact you within 2-3 business days.',
     thankYou: 'Thank you for choosing OPERAVA. We are pleased to begin working with you.',
     team: 'OPERAVA Recruitment Team',
   }
+  if (kind === 'application') return {
+    intro: 'Thank you for applying to OPERAVA Global Solutions.',
+    received: 'We have received your job application. Your submission has been recorded and is now under review.',
+    next: 'Our Talent Acquisition Team will review your application and contact you if your qualifications match an available opportunity.',
+    thankYou: 'Thank you for considering a career with OPERAVA.',
+    team: 'OPERAVA Recruitment Team',
+  }
   if (kind === 'partner-submission') return {
+    intro: 'Thank you for your interest in collaborating with OPERAVA.',
     received: 'We have received your partnership proposal. Your submission has been recorded and forwarded to our Partnerships team.',
-    next: 'Our partnerships team will review your proposal and contact you regarding potential next steps.',
-    thankYou: 'Thank you for your interest in collaborating with OPERAVA. We look forward to exploring the opportunity.',
+    next: 'Our Partnerships team will review your proposal and contact you regarding potential next steps.',
+    thankYou: 'We look forward to exploring the opportunity with your organization.',
     team: 'OPERAVA Partnerships Team',
   }
   if (kind === 'partner') return {
+    intro: 'Thank you for your interest in a business partnership with OPERAVA.',
     received: 'We have received your inquiry for a future business partnership. Your submission has been recorded and forwarded to our Business Partnership team.',
     next: 'We will review your partnership inquiry and get back to you within 1-2 business days to discuss the next steps.',
     thankYou: 'Thank you for choosing OPERAVA. We look forward to partnering with you.',
     team: 'OPERAVA Support Team',
   }
   if (kind === 'academy') return {
+    intro: 'Thank you for your interest in OPERAVA Academy.',
     received: 'We have received your OPERAVA Academy enrollment or information inquiry. Your submission has been recorded.',
     next: 'Our Academy team will review your inquiry and contact you regarding the next steps.',
-    thankYou: 'Thank you for choosing OPERAVA Academy.',
+    thankYou: 'We look forward to supporting your learning and professional development goals.',
     team: 'OPERAVA Academy Team',
   }
   return {
+    intro: 'Thank you for contacting OPERAVA.',
     received: 'We have received your inquiry. Your submission has been recorded and is under review.',
     next: 'Our team will review your inquiry and contact you regarding the next steps.',
     thankYou: 'Thank you for choosing OPERAVA. We look forward to assisting you.',
@@ -525,7 +537,7 @@ function confirmationMessage(opts: ConfirmationInput, career = false): {
   const safeReference = escapeHtml(opts.referenceId)
   const html =
     p('Hi ' + escapeHtml(name) + ',') +
-    p('Thank you for contacting OPERAVA.') +
+    p(copy.intro) +
     p(copy.received) +
     p('Please keep this reference number for future correspondence: <strong style="color:#ffffff;">' + safeReference + '</strong>') +
     p('<strong style="color:#ffffff;">Submitted Details</strong>') +
@@ -575,7 +587,13 @@ export function staffNotificationEmail(opts: {
 }): string {
   return renderEmailTemplate(opts.formType === 'CAREERS' ? careersStaffNotificationTemplate : staffNotificationTemplate, {
     FORM_TYPE: escapeHtml(opts.formType),
-    TITLE: escapeHtml(opts.formType === 'CAREERS' ? 'New job application received' : 'New ' + opts.formType.toLowerCase() + ' submission'),
+    TITLE: escapeHtml(
+      opts.formType === 'CAREERS' ? 'New job application received'
+        : opts.formType === 'ACADEMY' ? 'New Academy enrollment / inquiry received'
+          : opts.formType === 'PARTNERSHIP' ? 'New partnership proposal received'
+            : opts.formType === 'SERVICES' ? 'New service inquiry received'
+              : 'New general inquiry received',
+    ),
     PARTY_LABEL: escapeHtml(opts.formType === 'CAREERS' ? 'applicant' : opts.formType === 'ACADEMY' ? 'learner' : opts.formType === 'PARTNERSHIP' ? 'partner' : 'customer'),
     REFERENCE_ID: escapeHtml(opts.referenceId),
     EMAIL: escapeHtml(opts.email),
