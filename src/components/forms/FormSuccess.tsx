@@ -17,13 +17,26 @@ export default function FormSuccess({ formType, name, referenceId, emailWarning 
             ? 'Your partnership proposal has been submitted and your email address is verified. Our partnerships team will review the opportunity and contact you about potential next steps.'
           : 'Your message has been successfully submitted and your email address has been verified. We will respond if further action or information is required.'
 
+  const statusLabel =
+    formType === 'CAREERS' ? 'Job application received'
+      : formType === 'SERVICES' ? 'Service inquiry received'
+        : formType === 'ACADEMY' ? 'Academy inquiry received'
+          : formType === 'PARTNERSHIP' ? 'Partnership proposal received'
+            : 'Inquiry received'
+  const referenceLabel =
+    formType === 'CAREERS' ? 'Application reference ID'
+      : formType === 'ACADEMY' ? 'Academy reference ID'
+        : formType === 'PARTNERSHIP' ? 'Partnership reference ID'
+          : formType === 'SERVICES' ? 'Service inquiry reference ID'
+            : 'Inquiry reference ID'
+
   return (
     <div className="max-w-xl mx-auto text-center space-y-5 py-10">
-      <p className="text-[11px] tracking-[0.3em] uppercase text-accent font-bold">{formType === 'CAREERS' ? 'Job application received' : 'Verified & submitted'}</p>
+      <p className="text-[11px] tracking-[0.3em] uppercase text-accent font-bold">{statusLabel}</p>
       <h2 className="text-[36px] font-black uppercase leading-[0.9]">{formType === 'CAREERS' ? 'Thank you for submitting your application.' : <>Thank you, {name}.</>}</h2>
       <p className="text-sm text-neutral-400 leading-relaxed">{copy}</p>
       {emailWarning && <p role="alert" className="text-sm text-amber-300 border border-amber-500/30 p-3">{emailWarning}</p>}
-      <p className="pt-4 text-[10px] uppercase tracking-widest text-neutral-500">{formType === 'CAREERS' ? 'Application reference ID' : 'Reference ID'}</p>
+      <p className="pt-4 text-[10px] uppercase tracking-widest text-neutral-500">{referenceLabel}</p>
       <p className="font-mono text-xl font-bold text-white border border-neutral-800 inline-block px-5 py-3">{referenceId}</p>
       {formType === 'CAREERS' && (
         <a href="/applicant-portal" className="block mx-auto w-fit rounded-lg bg-[#A000F0] px-6 py-4 text-xs font-bold uppercase tracking-widest text-white">
