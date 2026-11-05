@@ -79,8 +79,8 @@ export const onRequestPost:PagesFunction<Env> = async ({request,env}) => {
   const documentType=String(v.document?.type||'').trim().slice(0,40)
   const documentCountry=String(v.document?.country||'').trim().slice(0,8)
   const providerStatus=String(v.status).toLowerCase()
-  const expectedCode:Record<string,number>={approved:9001,declined:9102,resubmission_requested:9103,expired:9104,abandoned:9121}
-  const codeValid=providerStatus==='review'||expectedCode[providerStatus]===v.code
+  const expectedCode:Record<string,number>={approved:9001,declined:9102,resubmission_requested:9103,expired:9104,abandoned:9104,review:9121}
+  const codeValid=expectedCode[providerStatus]===v.code
   const approved=providerStatus==='approved'&&codeValid&&nameMatch&&Boolean(documentType)
   const storedStatus=!codeValid?'invalid_decision':approved?'approved':
     providerStatus==='review'?'review':
