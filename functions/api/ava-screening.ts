@@ -295,12 +295,19 @@ async function state(db: D1Database, env: AvaEnv, row: Applicant) {
       .bind(row.id).first<{status:string;face_score:number}>(),
     db.prepare('SELECT provider_status,decision_code,name_match FROM ava_screening_identity_provider_decisions WHERE session_id=?')
       .bind(row.id).first<{provider_status:string;decision_code:number|null;name_match:number}>(),
-    db.prepare('SELECT provider_status,link_expires_at,link_used_at FROM ava_screening_identity_intents WHERE session_id=?')
-      .bind(row.id).first<{provider_status:string;link_expires_at:number|null;link_used_at:number|null}>(),
+    db.prepare('SELECT provider_status,link_expires_at,link_used_at,created_at FROM ava_screening_identity_intents WHERE session_id=?')
+      .bind(row.id).first<{provider_status:string;link_expires_at:number|null;link_used_at:number|null;created_at:number}>(),
   ])
   if(identityIntent?.provider_status==='created'&&!identityIntent.link_used_at&&
     identityIntent.link_expires_at&&identityIntent.link_expires_at<=Date.now()){
     await db.prepare("UPDATE ava_screening_identity_intents SET provider_status='link_expired',link_token_hash=NULL WHERE session_id=? AND provider_status='created'")
+      .bind(row.id).run()
+    await db.prepare("UPDATE ava_screening_sessions SET identity_status='needs_resubmission' WHERE id=? AND identity_status='pending_verification'")
+      .bind(row.id).run()
+    row.identity_status='needs_resubmission'
+  }else if(identityIntent?.provider_status==='created'&&identityIntent.link_used_at&&
+    Date.now()-identityIntent.link_used_at>30*60_000){
+    await db.prepare("UPDATE ava_screening_identity_intents SET provider_status='abandoned_timeout',provider_url=NULL WHERE session_id=? AND provider_status='created'")
       .bind(row.id).run()
     await db.prepare("UPDATE ava_screening_sessions SET identity_status='needs_resubmission' WHERE id=? AND identity_status='pending_verification'")
       .bind(row.id).run()
