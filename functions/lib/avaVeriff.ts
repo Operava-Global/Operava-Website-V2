@@ -16,13 +16,17 @@ function safeHostname(hostname:string):boolean {
   return host!=='localhost'&&!host.endsWith('.localhost')&&!/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)&&
     host.includes('.')&&!host.includes(':')
 }
+function veriffApiHost(hostname:string):boolean {
+  const host=hostname.toLowerCase()
+  return ['veriff.com','veriff.me'].some(domain=>host===domain||host.endsWith('.'+domain))
+}
 export function veriffApiEndpoint(raw:string):string {
   let url:URL
   try{url=new URL(raw)}catch{throw new Error('Invalid Veriff API base URL.')}
   const path=url.pathname.replace(/\/+$/,'')
-  if(url.protocol!=='https:'||!safeHostname(url.hostname)||url.username||url.password||
-    url.search||url.hash||(path!==''&&path!=='/v1')||(url.port&&url.port!=='443'))
-    throw new Error('Veriff API base URL must be a trusted HTTPS host with no credentials or unexpected path.')
+  if(url.protocol!=='https:'||!safeHostname(url.hostname)||!veriffApiHost(url.hostname)||
+    url.username||url.password||url.search||url.hash||(path!==''&&path!=='/v1')||(url.port&&url.port!=='443'))
+    throw new Error('Veriff API base URL must be an HTTPS Veriff host with no credentials or unexpected path.')
   return `${url.origin}/v1/sessions`
 }
 
