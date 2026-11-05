@@ -1153,7 +1153,8 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const nameParts=legalName.trim().split(/\s+/)
       const firstName=nameParts.shift()||legalName
       const lastName=nameParts.join(' ')
-      const callback=new URL('/ava-screening/?identity=complete',request.url).toString()
+      const publicOrigin='https://www.operavaglobal.com'
+      const callback=new URL('/ava-screening/?identity=complete',publicOrigin).toString()
       const consentText='I consent to Veriff processing my live identity document and selfie for identity verification on behalf of OPERAVA Global Solutions. I have reviewed the Veriff privacy information and the OPERAVA Privacy Policy.'
       const payload={verification:{
         callback,vendorData:row.id,endUserId:row.id,
@@ -1207,7 +1208,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
           link_token_hash=excluded.link_token_hash,link_expires_at=excluded.link_expires_at,
           link_used_at=NULL,provider_status='created',attempt_count=excluded.attempt_count`)
         .bind(row.id,reference,now,providerUrl,tokenHash,linkExpires,attempts).run()
-      const link=new URL('/api/ava-identity-link',request.url)
+      const link=new URL('/api/ava-identity-link',publicOrigin)
       link.searchParams.set('token',token)
       try{
         await sendEmail(env,{from:resolveFromEnv(env),to:[row.email],
