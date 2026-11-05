@@ -154,6 +154,7 @@ CREATE TABLE IF NOT EXISTS ava_screening_sessions (
   proctor_paused_at INTEGER,
   proctor_pause_reason TEXT,
   proctor_incidents INTEGER NOT NULL DEFAULT 0,
+  proctor_heartbeat_at INTEGER,
   assessment_rules_accepted_at INTEGER,
   assessment_status TEXT NOT NULL DEFAULT 'not_started',
   assessment_started INTEGER,
