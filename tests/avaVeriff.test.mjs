@@ -6,12 +6,18 @@ import {
   normalizeIdentityName, veriffApiEndpoint, veriffConfigured, veriffHostedUrl,
 } from '../functions/lib/avaVeriff.ts'
 
-test('Veriff endpoints accept only HTTPS Veriff hosts',()=>{
+test('Veriff tenant endpoints require secure public HTTPS hosts and expected paths',()=>{
   assert.equal(veriffApiEndpoint('https://stationapi.veriff.com/'),'https://stationapi.veriff.com/v1/sessions')
+  assert.equal(veriffApiEndpoint('https://tenant-api.example.com/v1'),'https://tenant-api.example.com/v1/sessions')
   assert.equal(veriffHostedUrl('https://magic.veriff.me/v/one-time-token'),'https://magic.veriff.me/v/one-time-token')
+  assert.equal(veriffHostedUrl('https://tenant.example.com/v/session-token'),'https://tenant.example.com/v/session-token')
   assert.throws(()=>veriffApiEndpoint('http://stationapi.veriff.com/'))
-  assert.throws(()=>veriffApiEndpoint('https://veriff.com.attacker.invalid/'))
+  assert.throws(()=>veriffApiEndpoint('https://localhost/'))
+  assert.throws(()=>veriffApiEndpoint('https://127.0.0.1/'))
+  assert.throws(()=>veriffApiEndpoint('https://user@tenant-api.example.com/'))
+  assert.throws(()=>veriffApiEndpoint('https://tenant-api.example.com/unexpected'))
   assert.throws(()=>veriffHostedUrl('https://attacker.invalid/redirect'))
+  assert.throws(()=>veriffHostedUrl('http://tenant.example.com/v/session-token'))
 })
 
 test('Veriff integration is fail-closed until all credentials are present',()=>{
