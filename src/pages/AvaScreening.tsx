@@ -1358,6 +1358,5 @@ export default function AvaScreening() {
         </div>
         </div>
     </div>
-    </div>
   )
 }
