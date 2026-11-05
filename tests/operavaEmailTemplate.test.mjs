@@ -140,7 +140,7 @@ test('Future Operavian and Future Business Partner messages are left-aligned pro
   assert.match(partnershipSubmission, /Company Website/)
   assert.match(partnershipSubmission, /OPERAVA-SER-74036461/)
   assert.match(partnershipSubmission, /max-width:640px/)
-  assert.match(partnershipSubmission, /linear-gradient\\(180deg,#000000 0%,#190b30 31%,#5e1cb0 70%,#bc9af4 100%\\)/)
+  assert.match(partnershipSubmission, /linear-gradient\(180deg,#000000 0%,#190b30 31%,#5e1cb0 70%,#bc9af4 100%\\)/)
 
   const academySubmission = clientConfirmationEmail({
     ...example,
