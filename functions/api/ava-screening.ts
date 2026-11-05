@@ -41,6 +41,7 @@ type Applicant = {
   identity_reviewed: number | null; identity_consent_at?: number | null; profile: string | null; consent_at: number | null;
   monitor_consent_at: number | null; ai_consent_at: number | null; proctor_consent_at?: number | null;
   proctor_paused_at?: number | null; proctor_pause_reason?: string | null; proctor_incidents?: number;
+  assessment_rules_accepted_at?: number | null;
   assessment_status: string; assessment_version?: number; assessment_started: number | null; deadline: number | null;
   completed: number | null; created_at: number
 }
@@ -137,6 +138,7 @@ async function ensure(db: D1Database) {
       identity_key TEXT, identity_kind TEXT, identity_submitted INTEGER, identity_reviewed INTEGER,
       identity_consent_at INTEGER, profile TEXT, consent_at INTEGER, monitor_consent_at INTEGER, ai_consent_at INTEGER,
       proctor_paused_at INTEGER, proctor_pause_reason TEXT, proctor_incidents INTEGER NOT NULL DEFAULT 0,
+      assessment_rules_accepted_at INTEGER,
       assessment_status TEXT NOT NULL DEFAULT 'not_started', assessment_started INTEGER,
       deadline INTEGER, completed INTEGER, created_at INTEGER NOT NULL)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_answers (
@@ -211,6 +213,7 @@ async function ensure(db: D1Database) {
     'proctor_paused_at INTEGER',
     'proctor_pause_reason TEXT',
     'proctor_incidents INTEGER NOT NULL DEFAULT 0',
+    'assessment_rules_accepted_at INTEGER',
   ]) {
     try { await db.prepare(`ALTER TABLE ava_screening_sessions ADD COLUMN ${column}`).run() }
     catch(e) { if(!/duplicate column/i.test(String(e))) throw e }
@@ -299,6 +302,7 @@ async function state(db: D1Database, env: AvaEnv, row: Applicant) {
   return {...result,applicationReference:link?.reference_id||null,
     verifiedApplicantProfile:verified,
     identityConsentGiven:Boolean(row.identity_consent_at),
+    assessmentRulesAccepted:Boolean(row.assessment_rules_accepted_at),
     identityVerification:provider?.provider_status||attestation?.status||'required',
     faceMatchScore:attestation?.status==='verified'?attestation.face_score:null,
     identityProviderAvailable:veriffConfigured(env),identityMode:'veriff_hosted_mobile',
@@ -1087,6 +1091,14 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (row.identity_key) await env.AVA_ID_BUCKET.delete(row.identity_key).catch(() => {})
       return json(await state(db, env, (await get(db, row.id))!))
     }
+    if (action === 'acceptAssessmentRules') {
+      if(data?.accepted!==true||row.assessment_status!=='not_started'||!row.profile||
+        !row.consent_at||!row.monitor_consent_at||!await identityVerified(db,row))
+        return error('Confirm the assessment rules only after completing your profile, privacy consent and verified identity.',403)
+      await db.prepare('UPDATE ava_screening_sessions SET assessment_rules_accepted_at=COALESCE(assessment_rules_accepted_at,?) WHERE id=? AND assessment_status=\'not_started\'')
+        .bind(Date.now(),row.id).run()
+      return json(await state(db,env,(await get(db,row.id))!))
+    }
     if (action === 'proctorConsent') {
       if(row.assessment_status!=='not_started'&&row.assessment_status!=='in_progress')
         return error('Assessment recording consent is closed.',409)
@@ -1288,6 +1300,7 @@ OPERAVA Talent Acquisition`,
       // Fail closed: the server requires a certified identity attestation and
       // actual private live recording segments, not browser-supplied booleans.
       if (!row.profile || !row.consent_at || !row.monitor_consent_at) return error('Complete the profile and monitoring consent before starting.', 403)
+      if (!row.assessment_rules_accepted_at) return error('Read and acknowledge the assessment instructions before starting.',403)
       if (row.assessment_status !== 'not_started') return error('Assessment already started or submitted.', 409)
       if(!await identityVerified(db,row)) return error('Verified identity must be approved before the assessment.',403)
       if(!row.proctor_consent_at)return error('Explicit camera, microphone and screen recording consent is required.',403)
