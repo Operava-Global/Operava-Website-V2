@@ -36,6 +36,8 @@ test('Veriff decision is authenticated and only final approved, name-matched ID 
 
 test('desktop status refresh and separate rules acknowledgment precede assessment',()=>{
   assert.match(applicant,/setInterval\(\(\)=>void refresh\(\),5000\)/)
+  assert.match(applicant,/IDENTITY SUBMISSION RECEIVED/)
+  assert.match(applicant,/Return to your computer/)
   assert.match(applicant,/assessmentRulesAccepted/)
   assert.match(applicant,/acceptAssessmentRules/)
   assert.match(applicant,/Read and acknowledge the assessment rules before starting/)
