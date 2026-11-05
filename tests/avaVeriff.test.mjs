@@ -15,8 +15,8 @@ test('Veriff endpoints accept only HTTPS Veriff hosts',()=>{
 })
 
 test('Veriff integration is fail-closed until all credentials are present',()=>{
-  assert.equal(veriffConfigured({AVA_VERIFF_BASE_URL:'https://stationapi.veriff.com',AVA_VERIFF_API_KEY:'test-key',AVA_VERIFF_SHARED_SECRET:'short'}),false)
-  assert.equal(veriffConfigured({AVA_VERIFF_BASE_URL:'https://stationapi.veriff.com',AVA_VERIFF_API_KEY:'test-key',AVA_VERIFF_SHARED_SECRET:'a'.repeat(32)}),true)
+  assert.equal(veriffConfigured({AVA_VERIFF_BASE_URL:'https://stationapi.veriff.com',AVA_VERIFF_API_KEY:'test-api-key-123',AVA_VERIFF_SHARED_SECRET:'short'}),false)
+  assert.equal(veriffConfigured({AVA_VERIFF_BASE_URL:'https://stationapi.veriff.com',AVA_VERIFF_API_KEY:'test-api-key-123',AVA_VERIFF_SHARED_SECRET:'a'.repeat(32)}),true)
 })
 
 test('HMAC signature matches the raw payload and compares safely',async()=>{
