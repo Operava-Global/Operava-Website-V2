@@ -23,9 +23,6 @@ type AvaEnv = FormEnv & {
   AVA_PROCTOR_BUCKET?: R2Bucket
   AVA_ONBOARDING_BUCKET?: R2Bucket
   AVA_LEGACY_ID_UPLOAD_ENABLED?: string
-  AVA_IDV_API_URL?: string
-  AVA_IDV_API_KEY?: string
-  AVA_IDV_WEBHOOK_SECRET?: string
   AVA_VERIFF_BASE_URL?: string
   AVA_VERIFF_API_KEY?: string
   AVA_VERIFF_SHARED_SECRET?: string
