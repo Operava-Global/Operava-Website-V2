@@ -1136,7 +1136,8 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const attempts=previous&&now-previous.created_at<24*60*60_000?(previous.attempt_count||1)+1:1
       if(attempts>5)return error('Identity verification link limit reached. Contact Talent Acquisition.',429)
       if(previous&&previous.provider_status==='created'&&now-previous.created_at<24*60*60_000&&
-        (previous.link_used_at||Number(previous.link_expires_at||0)>now))
+        ((!previous.link_used_at&&Number(previous.link_expires_at||0)>now)||
+          (Boolean(previous.link_used_at)&&now-previous.link_used_at<30*60_000)))
         return error('Your identity verification is already in progress. Open the secure email link on your phone and wait for the result on this page.',409)
       if(previous&&now-previous.created_at<45_000)
         return error('A secure verification link was recently sent. Check your email before requesting another.',429)
@@ -1154,14 +1155,18 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         person:{firstName,lastName,email:row.email},
         consents:[{type:'general',approved:true,text:consentText,timestamp:new Date(now).toISOString()}],
       }}
+      let endpoint=''
+      try{endpoint=veriffApiEndpoint(env.AVA_VERIFF_BASE_URL!)}
+      catch{return error('The Veriff API base URL is not valid. Contact the system administrator.',503)}
       let external:Response
       try{
-        external=await fetch(veriffApiEndpoint(env.AVA_VERIFF_BASE_URL!),{
+        external=await fetch(endpoint,{
           method:'POST',headers:{'X-AUTH-CLIENT':env.AVA_VERIFF_API_KEY!,'Content-Type':'application/json'},
           body:JSON.stringify(payload),signal:AbortSignal.timeout(12000),
         })
       }catch{return error('The identity provider could not be reached. Please retry shortly.',503)}
       const raw=await external.text()
+      if(raw.length>48_000)return error('The identity provider response exceeded the allowed size.',502)
       if(!external.ok)return error('The identity provider could not create a verification session. Contact Talent Acquisition if this continues.',503)
       const signature=external.headers.get('X-HMAC-SIGNATURE')||external.headers.get('x-hmac-signature')||''
       const echoedKey=external.headers.get('X-AUTH-CLIENT')||external.headers.get('x-auth-client')
