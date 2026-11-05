@@ -98,8 +98,9 @@ export const onRequestPost:PagesFunction<Env> = async ({request,env}) => {
       name_match=excluded.name_match,decision_time=excluded.decision_time,received_at=excluded.received_at`)
     .bind(intent.session_id,v.id,storedStatus,v.code,documentType||null,documentCountry||null,
       nameMatch?1:0,decisionTime,Date.now()).run()
-  await db.prepare('UPDATE ava_screening_identity_intents SET provider_status=? WHERE session_id=?')
-    .bind(storedStatus,intent.session_id).run()
+  await db.prepare(`UPDATE ava_screening_identity_intents SET provider_status=?,
+    provider_url=CASE WHEN ? IN ('review','resubmission_requested') THEN provider_url ELSE NULL END
+    WHERE session_id=?`).bind(storedStatus,storedStatus,intent.session_id).run()
   await db.prepare(`UPDATE ava_screening_sessions SET identity_status=?,identity_reviewed=?
     WHERE id=? AND assessment_status='not_started'`)
     .bind(applicantStatus,approved?Date.now():null,intent.session_id).run()
