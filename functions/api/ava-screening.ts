@@ -1204,6 +1204,8 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
           return error('The identity provider did not return a valid session linked to this applicant.',502)
       }
 
+      if(!reuseExisting)
+        await db.prepare('DELETE FROM ava_screening_identity_provider_decisions WHERE session_id=?').bind(row.id).run()
       const token=createOneTimeToken(32)
       const tokenHash=await digest(token)
       const linkExpires=now+15*60_000
