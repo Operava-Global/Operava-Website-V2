@@ -116,4 +116,50 @@ test('Future Operavian and Future Business Partner messages are left-aligned pro
   assert.doesNotMatch(generic,/future business partnership|Future Operavian|1-2 business days/)
   const career = applicantConfirmationEmail(example)
   assert.match(career,/OPERAVA Recruitment Team/)
+  assert.match(career,/job application/i)
+  assert.doesNotMatch(career,/Future Operavian/)
+
+  const partnershipSubmission = clientConfirmationEmail({
+    ...example,
+    sourceLabel: 'OPERAVA Partnership form',
+    rows: [
+      { label: 'Email', value: 'partner@example.org' },
+      { label: 'Company', value: 'Example Alliance Ltd' },
+      { label: 'Partnership Type', value: 'Technology / Integration Partner' },
+      { label: 'Role / Title', value: 'Partnership Director' },
+      { label: 'Target Markets', value: 'Southeast Asia' },
+      { label: 'Partnership Timeline', value: 'Within 3 months' },
+      { label: 'Description', value: 'We propose a regional technology integration collaboration.' },
+      { label: 'Website / System URL', value: 'https://example.org' },
+    ],
+  })
+  assert.match(partnershipSubmission, /partnership proposal/i)
+  assert.match(partnershipSubmission, /OPERAVA Partnerships Team/)
+  assert.match(partnershipSubmission, /Partnership Type/)
+  assert.match(partnershipSubmission, /Partnership Proposal/)
+  assert.match(partnershipSubmission, /Company Website/)
+  assert.match(partnershipSubmission, /OPERAVA-SER-74036461/)
+  assert.match(partnershipSubmission, /max-width:640px/)
+  assert.match(partnershipSubmission, /linear-gradient\\(180deg,#000000 0%,#190b30 31%,#5e1cb0 70%,#bc9af4 100%\\)/)
+
+  const academySubmission = clientConfirmationEmail({
+    ...example,
+    sourceLabel: 'OPERAVA Academy enrollment / inquiry form',
+    rows: [
+      { label: 'Email', value: 'learner@example.org' },
+      { label: 'Phone', value: '+63 912 345 6789' },
+      { label: 'Country / Location', value: 'Philippines' },
+      { label: 'Company', value: 'Example Learning Group' },
+      { label: 'Inquiry Type', value: 'Course Enrollment' },
+      { label: 'Program / Track', value: 'Artificial Intelligence' },
+      { label: 'Description', value: 'I would like to enroll in the next available AI program.' },
+    ],
+  })
+  assert.match(academySubmission, /OPERAVA Academy enrollment or information inquiry/)
+  assert.match(academySubmission, /OPERAVA Academy Team/)
+  assert.match(academySubmission, /Thank you for your interest in OPERAVA Academy/)
+  assert.match(academySubmission, /Inquiry Category/)
+  assert.match(academySubmission, /Service \/ Program/)
+  assert.match(academySubmission, /OPERAVA-SER-74036461/)
+  assert.match(academySubmission, /max-width:640px/)
 })
