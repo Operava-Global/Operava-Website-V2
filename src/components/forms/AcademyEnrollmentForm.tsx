@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { AlertCircle, CheckCircle2 } from 'lucide-react'
 import OtpVerify from './OtpVerify'
 import FormSuccess from './FormSuccess'
@@ -324,7 +325,11 @@ export default function AcademyEnrollmentForm() {
         </label>
         <label className="flex items-start gap-3 text-xs text-neutral-300 leading-relaxed cursor-pointer">
           <input type="checkbox" checked={form.privacy} onChange={set('privacy')} className="mt-0.5 w-4 h-4 shrink-0" />
-          <span>I agree that OPERAVA may contact me about this Academy inquiry.</span>
+          <span>
+            I agree to the processing of my information as described in the{' '}
+            <Link to="/privacy" className="underline underline-offset-4 hover:text-accent">Privacy Policy</Link>
+            {' '}and consent to be contacted about this Academy inquiry.
+          </span>
         </label>
       </div>
 
@@ -344,8 +349,8 @@ export default function AcademyEnrollmentForm() {
         {!sending && <CheckCircle2 className="w-4 h-4" />}
       </button>
       <p className="text-xs text-neutral-500">
-        Same secure process as other OPERAVA forms: we email a one-time code from our notification address, then confirm your submission. Academy
-        confirmations are copied to academy@operavaglobal.com.
+        Your email is verified with a six-digit code before the submission is recorded. A confidential BCC of your confirmation is sent to
+        academy@operavaglobal.com, and the Academy team receives a separate submission notification.
       </p>
     </form>
   )
