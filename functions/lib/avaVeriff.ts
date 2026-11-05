@@ -6,8 +6,9 @@ export type VeriffEnv = {
 }
 
 export function veriffConfigured(env:VeriffEnv):boolean {
-  return Boolean(env.AVA_VERIFF_BASE_URL?.trim()&&env.AVA_VERIFF_API_KEY?.trim()&&
-    (env.AVA_VERIFF_SHARED_SECRET?.trim().length||0)>=24)
+  if(!env.AVA_VERIFF_API_KEY?.trim()||env.AVA_VERIFF_API_KEY.trim().length<12||
+    (env.AVA_VERIFF_SHARED_SECRET?.trim().length||0)<24)return false
+  try{veriffApiEndpoint(env.AVA_VERIFF_BASE_URL||'');return true}catch{return false}
 }
 
 export function veriffApiEndpoint(raw:string):string {
