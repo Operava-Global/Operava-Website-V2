@@ -1228,7 +1228,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
           subject:'OPERAVA | Secure phone identity verification',
           text:`Hello ${row.name},
 
-Open this email on your mobile phone and use the secure link below to verify your identity. Veriff will guide you through a live government ID/passport capture and selfie/liveness check. Use the camera when prompted; existing gallery photos are not a substitute for the live check.
+Open this email on your mobile phone and use the secure link below to verify your identity. Veriff will guide you through a live government ID/passport capture and selfie/liveness check. Use the camera when prompted; existing gallery photos are not a substitute for the live check. If your email app does not open the camera, choose Open in Safari or Chrome.
 
 ${link.toString()}
 
@@ -1237,7 +1237,7 @@ This link expires in 15 minutes and can be used once. Do not forward it. When yo
 If you did not request this check, ignore this message and contact OPERAVA Talent Acquisition.
 
 OPERAVA Talent Acquisition`,
-          html:`<p>Hello ${escapeHtml(row.name)},</p><p>Open this email on your mobile phone and use the secure link below to verify your identity. Veriff will guide you through a live government ID/passport capture and selfie/liveness check. Use the camera when prompted; existing gallery photos are not a substitute for the live check.</p><p><a href="${escapeHtml(link.toString())}">Open secure phone verification</a></p><p><strong>This link expires in 15 minutes and can be used once.</strong> Do not forward it. When you finish, keep your OPERAVA assessment open on your computer; its identity status will update automatically.</p><p>If you did not request this check, ignore this message and contact OPERAVA Talent Acquisition.</p><p>OPERAVA Talent Acquisition</p>`})
+          html:`<p>Hello ${escapeHtml(row.name)},</p><p>Open this email on your mobile phone and use the secure link below to verify your identity. Veriff will guide you through a live government ID/passport capture and selfie/liveness check. Use the camera when prompted; existing gallery photos are not a substitute for the live check. If your email app does not open the camera, choose Open in Safari or Chrome.</p><p><a href="${escapeHtml(link.toString())}">Open secure phone verification</a></p><p><strong>This link expires in 15 minutes and can be used once.</strong> Do not forward it. When you finish, keep your OPERAVA assessment open on your computer; its identity status will update automatically.</p><p>If you did not request this check, ignore this message and contact OPERAVA Talent Acquisition.</p><p>OPERAVA Talent Acquisition</p>`})
       }catch{
         await db.prepare("UPDATE ava_screening_identity_intents SET provider_status='email_failed',link_token_hash=NULL WHERE session_id=?")
           .bind(row.id).run()
