@@ -1348,8 +1348,8 @@ export default function AvaScreening() {
         <div className="ava-app-support"><LockKeyhole size={13} aria-hidden="true" /> Secure email OTP sign-in · For assistance, email <a href="mailto:talents@operavaglobal.com">talents@operavaglobal.com</a></div>
         </div>
         </div>
-        </div>}
-      </div>
+        </div>
+      </div>}
     </div>
     </div>
   )
