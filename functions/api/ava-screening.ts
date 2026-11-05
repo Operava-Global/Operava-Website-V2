@@ -1119,7 +1119,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       let profile:Record<string,unknown>={}
       try{profile=JSON.parse(row.profile||'{}') as Record<string,unknown>}catch{/* use verified registration name */}
       const legalName=clean(profile.fullName,120)||row.name
-      const nameParts=legalName.trim().split(/\\s+/)
+      const nameParts=legalName.trim().split(/\s+/)
       const firstName=nameParts.shift()||legalName
       const lastName=nameParts.join(' ')
       const callback=new URL('/ava-screening/?identity=complete',request.url).toString()
@@ -1298,7 +1298,7 @@ OPERAVA Talent Acquisition`,
       if(!latest.get('screen')||!latest.get('camera')||Date.now()-latest.get('screen')!>30_000||Date.now()-latest.get('camera')!>30_000)
         return error('Enable screen, camera and microphone recording and allow initial segments to save before starting.',403)
       const now = Date.now()
-      await db.prepare("UPDATE ava_screening_sessions SET assessment_status='in_progress', assessment_started=?, deadline=?, assessment_version=2 WHERE id=? AND assessment_status='not_started'")
+      await db.prepare("UPDATE ava_screening_sessions SET assessment_status='in_progress', assessment_started=?, deadline=?, assessment_version=2,proctor_paused_at=NULL,proctor_pause_reason=NULL,proctor_incidents=0 WHERE id=? AND assessment_status='not_started'")
         .bind(now, now + ASSESSMENT_MS, row.id).run()
       return json(await state(db, env, (await get(db, row.id))!))
     }
@@ -1310,6 +1310,7 @@ OPERAVA Talent Acquisition`,
         return error('Assessment time has elapsed. Submitted answers remain saved.', 409)
       }
       if((row.assessment_version||1)>=2) {
+        if(row.proctor_paused_at)return error('Assessment paused after a focus or capture interruption. Restore recording and explicitly resume before answering.',409)
         if(!row.proctor_consent_at)return error('Proctoring consent is required for this assessment.',403)
         if(!await identityVerified(db,row))
           return error('Identity verification must remain approved throughout the assessment.',403)
@@ -1341,14 +1342,51 @@ OPERAVA Talent Acquisition`,
       if (row.ai_consent_at && env.AI) context.waitUntil(maybeReview(env, db, row, current.id, actualPrompt, answer))
       return json(await state(db, env, (await get(db, row.id))!))
     }
+    if (action === 'proctorResume') {
+      if(row.assessment_status!=='in_progress'||!row.proctor_paused_at)
+        return error('There is no paused assessment to resume.',409)
+      if(!row.deadline||Date.now()>=row.deadline){
+        await db.prepare("UPDATE ava_screening_sessions SET assessment_status='time_expired',completed=? WHERE id=? AND assessment_status='in_progress'")
+          .bind(Date.now(),row.id).run()
+        return error('The 45-minute assessment timer has expired. Your submitted answers remain saved.',409)
+      }
+      if(!row.proctor_consent_at||!env.AVA_PROCTOR_BUCKET||!await identityVerified(db,row))
+        return error('Verified identity, recording consent and private storage are required to resume.',403)
+      const evidence=await db.prepare("SELECT kind,MAX(recorded_at) AS last_seen FROM ava_screening_proctor_evidence WHERE session_id=? GROUP BY kind")
+        .bind(row.id).all<{kind:string;last_seen:number}>()
+      const latest=new Map((evidence.results||[]).map(item=>[item.kind,item.last_seen]))
+      const now=Date.now(),pausedAt=row.proctor_paused_at
+      if(!latest.get('screen')||!latest.get('camera')||
+        latest.get('screen')!<=pausedAt||latest.get('camera')!<=pausedAt||
+        now-latest.get('screen')!>30_000||now-latest.get('camera')!>30_000)
+        return error('Restore both screen and webcam/microphone recordings and wait for fresh private segments before resuming.',403)
+      const resumed=await db.prepare("UPDATE ava_screening_sessions SET proctor_paused_at=NULL,proctor_pause_reason=NULL WHERE id=? AND assessment_status='in_progress' AND proctor_paused_at=?")
+        .bind(row.id,pausedAt).run()
+      if(!resumed.meta.changes)return error('Assessment pause changed. Refresh and retry.',409)
+      await db.prepare('INSERT INTO ava_screening_events(session_id,event_type,occurred_at) VALUES (?,?,?)')
+        .bind(row.id,'proctor_resumed',now).run()
+      return json(await state(db,env,(await get(db,row.id))!))
+    }
     if (action === 'event') {
       const event = String(data?.event || '')
       if (!allowedEvents.has(event)) return error('Unsupported monitoring event.')
       if (!row.monitor_consent_at || row.assessment_status !== 'in_progress') return error('Monitoring is not active.', 409)
+      const now=Date.now()
       await db.prepare(`INSERT INTO ava_screening_events(session_id,event_type,occurred_at)
         SELECT ?,?,? WHERE (SELECT COUNT(*) FROM ava_screening_events WHERE session_id=?) < 300`)
-        .bind(row.id, event, Date.now(), row.id).run()
-      return json({ ok: true })
+        .bind(row.id, event, now, row.id).run()
+      const pauseEvents=new Set(['focus_lost','visibility_hidden','fullscreen_exited','capture_interrupted','microphone_denied','microphone_muted','audio_interrupted'])
+      let paused=false
+      if((row.assessment_version||1)>=2&&pauseEvents.has(event)){
+        const update=await db.prepare(`UPDATE ava_screening_sessions SET
+          proctor_paused_at=COALESCE(proctor_paused_at,?),
+          proctor_pause_reason=CASE WHEN proctor_paused_at IS NULL THEN ? ELSE proctor_pause_reason END,
+          proctor_incidents=CASE WHEN proctor_paused_at IS NULL THEN proctor_incidents+1 ELSE proctor_incidents END
+          WHERE id=? AND assessment_status='in_progress' AND assessment_version>=2`)
+          .bind(now,event,row.id).run()
+        paused=Boolean(update.meta.changes)
+      }
+      return json({ok:true,paused,proctorPausedAt:paused?now:(row.proctor_paused_at||null)})
     }
     return error('Unsupported Ava Screening action.', 404)
   } catch (err) {
