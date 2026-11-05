@@ -3,11 +3,9 @@
    heading on the left and the logo on the right. Full-bleed (edge to edge,
    no card): the building art has a transparent sky, so the page background
    shows through in both themes. The PS + PhilGEPS logo is a separate,
-   unmodified image layer. */
+   unmodified image layer with no theme-colored halo or backing wash. */
 
 .pg-approved {
-  --pg-bg: #1b1b21;
-  --pg-wash: rgba(27, 27, 33, .9);
   --pg-word: linear-gradient(180deg, #4ade80 0%, #1f9a4a 100%);
   --pg-pill-ring: rgba(255, 255, 255, .18);
   --pg-logo-shadow: none;
@@ -17,8 +15,6 @@
   overflow: hidden;
 }
 html[data-theme="light"] .pg-approved {
-  --pg-bg: #f7f5fb;
-  --pg-wash: rgba(247, 245, 251, .92);
   --pg-word: linear-gradient(180deg, #1b7a3c 0%, #0d4f27 100%);
   --pg-pill-ring: rgba(255, 255, 255, .14);
   --pg-logo-shadow: none;
@@ -38,14 +34,9 @@ html[data-theme="light"] .pg-approved {
   height: 100%;
   filter: var(--pg-art-filter);
 }
-/* Fades tower tops into the page and softens the facade behind the logo. */
+/* Keep the logo area clear: no dark/light radial wash or gradient behind the seal. */
 .pg-wash {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 49% 39% at 50% 58.5%, var(--pg-wash) 0%, var(--pg-wash) 38%, transparent 100%),
-    linear-gradient(180deg, var(--pg-bg) 0%, transparent 28%);
+  display: none;
 }
 /* The logo doubles as the verification link (PhilGEPS Open Data). */
 .pg-logo-link {
@@ -208,11 +199,6 @@ html[data-theme="light"] .pg-approved {
 /* Wider screens: panorama layout. */
 @media (min-width: 768px) {
   .pg-stage { aspect-ratio: 2400 / 960; }
-  .pg-wash {
-    background:
-      radial-gradient(ellipse 32% 46% at 70% 51%, var(--pg-wash) 0%, var(--pg-wash) 40%, transparent 100%),
-      linear-gradient(180deg, var(--pg-bg) 0%, transparent 22%);
-  }
   /* Desktop only: reduce the PhilGEPS logo to half width while keeping it centered in its right-side area. */
   .pg-logo-link { left: 57.083%; top: 15.625%; width: 25.833%; }
   .pg-head {
