@@ -51,7 +51,7 @@ test('Veriff mobile identity is provider-authenticated and fail-closed',()=>{
   assert.match(callback,/X-AUTH-CLIENT/)
   assert.match(callback,/X-HMAC-SIGNATURE/)
   assert.match(callback,/providerStatus==='approved'&&codeValid&&nameMatch&&Boolean\(documentType\)/)
-  assert.match(callback,/approved:9001,declined:9102,resubmission_requested:9103,expired:9104,abandoned:9121/)
+  assert.match(callback,/approved:9001,declined:9102,resubmission_requested:9103,expired:9104,abandoned:9104,review:9121/)
   assert.match(callback,/normalizeIdentityName/)
   assert.match(callback,/ava_screening_provider_events/)
   assert.match(callback,/v\.vendorData/)
