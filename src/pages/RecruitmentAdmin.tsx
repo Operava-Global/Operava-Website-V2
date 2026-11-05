@@ -28,8 +28,8 @@ type Summary = { id:string; name:string; email:string; role:Role; assessment_sta
   answers_received:number; review_status:string; completed:number|null }
 type Detail = { applicant:{ id:string;name:string;email:string;role:Role;identityStatus:string;
   assessmentStatus:string; profile:Record<string,string>;
-  identityProvider:{provider_status:string;decision_code:number;document_type:string;document_country:string;
-    name_match:number;decision_time:number}|null;proctorIncidentCount:number;proctorPauseReason:string|null };
+  identityProvider:{vendor_reference:string;provider_status:string;decision_code:number|null;document_type:string|null;document_country:string|null;
+    name_match:number;decision_time:number|null}|null;proctorIncidentCount:number;proctorPauseReason:string|null };
   answers:{id:string;section:string;prompt:string;answer:string|null;advisoryReview:unknown}[];
   manualReview:{review_status:string;reviewer_note:string}|null;
   monitoringEventCounts:{event_type:string;count:number}[] }
@@ -358,7 +358,7 @@ export default function RecruitmentAdmin() {
             <div className="ra-proctor-report">
               <h4>Identity verification · Provider decision</h4>
                <p className="ra-footnote">Status: {detail.applicant.identityStatus.replace(/_/g,' ')} · Provider: {detail.applicant.identityProvider?.provider_status?.replace(/_/g,' ')||'No provider decision'}</p>
-               {detail.applicant.identityProvider&&<p className="ra-footnote">Decision code: {detail.applicant.identityProvider.decision_code??'—'} · Document: {detail.applicant.identityProvider.document_type||'—'} · Country: {detail.applicant.identityProvider.document_country||'—'} · Name match: {detail.applicant.identityProvider.name_match?'Yes':'No'} · Decision: {date(detail.applicant.identityProvider.decision_time)}</p>}
+               {detail.applicant.identityProvider&&<p className="ra-footnote">Provider session: {detail.applicant.identityProvider.vendor_reference} · Decision code: {detail.applicant.identityProvider.decision_code??'—'} · Document: {detail.applicant.identityProvider.document_type||'—'} · Country: {detail.applicant.identityProvider.document_country||'—'} · Name match: {detail.applicant.identityProvider.name_match?'Yes':'No'} · Decision: {date(detail.applicant.identityProvider.decision_time)}</p>}
                <h4>Assessment integrity · Human review</h4>
                <p className="ra-footnote">Recorded focus/capture incidents: {detail.applicant.proctorIncidentCount||0} · Last pause reason: {detail.applicant.proctorPauseReason||'—'}</p>
               <p className="ra-footnote">Browser focus and sound events are only context for reviewer inspection—not proof of misconduct. Capture must be consented and authorized.</p>
