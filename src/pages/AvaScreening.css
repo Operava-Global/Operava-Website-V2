@@ -1224,3 +1224,12 @@ html[data-theme="light"] .ava-preview-login a{color:#6c27bc}
   #site-shell.ava-screening-host .ava-proctor-browser-check{gap:3px;padding:6px}
   #site-shell.ava-screening-host .ava-native-capture{padding:6px}
 }
+
+
+/* Candidate conduct briefing */
+.ava-instruction-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.ava-instruction-columns section{min-width:0;padding:16px;border:1px solid var(--ava-border,#e8e2ef);border-radius:14px;background:var(--ava-surface-soft,#faf8fc)}
+.ava-instruction-columns h4{margin:0 0 10px;color:var(--ava-text,#25232b);font-size:14px;font-weight:800}
+.ava-instruction-columns ul{margin:0;padding-left:19px;color:var(--ava-muted,#716d78);font-size:13px;line-height:1.65}
+.ava-instruction-columns li+li{margin-top:7px}
+@media(max-width:767px){.ava-instruction-columns{grid-template-columns:1fr;gap:10px}.ava-instruction-columns section{padding:13px}}
