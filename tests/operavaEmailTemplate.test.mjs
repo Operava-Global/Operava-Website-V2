@@ -114,7 +114,10 @@ test('Future Operavian and Future Business Partner messages are left-aligned pro
   assert.match(partnership,/OPERAVA Support Team/)
   const generic = clientConfirmationEmail({...example,rows:example.rows.map(row=>row.label==='Inquiry Type'?{...row,value:'General Inquiry'}:row)})
   assert.doesNotMatch(generic,/future business partnership|Future Operavian|1-2 business days/)
-  const career = applicantConfirmationEmail(example)
+  const career = applicantConfirmationEmail({
+    ...example,
+    rows: example.rows.map(row => row.label === 'Inquiry Type' ? { ...row, value: 'Job Application' } : row),
+  })
   assert.match(career,/OPERAVA Recruitment Team/)
   assert.match(career,/job application/i)
   assert.doesNotMatch(career,/Future Operavian/)
