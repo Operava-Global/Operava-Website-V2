@@ -1115,7 +1115,7 @@ export default function AvaScreening() {
                       <li>Do not mute the microphone, cover the camera, stop screen sharing or leave the assessment room.</li>
                     </ul></section>
                   </div>
-                  <div className="ava-invitation"><AlertTriangle size={19}/><span>A detected window/tab focus loss, hidden page, full-screen exit or recording interruption automatically pauses the assessment and clears the current unsaved answer. Previously submitted answers stay saved. The 45-minute timer continues. You must restore all permissions and explicitly resume. Repeated incidents are recorded for recruiter review.</span></div>
+                  <div className="ava-invitation"><TriangleAlert size={19}/><span>A detected window/tab focus loss, hidden page, full-screen exit or recording interruption automatically pauses the assessment and clears the current unsaved answer. Previously submitted answers stay saved. The 45-minute timer continues. You must restore all permissions and explicitly resume. Repeated incidents are recorded for recruiter review.</span></div>
                   <p className="ava-muted">Browser monitoring detects supported focus and visibility changes; it cannot guarantee detection of every operating-system action, external device or screenshot. Do not attempt to bypass the rules.</p>
                   <label className="ava-check"><input type="checkbox" checked={instructionAcknowledged} onChange={e=>setInstructionAcknowledged(e.target.checked)}/>
                     <span>I have read and understood the assessment instructions and prohibited conduct. I agree to follow them throughout the assessment.</span></label>
