@@ -265,6 +265,17 @@ function applicantState(row: Applicant, answers: AnswerRow[]) {
     }) : [],
   }
 }
+async function identityVerified(db:D1Database,row:Applicant):Promise<boolean> {
+  if(row.identity_status!=='approved')return false
+  const [manual,provider]=await Promise.all([
+    db.prepare('SELECT status FROM ava_screening_identity_attestations WHERE session_id=?')
+      .bind(row.id).first<{status:string}>(),
+    db.prepare('SELECT provider_status,decision_code,name_match FROM ava_screening_identity_provider_decisions WHERE session_id=?')
+      .bind(row.id).first<{provider_status:string;decision_code:number|null;name_match:number}>(),
+  ])
+  return ownedIdentityAccepted(manual?.status)||
+    (provider?.provider_status==='approved'&&provider.decision_code===9001&&provider.name_match===1)
+}
 async function state(db: D1Database, env: AvaEnv, row: Applicant) {
   // Finalize expired assessments even when candidates close the browser before submitting.
   if (row.assessment_status === 'in_progress' && row.deadline && Date.now() >= row.deadline) {
@@ -278,12 +289,23 @@ async function state(db: D1Database, env: AvaEnv, row: Applicant) {
   if(result.question && (row.assessment_version||1)>=2) {
     result.question.prompt = await questionPrompt(db,env,row,result.question.number)
   }
-  const attestation=await db.prepare('SELECT status,face_score FROM ava_screening_identity_attestations WHERE session_id=?').bind(row.id).first<{status:string;face_score:number}>()
+  const [attestation,provider]=await Promise.all([
+    db.prepare('SELECT status,face_score FROM ava_screening_identity_attestations WHERE session_id=?')
+      .bind(row.id).first<{status:string;face_score:number}>(),
+    db.prepare('SELECT provider_status,decision_code,name_match FROM ava_screening_identity_provider_decisions WHERE session_id=?')
+      .bind(row.id).first<{provider_status:string;decision_code:number|null;name_match:number}>(),
+  ])
+  const verified=await identityVerified(db,row)
   return {...result,applicationReference:link?.reference_id||null,
-    verifiedApplicantProfile:row.identity_status==='approved' && ownedIdentityAccepted(attestation?.status),
-    identityVerification:attestation?.status||'required',faceMatchScore:attestation?.status==='verified'?attestation.face_score:null,
-    identityProviderAvailable:Boolean(env.AVA_ID_BUCKET),identityMode:'operava_owned_human_review',
+    verifiedApplicantProfile:verified,
+    identityConsentGiven:Boolean(row.identity_consent_at),
+    identityVerification:provider?.provider_status||attestation?.status||'required',
+    faceMatchScore:attestation?.status==='verified'?attestation.face_score:null,
+    identityProviderAvailable:veriffConfigured(env),identityMode:'veriff_hosted_mobile',
     recordingStorageReady:Boolean(env.AVA_PROCTOR_BUCKET),
+    proctorPausedAt:row.proctor_paused_at||null,
+    proctorPauseReason:row.proctor_pause_reason||null,
+    proctorIncidentCount:row.proctor_incidents||0,
     onboardingStorageReady:Boolean(env.AVA_ONBOARDING_BUCKET)}
 }
 async function questionPrompt(db:D1Database,env:AvaEnv,row:Applicant,number:number):Promise<string> {
