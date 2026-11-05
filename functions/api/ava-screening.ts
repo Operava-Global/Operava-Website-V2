@@ -1210,6 +1210,8 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         .bind(row.id,reference,now,providerUrl,tokenHash,linkExpires,attempts).run()
       const link=new URL('/api/ava-identity-link',publicOrigin)
       link.searchParams.set('token',token)
+      await db.prepare("UPDATE ava_screening_sessions SET identity_status='pending_verification',identity_consent_at=COALESCE(identity_consent_at,?),identity_reviewed=NULL WHERE id=? AND assessment_status='not_started'")
+        .bind(now,row.id).run()
       try{
         await sendEmail(env,{from:resolveFromEnv(env),to:[row.email],
           subject:'OPERAVA | Secure phone identity verification',
@@ -1228,10 +1230,10 @@ OPERAVA Talent Acquisition`,
       }catch{
         await db.prepare("UPDATE ava_screening_identity_intents SET provider_status='email_failed',link_token_hash=NULL WHERE session_id=?")
           .bind(row.id).run()
+        await db.prepare("UPDATE ava_screening_sessions SET identity_status='needs_resubmission' WHERE id=? AND identity_status='pending_verification'")
+          .bind(row.id).run()
         return error('The verification session was created, but its email could not be sent. Please retry or contact Talent Acquisition.',503)
       }
-      await db.prepare("UPDATE ava_screening_sessions SET identity_status='pending_verification',identity_consent_at=COALESCE(identity_consent_at,?),identity_reviewed=NULL WHERE id=? AND assessment_status='not_started'")
-        .bind(now,row.id).run()
       return json({ok:true,identityStatus:'pending_verification',
         message:'A single-use secure identity link was sent to your verified email. Open it on your phone; this desktop page will update automatically.'})
     }
