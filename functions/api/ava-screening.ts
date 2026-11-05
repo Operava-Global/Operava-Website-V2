@@ -177,6 +177,8 @@ async function ensure(db: D1Database) {
       provider_url TEXT, link_token_hash TEXT, link_expires_at INTEGER, link_used_at INTEGER,
       provider_status TEXT NOT NULL DEFAULT 'created', attempt_count INTEGER NOT NULL DEFAULT 1,
       FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
+    db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS ava_identity_link_token_hash
+      ON ava_screening_identity_intents(link_token_hash) WHERE link_token_hash IS NOT NULL`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_identity_provider_decisions (
       session_id TEXT PRIMARY KEY, vendor_reference TEXT NOT NULL UNIQUE, provider_status TEXT NOT NULL,
       decision_code INTEGER, document_type TEXT, document_country TEXT, name_match INTEGER NOT NULL DEFAULT 0,
