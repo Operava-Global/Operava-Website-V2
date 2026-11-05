@@ -232,7 +232,8 @@ export default function AvaScreening() {
       setAiConsent(value.aiConsentGiven)
       setIdentityConsent(Boolean(value.identityConsentGiven))
       setInstructionAcknowledged(Boolean(value.assessmentRulesAccepted))
-      setFocusPaused(Boolean(value.proctorPausedAt))
+      setFocusPaused(Boolean(value.proctorPausedAt)||
+        (value.assessmentStatus==='in_progress'&&value.total===30&&!captureActive.current))
       if(!value.proctorPausedAt)pauseEventSent.current=false
       setError('')
     } catch (e) {
@@ -250,6 +251,29 @@ export default function AvaScreening() {
     const timer=window.setInterval(()=>void refresh(),5000)
     return ()=>window.clearInterval(timer)
   },[session,screen?.identityStatus,refresh])
+  useEffect(()=>{
+    if(!session||screen?.assessmentStatus!=='in_progress'||screen.total!==30)return
+    const heartbeat=()=>{
+      if(focusPaused||screen?.proctorPausedAt||document.visibilityState!=='visible'||
+        !document.hasFocus()||!document.fullscreenElement)return
+      void fetch(API,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session}`},
+        body:JSON.stringify({action:'proctorHeartbeat'})})
+        .then(response=>{
+          if(!response.ok){
+            setFocusPaused(true);setAnswer('');setAnswerSource('typed')
+            recognition.current?.stop();setIsSpeaking(false);stopCaptureRef.current()
+            setNotice('Proctor focus check failed. The assessment is paused; restore recording and resume.')
+          }
+        }).catch(()=>{
+          setFocusPaused(true);setAnswer('');setAnswerSource('typed')
+          recognition.current?.stop();setIsSpeaking(false);stopCaptureRef.current()
+          setNotice('Proctor connection was interrupted. The assessment is paused; restore recording and resume.')
+        })
+    }
+    heartbeat()
+    const timer=window.setInterval(heartbeat,3000)
+    return ()=>window.clearInterval(timer)
+  },[session,screen?.assessmentStatus,screen?.total,screen?.proctorPausedAt,focusPaused])
   useEffect(() => {
     if(screen?.applicant.email) setWorkspaceView(screen.assessmentStatus==='in_progress'?'assessment':'applications')
   },[screen?.applicant.email])
