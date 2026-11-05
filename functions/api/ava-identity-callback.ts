@@ -86,7 +86,7 @@ export const onRequestPost:PagesFunction<Env> = async ({request,env}) => {
     ['declined','resubmission_requested','expired','abandoned'].includes(providerStatus)?providerStatus:'pending'
   const applicantStatus=approved?'approved':
     providerStatus==='review'?'pending_verification':
-    'needs_resubmission'
+    ['resubmission_requested','expired','abandoned'].includes(providerStatus)?'needs_resubmission':'rejected'
   await db.prepare(`INSERT INTO ava_screening_identity_provider_decisions
     (session_id,vendor_reference,provider_status,decision_code,document_type,document_country,name_match,decision_time,received_at)
     VALUES (?,?,?,?,?,?,?,?,?)
