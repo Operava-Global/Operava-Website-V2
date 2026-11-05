@@ -26,7 +26,7 @@ test('Veriff decision is authenticated and only final approved, name-matched ID 
   assert.match(callback,/hmacSha256Hex\(sharedSecret,raw\)/)
   assert.match(callback,/X-HMAC-SIGNATURE/)
   assert.match(callback,/v\.vendorData/)
-  assert.match(callback,/approved:9001,declined:9102,resubmission_requested:9103,expired:9104,abandoned:9121/)
+  assert.match(callback,/approved:9001,declined:9102,resubmission_requested:9103,expired:9104,abandoned:9104,review:9121/)
   assert.match(callback,/codeValid/)
   assert.match(callback,/nameMatch/)
   assert.match(callback,/Boolean\(documentType\)/)
