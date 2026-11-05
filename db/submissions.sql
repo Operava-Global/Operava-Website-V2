@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS resumes (
 CREATE INDEX IF NOT EXISTS idx_resumes_email ON resumes(email);
 CREATE INDEX IF NOT EXISTS idx_resumes_key ON resumes(resume_key);
 
--- Ava Screening: invitation-only, manual identity review, and monitored assessment.
+-- Ava Screening: public OTP registration, provider-backed mobile identity and monitored assessment.
 -- Keep these tables separate from the disabled legacy Recruitment AVA tables.
 CREATE TABLE IF NOT EXISTS ava_screening_sessions (
   id TEXT PRIMARY KEY,
@@ -145,11 +145,16 @@ CREATE TABLE IF NOT EXISTS ava_screening_sessions (
   identity_kind TEXT,
   identity_submitted INTEGER,
   identity_reviewed INTEGER,
+  identity_consent_at INTEGER,
   profile TEXT,
   consent_at INTEGER,
   monitor_consent_at INTEGER,
   proctor_consent_at INTEGER,
   ai_consent_at INTEGER,
+  proctor_paused_at INTEGER,
+  proctor_pause_reason TEXT,
+  proctor_incidents INTEGER NOT NULL DEFAULT 0,
+  assessment_rules_accepted_at INTEGER,
   assessment_status TEXT NOT NULL DEFAULT 'not_started',
   assessment_started INTEGER,
   deadline INTEGER,
@@ -268,6 +273,24 @@ CREATE TABLE IF NOT EXISTS ava_screening_identity_intents (
   session_id TEXT PRIMARY KEY,
   vendor_reference TEXT NOT NULL UNIQUE,
   created_at INTEGER NOT NULL,
+  provider_url TEXT,
+  link_token_hash TEXT,
+  link_expires_at INTEGER,
+  link_used_at INTEGER,
+  provider_status TEXT NOT NULL DEFAULT 'created',
+  attempt_count INTEGER NOT NULL DEFAULT 1,
+  FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS ava_screening_identity_provider_decisions (
+  session_id TEXT PRIMARY KEY,
+  vendor_reference TEXT NOT NULL UNIQUE,
+  provider_status TEXT NOT NULL,
+  decision_code INTEGER,
+  document_type TEXT,
+  document_country TEXT,
+  name_match INTEGER NOT NULL DEFAULT 0,
+  decision_time INTEGER,
+  received_at INTEGER NOT NULL,
   FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS ava_screening_identity_attestations (
