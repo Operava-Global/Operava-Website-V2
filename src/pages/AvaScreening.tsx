@@ -965,17 +965,25 @@ export default function AvaScreening() {
   const visibleApplications=applications.slice(itemPage,itemPage+1)
   const visibleDocuments=documents.slice(itemPage,itemPage+1)
 
+  if(params.get('identity')==='complete'){
+    return (
+      <div className="ava-screening">
+        <div className="ava-wrap">
+          <section className="ava-identity-return" role="status">
+            <div className="ava-check-icon"><ShieldCheck size={28}/></div>
+            <p className="ava-label">IDENTITY SUBMISSION RECEIVED</p>
+            <h1>Return to your computer</h1>
+            <p>Your phone verification has been submitted to the identity provider. Return to the desktop browser where you started Ava Assessment. That page will update automatically when the final verification decision is received.</p>
+            <p className="ava-muted">A submitted check is not the same as an approved check. You may close this phone page once you have returned to your desktop.</p>
+            <Link className="ava-secondary" to="/ava-screening/">Open the applicant portal</Link>
+          </section>
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="ava-screening">
       <div className="ava-wrap">
-        {params.get('identity')==='complete' ? <section className="ava-identity-return" role="status">
-          <div className="ava-check-icon"><ShieldCheck size={28}/></div>
-          <p className="ava-label">IDENTITY SUBMISSION RECEIVED</p>
-          <h1>Return to your computer</h1>
-          <p>Your phone verification has been submitted to the identity provider. Return to the desktop browser where you started Ava Assessment. That page will update automatically when the final verification decision is received.</p>
-          <p className="ava-muted">A submitted check is not the same as an approved check. You may close this phone page once you have returned to your desktop.</p>
-          <Link className="ava-secondary" to="/ava-screening/">Open the applicant portal</Link>
-        </section> : <div className="ava-app-shell">
         <header className="ava-app-topbar">
           <div className="ava-app-brand" aria-label="Operava Ava Screening">
             <span className="ava-app-symbol" aria-hidden="true"><ShieldCheck size={22} strokeWidth={2} /></span>
@@ -1349,7 +1357,6 @@ export default function AvaScreening() {
         </div>
         </div>
         </div>
-      </div>}
     </div>
     </div>
   )
