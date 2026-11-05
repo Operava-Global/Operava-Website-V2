@@ -14,7 +14,7 @@ type VeriffDecision = {
   status?:string
   verification?:{
     id?:string;attemptId?:string;vendorData?:string;endUserId?:string
-    status?:string;code?:number;decisionTime?:string;submissionTime?:string
+    status?:string;code?:number;decisionTime?:string|number;submissionTime?:string|number
     person?:{firstName?:string|null;lastName?:string|null;fullName?:string|null}
     document?:{type?:string|null;country?:string|null}
   }
@@ -26,6 +26,7 @@ function respond(message:string,status:number) {
   })
 }
 function timestamp(value:unknown):number {
+  if(typeof value==='number'&&Number.isFinite(value))return value<1_000_000_000_000?value*1000:value
   if(typeof value!=='string')return Date.now()
   const parsed=Date.parse(value)
   return Number.isFinite(parsed)?parsed:Date.now()
@@ -54,7 +55,7 @@ export const onRequestPost:PagesFunction<Env> = async ({request,env}) => {
     return respond('Decision event is incomplete.',400)
   const intent=await db.prepare(`SELECT session_id,link_used_at FROM ava_screening_identity_intents
     WHERE vendor_reference=?`).bind(v.id).first<{session_id:string;link_used_at:number|null}>()
-  if(!intent||intent.session_id!==v.vendorData)
+  if(!intent||intent.session_id!==v.vendorData||(v.endUserId&&v.endUserId!==intent.session_id))
     return respond('Unknown identity verification session.',404)
   if(!intent.link_used_at)return respond('The secure applicant link was not opened.',403)
   const applicant=await db.prepare(`SELECT name,profile,identity_consent_at,assessment_status
@@ -89,24 +90,31 @@ export const onRequestPost:PagesFunction<Env> = async ({request,env}) => {
   const applicantStatus=approved?'approved':
     providerStatus==='review'&&codeValid?'pending_verification':
     codeValid&&['resubmission_requested','expired','abandoned'].includes(providerStatus)?'needs_resubmission':'rejected'
-  await db.prepare(`INSERT INTO ava_screening_identity_provider_decisions
-    (session_id,vendor_reference,provider_status,decision_code,document_type,document_country,name_match,decision_time,received_at)
-    VALUES (?,?,?,?,?,?,?,?,?)
-    ON CONFLICT(session_id) DO UPDATE SET vendor_reference=excluded.vendor_reference,
-      provider_status=excluded.provider_status,decision_code=excluded.decision_code,
-      document_type=excluded.document_type,document_country=excluded.document_country,
-      name_match=excluded.name_match,decision_time=excluded.decision_time,received_at=excluded.received_at`)
-    .bind(intent.session_id,v.id,storedStatus,v.code,documentType||null,documentCountry||null,
-      nameMatch?1:0,decisionTime,Date.now()).run()
-  await db.prepare(`UPDATE ava_screening_identity_intents SET provider_status=?,
-    provider_url=CASE WHEN ? IN ('review','resubmission_requested') THEN provider_url ELSE NULL END
-    WHERE session_id=?`).bind(storedStatus,storedStatus,intent.session_id).run()
-  await db.prepare(`UPDATE ava_screening_sessions SET identity_status=?,identity_reviewed=?
-    WHERE id=? AND assessment_status='not_started'`)
-    .bind(applicantStatus,approved?Date.now():null,intent.session_id).run()
-  await db.prepare(`INSERT INTO ava_screening_review_events(session_id,action,detail,recorded_at)
-    VALUES (?,?,?,?)`).bind(intent.session_id,'veriff_decision',
-      `status:${storedStatus}; code:${v.code}; name_match:${nameMatch?1:0}; document_type:${documentType||'unavailable'}`,Date.now()).run()
+  try{
+    await db.batch([
+      db.prepare(`INSERT INTO ava_screening_identity_provider_decisions
+        (session_id,vendor_reference,provider_status,decision_code,document_type,document_country,name_match,decision_time,received_at)
+        VALUES (?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(session_id) DO UPDATE SET vendor_reference=excluded.vendor_reference,
+          provider_status=excluded.provider_status,decision_code=excluded.decision_code,
+          document_type=excluded.document_type,document_country=excluded.document_country,
+          name_match=excluded.name_match,decision_time=excluded.decision_time,received_at=excluded.received_at`)
+        .bind(intent.session_id,v.id,storedStatus,v.code,documentType||null,documentCountry||null,
+          nameMatch?1:0,decisionTime,Date.now()),
+      db.prepare(`UPDATE ava_screening_identity_intents SET provider_status=?,
+        provider_url=CASE WHEN ? IN ('review','resubmission_requested') THEN provider_url ELSE NULL END
+        WHERE session_id=?`).bind(storedStatus,storedStatus,intent.session_id),
+      db.prepare(`UPDATE ava_screening_sessions SET identity_status=?,identity_reviewed=?
+        WHERE id=? AND assessment_status='not_started'`)
+        .bind(applicantStatus,approved?Date.now():null,intent.session_id),
+      db.prepare(`INSERT INTO ava_screening_review_events(session_id,action,detail,recorded_at)
+        VALUES (?,?,?,?)`).bind(intent.session_id,'veriff_decision',
+          `status:${storedStatus}; code:${v.code}; name_match:${nameMatch?1:0}; document_type:${documentType||'unavailable'}`,Date.now())
+    ])
+  }catch{
+    await db.prepare('DELETE FROM ava_screening_provider_events WHERE event_id=?').bind(eventId).run().catch(()=>{})
+    return respond('Decision could not be saved. The provider may retry this event.',503)
+  }
   return respond(approved?'Identity verified.':'Provider decision received; additional verification is required.',200)
 }
 export const onRequestGet:PagesFunction<Env>=async()=>respond('Method not allowed.',405)
