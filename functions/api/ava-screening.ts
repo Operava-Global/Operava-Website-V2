@@ -1184,7 +1184,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         const signature=external.headers.get('X-HMAC-SIGNATURE')||external.headers.get('x-hmac-signature')||''
         const echoedKey=external.headers.get('X-AUTH-CLIENT')||external.headers.get('x-auth-client')
         if(!signature||!constantTimeHexEqual(signature,await hmacSha256Hex(env.AVA_VERIFF_SHARED_SECRET!,raw))||
-          (echoedKey&&echoedKey!==env.AVA_VERIFF_API_KEY))
+          echoedKey!==env.AVA_VERIFF_API_KEY)
           return error('The identity provider response could not be authenticated.',502)
         let provider: {status?:string;verification?:{id?:string;url?:string;vendorData?:string}}
         try{provider=JSON.parse(raw) as typeof provider}catch{return error('The identity provider returned an invalid session response.',502)}
