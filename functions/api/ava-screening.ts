@@ -9,6 +9,7 @@ import {
 } from '../lib/formCore'
 import { buildQuestionSet, type PositionCode } from '../lib/assessmentBank'
 import { OWNED_ID_TTL_MS, ownedIdentityAccepted, validOwnedDocumentType, validateCameraJpeg, identityReviewChecksValid } from '../lib/avaOwnedIdentity'
+import { constantTimeHexEqual, createOneTimeToken, hmacSha256Hex, veriffApiEndpoint, veriffConfigured, veriffHostedUrl } from '../lib/avaVeriff'
 
 type Role = PositionCode
 type AvaEnv = FormEnv & {
@@ -25,6 +26,9 @@ type AvaEnv = FormEnv & {
   AVA_IDV_API_URL?: string
   AVA_IDV_API_KEY?: string
   AVA_IDV_WEBHOOK_SECRET?: string
+  AVA_VERIFF_BASE_URL?: string
+  AVA_VERIFF_API_KEY?: string
+  AVA_VERIFF_SHARED_SECRET?: string
   AI?: Ai
 }
 type Invite = { v: 1; id: string; email: string; name: string; role: Role; exp: number }
@@ -34,8 +38,9 @@ type Applicant = {
   otp_hash: string | null; otp_expires: number; otp_attempts: number; otp_sent: number; otp_count: number;
   verified_at: number | null; session_hash: string | null; session_expires: number | null;
   identity_status: string; identity_key: string | null; identity_kind: string | null; identity_submitted: number | null;
-  identity_reviewed: number | null; profile: string | null; consent_at: number | null;
+  identity_reviewed: number | null; identity_consent_at?: number | null; profile: string | null; consent_at: number | null;
   monitor_consent_at: number | null; ai_consent_at: number | null; proctor_consent_at?: number | null;
+  proctor_paused_at?: number | null; proctor_pause_reason?: string | null; proctor_incidents?: number;
   assessment_status: string; assessment_version?: number; assessment_started: number | null; deadline: number | null;
   completed: number | null; created_at: number
 }
@@ -63,7 +68,7 @@ type OnboardingDocument = {
   object_key:string|null; requested_at:number; submitted_at:number|null;
   reviewed_at:number|null; review_note:string|null
 }
-const allowedEvents = new Set(['focus_lost', 'focus_returned', 'visibility_hidden', 'visibility_visible', 'fullscreen_exited', 'microphone_denied', 'microphone_muted', 'audio_interrupted', 'sound_flag'])
+const allowedEvents = new Set(['focus_lost', 'focus_returned', 'visibility_hidden', 'visibility_visible', 'fullscreen_exited', 'microphone_denied', 'microphone_muted', 'audio_interrupted', 'sound_flag', 'capture_interrupted', 'clipboard_blocked'])
 const EXTRA_QUESTIONS = [
   { id: 'ava-en-1', section: 'english', topic: 'written-communication', prompt: 'Write a clear, polite email to a client explaining a missed deadline, the next action, and when they will receive an update.' },
   { id: 'ava-en-2', section: 'english', topic: 'grammar', prompt: 'Correct this sentence and explain the change: "Our team have finish the customer requests yesterday."' },
@@ -130,7 +135,8 @@ async function ensure(db: D1Database) {
       otp_count INTEGER NOT NULL DEFAULT 0, verified_at INTEGER, session_hash TEXT,
       session_expires INTEGER, identity_status TEXT NOT NULL DEFAULT 'not_submitted',
       identity_key TEXT, identity_kind TEXT, identity_submitted INTEGER, identity_reviewed INTEGER,
-      profile TEXT, consent_at INTEGER, monitor_consent_at INTEGER, ai_consent_at INTEGER,
+      identity_consent_at INTEGER, profile TEXT, consent_at INTEGER, monitor_consent_at INTEGER, ai_consent_at INTEGER,
+      proctor_paused_at INTEGER, proctor_pause_reason TEXT, proctor_incidents INTEGER NOT NULL DEFAULT 0,
       assessment_status TEXT NOT NULL DEFAULT 'not_started', assessment_started INTEGER,
       deadline INTEGER, completed INTEGER, created_at INTEGER NOT NULL)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_answers (
@@ -167,7 +173,16 @@ async function ensure(db: D1Database) {
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_application_links (reference_id TEXT PRIMARY KEY, session_id TEXT NOT NULL UNIQUE, email TEXT NOT NULL, created_at INTEGER NOT NULL, FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_questions (session_id TEXT NOT NULL, question_number INTEGER NOT NULL, question_id TEXT NOT NULL, prompt TEXT NOT NULL, PRIMARY KEY(session_id,question_number), FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_identity_attestations (session_id TEXT PRIMARY KEY, vendor_reference TEXT NOT NULL UNIQUE, face_score REAL NOT NULL, liveness_pass INTEGER NOT NULL, document_authentic INTEGER NOT NULL, document_name_match INTEGER NOT NULL, passport_nfc_pass INTEGER NOT NULL, status TEXT NOT NULL, checked_at INTEGER NOT NULL, FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_identity_intents (session_id TEXT PRIMARY KEY, vendor_reference TEXT NOT NULL UNIQUE, created_at INTEGER NOT NULL, FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_identity_intents (
+      session_id TEXT PRIMARY KEY, vendor_reference TEXT NOT NULL UNIQUE, created_at INTEGER NOT NULL,
+      provider_url TEXT, link_token_hash TEXT, link_expires_at INTEGER, link_used_at INTEGER,
+      provider_status TEXT NOT NULL DEFAULT 'created', attempt_count INTEGER NOT NULL DEFAULT 1,
+      FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_identity_provider_decisions (
+      session_id TEXT PRIMARY KEY, vendor_reference TEXT NOT NULL UNIQUE, provider_status TEXT NOT NULL,
+      decision_code INTEGER, document_type TEXT, document_country TEXT, name_match INTEGER NOT NULL DEFAULT 0,
+      decision_time INTEGER, received_at INTEGER NOT NULL,
+      FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_proctor_evidence (session_id TEXT NOT NULL, kind TEXT NOT NULL, chunk_id TEXT NOT NULL, object_key TEXT NOT NULL, recorded_at INTEGER NOT NULL, PRIMARY KEY(session_id,kind,chunk_id), FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS ava_proctor_evidence_latest ON ava_screening_proctor_evidence(session_id,kind,recorded_at DESC)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_onboarding_documents (
@@ -191,6 +206,26 @@ async function ensure(db: D1Database) {
   catch(e) { if(!/duplicate column/i.test(String(e))) throw e }
   try { await db.prepare('ALTER TABLE ava_screening_sessions ADD COLUMN proctor_consent_at INTEGER').run() }
   catch(e) { if(!/duplicate column/i.test(String(e))) throw e }
+  for(const column of [
+    'identity_consent_at INTEGER',
+    'proctor_paused_at INTEGER',
+    'proctor_pause_reason TEXT',
+    'proctor_incidents INTEGER NOT NULL DEFAULT 0',
+  ]) {
+    try { await db.prepare(`ALTER TABLE ava_screening_sessions ADD COLUMN ${column}`).run() }
+    catch(e) { if(!/duplicate column/i.test(String(e))) throw e }
+  }
+  for(const column of [
+    'provider_url TEXT',
+    'link_token_hash TEXT',
+    'link_expires_at INTEGER',
+    'link_used_at INTEGER',
+    "provider_status TEXT NOT NULL DEFAULT 'created'",
+    'attempt_count INTEGER NOT NULL DEFAULT 1',
+  ]) {
+    try { await db.prepare(`ALTER TABLE ava_screening_identity_intents ADD COLUMN ${column}`).run() }
+    catch(e) { if(!/duplicate column/i.test(String(e))) throw e }
+  }
 }
 async function get(db: D1Database, id: string): Promise<Applicant | null> {
   return db.prepare('SELECT * FROM ava_screening_sessions WHERE id = ?').bind(id).first<Applicant>()
