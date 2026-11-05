@@ -443,6 +443,39 @@ export const PRIVACY_POLICY: LegalDoc = {
      ]
     }
    ]
+  },
+  {
+   "num": "32",
+   "title": "Identity Verification and Proctored Assessments",
+   "blocks": [
+    {
+     "t": "p",
+     "text": "Applicants using the OPERAVA Ava Assessment may be asked to complete identity verification before starting a proctored assessment. The identity stage requires a separate, explicit consent. If an applicant does not consent, the assessment remains locked; the applicant may contact compliance or Talent Acquisition to discuss an appropriate alternative."
+    },
+    {
+     "t": "p",
+     "text": "For the phone-based identity flow, OPERAVA sends the applicant's name and email address to Veriff and redirects the applicant to a Veriff-hosted secure session. Veriff may process government ID images, live selfie/video, liveness signals, document information, and related technical data to assess document validity and whether the applicant is present. The applicant should open the one-time email link on the phone used for the live camera check."
+    },
+    {
+     "t": "p",
+     "text": "OPERAVA receives the provider's verification decision, session reference, limited document metadata, name-match outcome, and timestamps. For this provider-hosted flow, raw ID images and selfie/liveness media are submitted directly to Veriff and are not stored in OPERAVA's Ava identity R2 bucket. Veriff's processing, location, onward recipients, and media retention are governed by the applicable Veriff service terms, privacy notice, data-processing agreement, and retention settings configured for OPERAVA's account. International processing may occur."
+    },
+    {
+     "t": "p",
+     "text": "A provider-approved identity result is used only to satisfy the assessment identity gate. It is not, by itself, an employment or hiring decision. A result that is pending, referred for review, declined, incomplete, or inconsistent with the applicant profile does not unlock the assessment."
+    },
+    {
+     "t": "p",
+     "text": "Proctored assessment participation requires separate, explicit consent to record the applicant's shared desktop display, webcam, and microphone. These recordings are stored in a private OPERAVA-controlled R2 bucket, restricted to authorized recruitment reviewers, and subject to a 30-day object-retention lifecycle. Associated assessment answers, identity status, and security/audit events may be retained separately according to applicable recruitment, legal, and operational retention requirements."
+    },
+    {
+     "t": "p",
+     "text": "The assessment may record supported browser focus loss, hidden-page, full-screen exit, clipboard, and recording-interruption events. A supported focus or recording interruption pauses answer submission, clears the current unsaved answer, preserves previously submitted answers, and requires the applicant to restore recording and explicitly resume. The assessment timer continues during the pause. Browser-based monitoring cannot guarantee detection of every operating-system action, external device, screenshot, or off-screen activity and is not represented as tamper-proof surveillance."
+    },
+    {
+     "t": "p",
+     "text": "Applicants may direct questions or privacy requests, including requests concerning identity verification or assessment recordings, to compliance@operavaglobal.com. Requests will be handled subject to applicable identity-verification, legal, contractual, security, and retention requirements."
+    }
+   ]
   }
  ]
-}
