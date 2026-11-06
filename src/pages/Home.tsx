@@ -257,7 +257,6 @@ export default function Home() {
                 date: '01 · IT services',
                 href: '/services/it',
                 icon: <Code2 className="size-4" />,
-                className: '[grid-area:stack] hover:-translate-y-8',
               },
               {
                 title: 'Business Process Outsourcing',
@@ -265,7 +264,6 @@ export default function Home() {
                 date: '02 · Global BPO',
                 href: '/services/bpo',
                 icon: <Headset className="size-4" />,
-                className: '[grid-area:stack] translate-y-8 sm:translate-x-10 sm:translate-y-8 hover:-translate-y-1',
               },
               {
                 title: 'Intelligent Automation',
@@ -273,7 +271,6 @@ export default function Home() {
                 date: '03 · Automation',
                 href: '/services/automation',
                 icon: <Workflow className="size-4" />,
-                className: '[grid-area:stack] translate-y-16 sm:translate-x-20 sm:translate-y-16 hover:translate-y-10',
               },
             ]}
           />
