@@ -14,8 +14,8 @@ import {
   Building2,
   Calendar,
   FileText,
+  MessageCircle,
 } from 'lucide-react'
-import AvaVideoAvatar from './AvaVideoAvatar'
 import { generateAvaHumanResponse } from '../utils/avaConversationEngine'
 import { detectTopicRoute, type RouteAction } from '../utils/avaRouting'
 import {
@@ -126,7 +126,7 @@ function renderMessageText(text: string, isUser = false) {
 function AvaThinkingWaves() {
   return (
     <div className="flex gap-2.5 justify-start animate-fade-in" aria-live="polite" aria-label="AVA is thinking">
-      <AvaVideoAvatar size="sm" className="mt-0.5 shrink-0" />
+      <span className="mt-0.5 shrink-0 flex h-7 w-7 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-[10px] font-bold tracking-wide text-accent">A</span>
       <div className="min-w-[148px] px-3.5 py-3 bg-[#111] border border-neutral-800">
         <div className="flex flex-col justify-center gap-[5px] h-7 w-28">
           <span className="block h-0.5 w-full bg-accent animate-pulse" />
@@ -145,8 +145,6 @@ export default function AvaAssistant() {
   const navigate = useNavigate()
   const location = useLocation()
   const [isOpen, setIsOpen] = useState(false)
-  const [hasUnread, setHasUnread] = useState(true)
-  const [showWelcomeBubble, setShowWelcomeBubble] = useState(true)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [inputText, setInputText] = useState('')
   const [isThinking, setIsThinking] = useState(false)
@@ -155,6 +153,7 @@ export default function AvaAssistant() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const chatWindowRef = useRef<HTMLDivElement>(null)
+  const drawerHolderRef = useRef<HTMLButtonElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
 
   const initialMessage: ChatMessage = {
@@ -180,7 +179,6 @@ export default function AvaAssistant() {
   useEffect(() => {
     if (['/quote', '/apply', '/contact'].includes(location.pathname)) {
       setIsOpen(false)
-      setShowWelcomeBubble(false)
     }
   }, [location.pathname, location.search])
 
@@ -196,21 +194,14 @@ export default function AvaAssistant() {
     if (isOpen) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isThinking, isOpen])
 
-  useEffect(() => {
-    const timer = setTimeout(() => setShowWelcomeBubble(false), 12000)
-    return () => clearTimeout(timer)
-  }, [])
 
   const handleOpen = () => {
     setIsOpen(true)
-    setHasUnread(false)
-    setShowWelcomeBubble(false)
     setTimeout(() => inputRef.current?.focus(), 300)
   }
 
   const handleRoute = (to: string) => {
     setIsOpen(false)
-    setShowWelcomeBubble(false)
     navigate(to)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -330,50 +321,50 @@ export default function AvaAssistant() {
     }
   }
 
-  if (!isOpen) {
-    return (
-      <div className="fixed bottom-5 right-5 z-[60] flex flex-col items-end gap-2">
-        {showWelcomeBubble && (
-          <button
-            type="button"
-            onClick={handleOpen}
-            className="max-w-[240px] bg-[#0a0a0a] border border-neutral-800 shadow-[0_20px_60px_rgba(0,0,0,0.6)] px-4 py-3 text-left text-xs text-neutral-300 hover:border-accent transition-colors"
-          >
-            Hi — I'm AVA. Ask about services, or paste a document ID to verify.
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={handleOpen}
-          className="relative h-14 w-14 rounded-full bg-transparent border-0 shadow-none hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent flex items-center justify-center transition-transform"
-          aria-label="Open AVA assistant"
-        >
-          <img
-            src="/ava-assistant-robot.svg"
-            alt=""
-            width={64}
-            height={64}
-            className="h-16 w-16 object-contain select-none"
-            loading="eager"
-            decoding="async"
-            aria-hidden="true"
-          />
-          {hasUnread && <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-fuchsia-400 ring-2 ring-black" />}
-        </button>
-      </div>
-    )
-  }
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node
+      if (chatWindowRef.current?.contains(target) || drawerHolderRef.current?.contains(target)) return
+      setIsOpen(false)
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false)
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen])
 
   return (
-    <aside
-      ref={chatWindowRef}
-      className="fixed bottom-5 right-5 z-[60] w-[min(100vw-1.5rem,400px)] h-[min(85vh,640px)] flex flex-col bg-[#0a0a0a] border border-neutral-800 shadow-[0_30px_80px_rgba(0,0,0,0.7)] overflow-hidden"
-      role="dialog"
-      aria-label="AVA assistant"
-    >
+    <>
+      <button
+        ref={drawerHolderRef}
+        type="button"
+        onClick={() => (isOpen ? setIsOpen(false) : handleOpen())}
+        className={`fixed right-0 top-1/2 z-[61] flex -translate-y-1/2 items-center gap-2 rounded-l-lg border border-r-0 border-neutral-700 bg-[#151515] px-3 py-3 text-xs font-semibold tracking-[0.16em] text-neutral-200 shadow-lg transition-colors hover:border-accent hover:bg-[#202020] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+        aria-label={isOpen ? 'Close AVA assistant' : 'Open AVA assistant'}
+        aria-expanded={isOpen}
+      >
+        <MessageCircle className="h-4 w-4 text-accent" />
+        <span>AVA</span>
+      </button>
+
+      <aside
+        ref={chatWindowRef}
+        className={`fixed right-0 top-0 z-[60] flex h-[100dvh] w-[min(100vw,420px)] flex-col overflow-hidden border-l border-neutral-800 bg-[#0a0a0a] shadow-[-24px_0_70px_rgba(0,0,0,0.45)] transition-transform duration-300 ease-out motion-reduce:transition-none ${isOpen ? 'translate-x-0' : 'translate-x-full pointer-events-none'}`}
+        role="dialog"
+        aria-label="AVA assistant"
+        aria-modal="false"
+        aria-hidden={!isOpen}
+      >
       <header className="flex items-center justify-between gap-2 px-4 py-3 border-b border-accent bg-black text-white">
         <div className="flex items-center gap-2 min-w-0">
-          <AvaVideoAvatar size="sm" />
+          <span className="flex h-8 w-8 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-xs font-bold tracking-wide text-accent">A</span>
           <div className="min-w-0">
             <p className="text-sm font-black uppercase tracking-widest truncate">AVA</p>
             <p className="text-[10px] tracking-widest uppercase text-neutral-500 truncate">OPERAVA assistant</p>
@@ -395,14 +386,8 @@ export default function AvaAssistant() {
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3 bg-black">
         {messages.map((m) => (
           <div key={m.id} className={`flex gap-2 ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-            {m.sender === 'ava' && <AvaVideoAvatar size="sm" className="mt-0.5 shrink-0" />}
-            <div
-              className={`max-w-[85%] px-3.5 py-2.5 ${
-                m.sender === 'user'
-                  ? 'bg-accent-solid text-white'
-                  : 'bg-[#111] border border-neutral-800 text-neutral-200'
-              }`}
-            >
+            {m.sender === 'ava' && <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-[10px] font-bold text-accent">A</span>}
+            <div className={`max-w-[85%] px-3.5 py-2.5 ${m.sender === 'user' ? 'bg-accent-solid text-white' : 'bg-[#111] border border-neutral-800 text-neutral-200'}`}>
               {renderMessageText(m.text, m.sender === 'user')}
               <div className="mt-1.5 flex items-center justify-between gap-2">
                 <span className={`text-[10px] ${m.sender === 'user' ? 'text-violet-200' : 'text-neutral-500'}`}>{m.timestamp}</span>
@@ -414,11 +399,7 @@ export default function AvaAssistant() {
               </div>
               {m.showChoice && m.routeAction && (
                 <div className="mt-2 flex flex-col gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleRoute(m.routeAction!.to)}
-                    className="text-[11px] tracking-widest uppercase font-bold bg-white text-black hover:bg-accent-solid hover:text-white px-3 py-2 text-left transition-colors"
-                  >
+                  <button type="button" onClick={() => handleRoute(m.routeAction!.to)} className="text-[11px] tracking-widest uppercase font-bold bg-white text-black hover:bg-accent-solid hover:text-white px-3 py-2 text-left transition-colors">
                     Open form on website
                   </button>
                 </div>
@@ -435,44 +416,21 @@ export default function AvaAssistant() {
           {QUICK_TOPICS.map((t) => {
             const Icon = t.icon
             return (
-              <button
-                key={t.label}
-                type="button"
-                onClick={() => handleSendMessage(t.query)}
-                className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-medium text-neutral-300 border border-neutral-800 hover:border-accent hover:text-white"
-              >
+              <button key={t.label} type="button" onClick={() => handleSendMessage(t.query)} className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-medium text-neutral-300 border border-neutral-800 hover:border-accent hover:text-white">
                 <Icon className="w-3 h-3" />
                 {t.label}
               </button>
             )
           })}
         </div>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            void handleSendMessage()
-          }}
-          className="flex items-center gap-2 pb-3"
-        >
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            placeholder="Ask AVA or paste a document ID…"
-            className="flex-1 min-w-0 px-3 h-10 bg-black border border-neutral-800 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-accent"
-            disabled={isThinking}
-          />
-          <button
-            type="submit"
-            disabled={isThinking || !inputText.trim()}
-            className="h-10 w-10 bg-white text-black flex items-center justify-center hover:bg-accent-solid hover:text-white disabled:opacity-50 transition-colors"
-            aria-label="Send"
-          >
+        <form onSubmit={(e) => { e.preventDefault(); void handleSendMessage() }} className="flex items-center gap-2 pb-3">
+          <input ref={inputRef} type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="Ask AVA or paste a document ID…" className="flex-1 min-w-0 px-3 h-10 bg-black border border-neutral-800 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-accent" disabled={isThinking} />
+          <button type="submit" disabled={isThinking || !inputText.trim()} className="h-10 w-10 bg-white text-black flex items-center justify-center hover:bg-accent-solid hover:text-white disabled:opacity-50 transition-colors" aria-label="Send">
             <Send className="w-4 h-4" />
           </button>
         </form>
       </div>
-    </aside>
+      </aside>
+    </>
   )
 }
