@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Code2, Headset, Workflow } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { usePageMeta } from '../site/seo'
 import { Img, StoryCard, CtaBanner, SectionHead, OutlineButton } from '../site/ui'
