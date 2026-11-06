@@ -361,7 +361,7 @@ export default function AvaAssistant() {
         aria-label={isOpen ? 'Close AVA assistant' : 'Open AVA assistant'}
         aria-expanded={isOpen}
       >
-        {isOpen ? <X className="h-4 w-4 text-accent" /> : <img src={AVA_AVATAR_SRC} alt="" className="h-7 w-7 rounded-full object-cover" />}
+        {isOpen ? <X className="h-4 w-4 text-accent" /> : <MessageCircle className="h-4 w-4 text-accent" />}
       </button>
 
       <aside
