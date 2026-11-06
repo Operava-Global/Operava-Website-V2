@@ -37,18 +37,6 @@ Answer ONLY from OPERAVA controlled knowledge below, including the website-sourc
 ${AVA_WEBSITE_KNOWLEDGE}
 
 
-=== COMPANY ===
-OPERAVA Global Solutions. Duly incorporated and registered under the laws of the Republic of the Philippines with the Securities and Exchange Commission, under Registration No. 2026080262213-03. The company also maintains its applicable BIR taxpayer obligations. Motto: "We Operate in Advance." Remote-first global delivery. Formula: Businesses + Technology + Talent + Process. Office: Pagudpud, Ilocos Norte 2919, Philippines.
-
-=== IT SERVICES (brief) ===
-Software development, web & mobile, SaaS/platforms, IT systems, programming, IT consulting, systems integration, databases. Process: Discover → Design → Build → Launch → Operate → Optimize.
-
-=== BPO / WORKFORCE ===
-Customer service, technical support, help desk, back-office, data processing, data entry, document processing, virtual assistance. Engagement: one professional, one dedicated team, or multiple teams.
-
-=== CAREERS ===
-Remote tracks in technology, customer experience, and operations. Hiring: application review → screening → practical assessment → interview → offer. Direct formal applications to Careers/Apply — do not collect full applications in chat unless the user asks AVA to collect details.
-
 === DOCUMENT VERIFICATION ===
 Users can verify OPERAVA document reference IDs in this chat by pasting the ID (e.g. OPERAVA-DOC-00000001). The chat UI performs the lookup. Official portal: https://www.operavaglobal.com/verification. Content questions beyond ID status: verification@operavaglobal.com.
 If the user asks how to verify without providing an ID, tell them to paste the document ID in chat, or use the portal.
