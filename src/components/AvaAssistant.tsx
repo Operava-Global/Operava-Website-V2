@@ -310,7 +310,7 @@ export default function AvaAssistant() {
       // A visible failure lets visitors retry instead of silently masking an outage.
       console.error('AVA Cloudflare Workers AI request failed:', error)
       const detail = error instanceof Error ? error.message : 'Connection to Cloudflare Workers AI failed.'
-      pushAva(`I'm sorry — I'm having trouble connecting to my AI service right now. Please try again in a moment.\\n\\nTechnical detail: ${detail}`)
+      pushAva(`I'm sorry — I'm having trouble connecting to my AI service right now. Please try again in a moment.\n\nTechnical detail: ${detail}`)
       return
     } finally {
       setIsThinking(false)
