@@ -348,7 +348,16 @@ export default function AvaAssistant() {
           className="relative h-14 w-14 rounded-full bg-transparent border-0 shadow-none hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent flex items-center justify-center transition-transform"
           aria-label="Open AVA assistant"
         >
-          <AvaVideoAvatar size={52} />
+          <img
+            src="/favicon.svg"
+            alt=""
+            width={52}
+            height={52}
+            className="h-[52px] w-[52px] object-contain select-none"
+            loading="eager"
+            decoding="async"
+            aria-hidden="true"
+          />
           {hasUnread && <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-fuchsia-400 ring-2 ring-black" />}
         </button>
       </div>
