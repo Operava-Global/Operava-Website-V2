@@ -1,3 +1,4 @@
+import { generateAvaHumanResponse } from '../utils/avaConversationEngine'
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
@@ -304,10 +305,9 @@ export default function AvaAssistant() {
       }
       reply = data.text.trim()
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'AVA is temporarily unavailable. Please try again.'
-      pushAva(message)
-      setIsThinking(false)
-      return
+      // Keep the established local conversation engine as a resilience fallback.
+      console.warn('AVA Workers AI unavailable; using local conversation fallback:', error)
+      reply = generateAvaHumanResponse(query).text
     }
     setIsThinking(false)
 
