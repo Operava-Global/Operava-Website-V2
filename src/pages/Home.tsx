@@ -256,6 +256,8 @@ export default function Home() {
                 description: `${itServices.length} services to build, modernize and connect your digital operations.`,
                 date: '01 · IT services',
                 href: '/services/it',
+                image: '/Meta_AI_it_element_transparent_20261106_220514.webp',
+                imageAlt: 'Illustration representing information technology and cloud systems',
                 icon: <Code2 className="size-4" />,
               },
               {
@@ -263,6 +265,8 @@ export default function Home() {
                 description: `${bpoServices.length} services delivered by skilled professionals across customer and back-office operations.`,
                 date: '02 · Global BPO',
                 href: '/services/bpo',
+                image: '/Meta_AI_bpo_element_transparent_20261106_220522.webp',
+                imageAlt: 'Illustration representing customer support and business process outsourcing',
                 icon: <Headset className="size-4" />,
               },
               {
@@ -270,6 +274,8 @@ export default function Home() {
                 description: `${automationServices.length} services to connect workflows and reduce repetitive work.`,
                 date: '03 · Automation',
                 href: '/services/automation',
+                image: '/Meta_AI_robot_element_transparent_20261106_220519.webp',
+                imageAlt: 'Illustration representing intelligent automation and AI workflows',
                 icon: <Workflow className="size-4" />,
               },
             ]}
