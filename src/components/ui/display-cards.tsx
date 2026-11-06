@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type ReactNode } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowUpRight, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils'
 export interface DisplayCardProps {
   className?: string
   icon?: ReactNode
+  image?: string
+  imageAlt?: string
   title?: string
   description?: string
   date?: string
@@ -24,6 +26,8 @@ interface DisplayCardsProps {
 function DisplayCard({
   className,
   icon = <Sparkles className="size-5" />,
+  image,
+  imageAlt,
   title = 'Featured',
   description = 'Discover amazing content',
   date = 'Just now',
@@ -35,7 +39,7 @@ function DisplayCard({
   onActivate,
 }: DisplayCardProps & {
   active: boolean
-  style: React.CSSProperties
+  style: CSSProperties
   onActivate: () => void
 }) {
   return (
@@ -55,11 +59,23 @@ function DisplayCard({
         aria-label={`${active ? 'Collapse' : 'Bring forward'} ${title} card`}
         className="relative z-10 flex min-h-[13rem] flex-1 cursor-pointer flex-col items-start justify-between gap-5 text-left outline-none focus-visible:rounded-xl focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--surface)]"
       >
+        {image && (
+          <div className="relative -mx-1 flex h-24 w-full items-center justify-center overflow-visible sm:h-32">
+            <img
+              src={image}
+              alt={imageAlt ?? ''}
+              aria-hidden={imageAlt ? undefined : true}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-contain object-center drop-shadow-[0_14px_22px_rgba(0,0,0,.32)] transition-transform duration-700 ease-out group-data-[active=true]:scale-110"
+            />
+          </div>
+        )}
         <div className="flex w-full items-center gap-3 sm:gap-4">
-          <span className={cn('inline-flex size-11 shrink-0 items-center justify-center rounded-2xl border border-accent/25 bg-accent/10 text-accent shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_8px_18px_-12px_rgba(139,92,246,.8)] transition-all duration-500 group-data-[active=true]:rotate-[-8deg] group-data-[active=true]:scale-110 group-data-[active=true]:bg-accent/20', iconClassName)}>
+          <span className={cn('inline-flex size-10 shrink-0 items-center justify-center rounded-2xl border border-accent/25 bg-accent/10 text-accent shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_8px_18px_-12px_rgba(139,92,246,.8)] transition-all duration-500 group-data-[active=true]:rotate-[-8deg] group-data-[active=true]:scale-110 group-data-[active=true]:bg-accent/20 sm:size-11', iconClassName)}>
             {icon}
           </span>
-          <p className={cn('max-w-[19rem] text-sm font-semibold leading-snug tracking-tight text-[var(--text)] sm:text-lg', titleClassName)}>{title}</p>
+          <p className={cn('max-w-[19rem] text-xs font-semibold leading-snug tracking-tight text-[var(--text)] sm:text-lg', titleClassName)}>{title}</p>
         </div>
         <p className="max-w-[25rem] pr-8 text-xs leading-relaxed text-[var(--text)]/75 sm:text-sm">{description}</p>
         <div className="flex w-full items-end justify-between gap-3">
