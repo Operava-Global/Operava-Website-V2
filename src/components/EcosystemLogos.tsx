@@ -57,18 +57,18 @@ export default function EcosystemLogos() {
               aria-label={`Highlight ${name} logo`}
               aria-pressed={activeBrand === name}
               onClick={() => setActiveBrand((current) => current === name ? null : name)}
-              className="ecosystem-logo ecosystem-logo--interactive min-h-[112px] w-full rounded-xl border border-neutral-800/60 bg-white flex flex-col items-center justify-center p-3 sm:p-4"
+              className={`ecosystem-logo ecosystem-logo--interactive min-h-[112px] w-full rounded-xl border border-neutral-800/60 bg-white flex flex-col items-center justify-center ${name === 'Additional trusted brand' ? 'p-2 sm:p-3' : 'p-3 sm:p-4'}`}
               title={name}
             >
-              <div className="h-12 w-full flex items-center justify-center overflow-hidden">
+              <div className={`${name === 'Additional trusted brand' ? 'h-16 sm:h-[76px]' : 'h-12'} w-full flex items-center justify-center overflow-hidden`}>
                 <img
                   src={asset}
                   alt={name + ' logo'}
                   loading="eager"
                   decoding="async"
-                  width={displayWidth ? 2400 : 160}
-                  height={displayWidth ? 800 : 48}
-                  className={displayWidth ? 'block h-auto max-w-none shrink-0 object-contain' : 'block w-full max-w-[160px] h-11 object-contain'}
+                  width={displayWidth ? 2400 : name === 'Additional trusted brand' ? 788 : 160}
+                  height={displayWidth ? 800 : name === 'Additional trusted brand' ? 781 : 48}
+                  className={displayWidth ? 'block h-auto max-w-none shrink-0 object-contain' : name === 'Additional trusted brand' ? 'block w-full max-w-[220px] h-full object-contain' : 'block w-full max-w-[160px] h-11 object-contain'}
                   style={displayWidth ? { width: displayWidth } : undefined}
                 />
               </div>
