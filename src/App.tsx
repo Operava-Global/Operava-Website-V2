@@ -30,6 +30,7 @@ import Contacts from './pages/Contacts'
 import Faq from './pages/Faq'
 import Verification from './pages/Verification'
 import PaymentPortal from './pages/PaymentPortal'
+import TrustpilotReview from './pages/TrustpilotReview'
 import NotFound from './pages/NotFound'
 
 // Long documents and standalone tools load on demand
@@ -104,6 +105,7 @@ export default function App() {
             <Route path="/faq" element={<Faq />} />
             <Route path="/verification" element={<Verification />} />
             <Route path="/payment-portal" element={<PaymentPortal />} />
+            <Route path="/trustpilot-review" element={<TrustpilotReview />} />
             <Route path="/payment" element={<PaymentPortal />} />
             <Route path="/pay" element={<PaymentPortal />} />
             <Route path="/client-portal/payment" element={<PaymentPortal />} />
