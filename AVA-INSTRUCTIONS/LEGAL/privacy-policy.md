@@ -173,3 +173,18 @@ OPERAVA should maintain appropriate internal privacy documentation, including pr
 **ACCOUNTABILITY** — OPERAVA remains responsible for appropriate privacy governance within its role.  
 
 **OPERAVA — OPERATING IN ADVANCE.**
+
+
+### 32. IDENTITY VERIFICATION AND PROCTORED ASSESSMENTS
+
+Applicants using Ava Assessment must complete a separate identity-verification consent before the assessment can begin. For the phone-based identity flow, OPERAVA sends the applicant's name and email address to Veriff and emails a short-lived, single-use link. The applicant opens the link on a phone and completes Veriff's hosted government-ID and live selfie/liveness process.
+
+Veriff may process identity-document images, live selfie/video, liveness signals, document details, and related technical data to assess document validity and whether the applicant is present. OPERAVA receives the provider decision, session reference, limited document metadata, name-match outcome, and timestamps. For this hosted flow, the ID images and selfie/liveness media are submitted directly to Veriff and are not stored in OPERAVA's Ava identity R2 bucket. Veriff's processing, location, onward recipients and media retention are governed by the applicable Veriff service terms, privacy notice, data-processing agreement, and the retention settings configured for OPERAVA's account. International processing may occur.
+
+An approved identity result is used only to satisfy the assessment identity gate; it is not by itself an employment or hiring decision. Pending, referred, declined, incomplete or name-mismatched results do not unlock the assessment.
+
+Proctored assessment participation requires separate explicit consent to record the applicant's shared desktop display, webcam and microphone. Recordings are stored in a private OPERAVA-controlled R2 bucket, restricted to authorized recruitment reviewers, and subject to a 30-day object-retention lifecycle. Assessment answers, identity status and security/audit events may be retained separately under the applicable recruitment, legal and operational retention schedule.
+
+Supported browser focus loss, hidden-page, full-screen exit and recording interruptions may pause answer submission, clear the current unsaved answer, preserve previously submitted answers, and require the applicant to restore recording and explicitly resume. The 45-minute assessment timer continues during the pause. Browser monitoring cannot guarantee detection of every operating-system action, external device, screenshot or off-screen activity and is not represented as tamper-proof surveillance.
+
+Privacy requests about identity verification or assessment recordings may be sent to compliance@operavaglobal.com, subject to applicable identity-verification, legal, contractual, security and retention requirements.

@@ -11,7 +11,8 @@ type Tab = 'invite' | 'invitations' | 'applicants' | 'identity' | 'assessments' 
 type Invite = { id:string; name:string; email:string; role:Role; sent_at:number; expires_at:number; status:string }
 type Pending = { id:string; name:string; email:string; role:Role; identity_kind:string; identity_submitted:number }
 type PublicApplicant = { id:string; name:string; email:string; role:Role; created_at:number;verified_at:number|null;
-  current_status:string;has_profile:number;review_status:string }
+  current_status:string;has_profile:number;review_status:string;identity_status:string;provider_status:string|null;
+  proctor_incidents:number }
 type ProctorSegment={chunk_id:string;kind:string;recorded_at:number}
 type ProctorCount={kind:string;count:number}
 type OnboardingCandidate={id:string;name:string;email:string;assessment_status:string;application_reference:string|null}
@@ -26,7 +27,9 @@ const DOCUMENT_TYPES:Record<string,string> = {
 type Summary = { id:string; name:string; email:string; role:Role; assessment_status:string;
   answers_received:number; review_status:string; completed:number|null }
 type Detail = { applicant:{ id:string;name:string;email:string;role:Role;identityStatus:string;
-  assessmentStatus:string; profile:Record<string,string> };
+  assessmentStatus:string; profile:Record<string,string>;
+  identityProvider:{vendor_reference:string;provider_status:string;decision_code:number|null;document_type:string|null;document_country:string|null;
+    name_match:number;decision_time:number|null}|null;proctorIncidentCount:number;proctorPauseReason:string|null };
   answers:{id:string;section:string;prompt:string;answer:string|null;advisoryReview:unknown}[];
   manualReview:{review_status:string;reviewer_note:string}|null;
   monitoringEventCounts:{event_type:string;count:number}[] }
@@ -213,7 +216,7 @@ export default function RecruitmentAdmin() {
       <div className="ava-app-controls"><span className="ava-access-label"><ShieldCheck size={14}/> CLOUDFLARE ACCESS</span><ThemeToggle/></div>
     </header>
     <div className="ra-head"><div><p className="ava-kicker"><span className="ava-dot"/> RESTRICTED WORKSPACE</p>
-      <h1>RECRUITMENT <span>ADMIN</span></h1><p>Private candidate invitations, document verification, and human assessment review.</p></div>
+      <h1>RECRUITMENT <span>ADMIN</span></h1><p>Public applicant registrations, provider identity outcomes, and human assessment review.</p></div>
       <button type="button" className="ava-secondary" onClick={()=>void refresh()} disabled={loading||busy}>
         <RefreshCcw size={16}/>{loading?'Refreshing…':'Refresh records'}</button></div>
     <section className="ra-metrics" aria-label="Recruitment overview">
@@ -231,7 +234,7 @@ export default function RecruitmentAdmin() {
     <section className="ra-panel">
       {tab==='invite'&&<div className="ra-invite-layout">
         <div><p className="ava-label">01 · PRIVATE INVITATIONS</p><h2>Invite an applicant</h2>
-          <p className="ra-intro">Send a unique, seven-day invitation directly through OPERAVA’s configured Amazon SES mail service. Each candidate confirms their invited email with a one-time code.</p>
+          <p className="ra-intro">Optional direct invitations are sent through OPERAVA’s configured Amazon SES mail service. Anyone may also register directly from the public Ava Assessment page without a recruiter invitation.</p>
           <form className="ra-invite-form" onSubmit={invite}>
             <label className="ava-field">Full name<input required minLength={2} maxLength={100} autoComplete="off" placeholder="Legal name" value={name} onChange={e=>setName(e.target.value)}/></label>
             <label className="ava-field">Applicant email<input required type="email" autoComplete="off" maxLength={180} placeholder="candidate@example.com" value={email} onChange={e=>setEmail(e.target.value)}/></label>
@@ -241,11 +244,11 @@ export default function RecruitmentAdmin() {
           </form>
         </div>
         <aside className="ra-illustration"><img src="/media/ava-assessment-verified.svg" alt="" width={140} height={140}/>
-          <strong>How invitations work</strong><ol>
-            <li>Recruiter sends a secure invite.</li><li>Candidate receives an email and verifies a six-digit code.</li>
-            <li>Candidate submits profile and identity evidence.</li><li>Human reviewer approves the document.</li>
-            <li>Candidate completes a 45-minute assessment.</li><li>Recruiter reviews written answers and records feedback.</li>
-          </ol><p>Never forward or post invitation links publicly.</p></aside>
+          <strong>How candidate screening works</strong><ol>
+            <li>Candidate registers publicly with email OTP.</li><li>Veriff sends a secure phone link for live ID and selfie verification.</li>
+            <li>The desktop portal updates when the signed provider decision arrives.</li><li>Candidate acknowledges assessment rules and recording consent.</li>
+            <li>Focus loss pauses the assessment; the candidate must restore capture and resume.</li><li>Recruiter reviews answers and recorded integrity events.</li>
+          </ol><p>Direct invitations are optional; never forward identity-verification links.</p></aside>
       </div>}
       {tab==='invitations'&&<><div className="ra-section-title"><div><p className="ava-label">INVITATION LOG</p><h2>Sent invitations</h2></div><span>Latest 100 invitations</span></div>
         <label className="ra-search"><Search size={18}/><input aria-label="Search invitations" placeholder="Search name or email" value={filter} onChange={e=>setFilter(e.target.value)}/></label>
@@ -255,18 +258,20 @@ export default function RecruitmentAdmin() {
         <label className="ra-search"><Search size={18}/><input aria-label="Search applicant registrations"
           placeholder="Search name or email" value={filter} onChange={e=>setFilter(e.target.value)}/></label>
         {applicants.filter(matches).length?<div className="ra-table-scroll"><table className="ra-table">
-          <thead><tr><th>Applicant</th><th>Assessment track</th><th>Registered</th><th>Email</th><th>Profile</th><th>Assessment status</th></tr></thead>
+          <thead><tr><th>Applicant</th><th>Assessment track</th><th>Registered</th><th>Email</th><th>Profile</th><th>Identity</th><th>Proctor events</th><th>Assessment status</th></tr></thead>
           <tbody>{applicants.filter(matches).map(item=><tr key={item.id}>
             <td><strong>{item.name}</strong><small>{item.email}</small></td>
             <td>{ROLES[item.role]}</td><td>{date(item.created_at)}</td>
             <td>{item.verified_at?'Verified':'Unverified'}</td>
             <td>{item.has_profile?'Completed':'Incomplete'}</td>
+            <td><span className="ra-status">{(item.provider_status||item.identity_status||'not_started').replace(/_/g,' ')}</span></td>
+            <td>{item.proctor_incidents||0}</td>
             <td><span className="ra-status">{item.current_status.replace(/_/g,' ')}</span></td>
           </tr>)}</tbody></table></div>:<Empty>No public applicants found.</Empty>}</>}
-      {tab==='identity'&&<><div className="ra-section-title"><div><p className="ava-label">HUMAN VERIFICATION REQUIRED</p><h2>Identity review</h2></div><span>{pending.length} awaiting review</span></div>
+      {tab==='identity'&&<><div className="ra-section-title"><div><p className="ava-label">LEGACY MANUAL EXCEPTIONS</p><h2>Manual identity review</h2></div><span>{pending.length} awaiting review</span></div>
         {pending.length? <div className="ra-list">{pending.map(item=><article className="ra-record" key={item.id}>
           <div className="ra-record-header"><img src="/media/ava-assessment-identity.svg" alt="" width={62} height={62}/><div><h3>{item.name}</h3><p>{item.email} · {ROLES[item.role]}</p><small>{item.identity_kind} · Submitted {date(item.identity_submitted)}</small></div></div>
-          <p>Inspect the document, neutral selfie and turned-head selfie. Compare the legal name with the applicant record. These camera images do not cryptographically prove authenticity or liveness: record a human judgement and uncertainties.</p>
+          <p>This queue is only for legacy/manual exception captures. New applicants use Veriff's provider-hosted live ID and selfie check; its signed approved decision updates the applicant portal automatically. Manual images do not cryptographically prove authenticity or liveness.</p>
           <div className="ra-actions">
             <button disabled={busy} className="ava-secondary" onClick={()=>void download(item.id,'document')}><FileDown size={15}/>Document</button>
             <button disabled={busy} className="ava-secondary" onClick={()=>void download(item.id,'selfie')}><FileDown size={15}/>Neutral selfie</button>
@@ -351,7 +356,11 @@ export default function RecruitmentAdmin() {
             <p className="ra-intro">{detail.applicant.email} · {ROLES[detail.applicant.role]} · {detail.applicant.assessmentStatus.replace(/_/g,' ')}</p>
             <div className="ra-detail-profile"><strong>Background</strong>{Object.entries(detail.applicant.profile).filter(([key])=>key!=='fullName').map(([key,value])=><div key={key}><span>{key}</span><p>{String(value||'—')}</p></div>)}</div>
             <div className="ra-proctor-report">
-              <h4>Assessment integrity · Human review</h4>
+              <h4>Identity verification · Provider decision</h4>
+               <p className="ra-footnote">Status: {detail.applicant.identityStatus.replace(/_/g,' ')} · Provider: {detail.applicant.identityProvider?.provider_status?.replace(/_/g,' ')||'No provider decision'}</p>
+               {detail.applicant.identityProvider&&<p className="ra-footnote">Provider session: {detail.applicant.identityProvider.vendor_reference} · Decision code: {detail.applicant.identityProvider.decision_code??'—'} · Document: {detail.applicant.identityProvider.document_type||'—'} · Country: {detail.applicant.identityProvider.document_country||'—'} · Name match: {detail.applicant.identityProvider.name_match?'Yes':'No'} · Decision: {date(detail.applicant.identityProvider.decision_time)}</p>}
+               <h4>Assessment integrity · Human review</h4>
+               <p className="ra-footnote">Recorded focus/capture incidents: {detail.applicant.proctorIncidentCount||0} · Last pause reason: {detail.applicant.proctorPauseReason||'—'}</p>
               <p className="ra-footnote">Browser focus and sound events are only context for reviewer inspection—not proof of misconduct. Capture must be consented and authorized.</p>
               <div className="ra-proctor-events">{detail.monitoringEventCounts.length
                 ? detail.monitoringEventCounts.map(event=><span key={event.event_type}>{event.event_type.replace(/_/g,' ')} · {event.count}</span>)

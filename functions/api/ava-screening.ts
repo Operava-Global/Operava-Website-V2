@@ -9,6 +9,7 @@ import {
 } from '../lib/formCore'
 import { buildQuestionSet, type PositionCode } from '../lib/assessmentBank'
 import { OWNED_ID_TTL_MS, ownedIdentityAccepted, validOwnedDocumentType, validateCameraJpeg, identityReviewChecksValid } from '../lib/avaOwnedIdentity'
+import { constantTimeHexEqual, createOneTimeToken, hmacSha256Hex, veriffApiEndpoint, veriffConfigured, veriffHostedUrl } from '../lib/avaVeriff'
 
 type Role = PositionCode
 type AvaEnv = FormEnv & {
@@ -22,9 +23,9 @@ type AvaEnv = FormEnv & {
   AVA_PROCTOR_BUCKET?: R2Bucket
   AVA_ONBOARDING_BUCKET?: R2Bucket
   AVA_LEGACY_ID_UPLOAD_ENABLED?: string
-  AVA_IDV_API_URL?: string
-  AVA_IDV_API_KEY?: string
-  AVA_IDV_WEBHOOK_SECRET?: string
+  AVA_VERIFF_BASE_URL?: string
+  AVA_VERIFF_API_KEY?: string
+  AVA_VERIFF_SHARED_SECRET?: string
   AI?: Ai
 }
 type Invite = { v: 1; id: string; email: string; name: string; role: Role; exp: number }
@@ -34,8 +35,10 @@ type Applicant = {
   otp_hash: string | null; otp_expires: number; otp_attempts: number; otp_sent: number; otp_count: number;
   verified_at: number | null; session_hash: string | null; session_expires: number | null;
   identity_status: string; identity_key: string | null; identity_kind: string | null; identity_submitted: number | null;
-  identity_reviewed: number | null; profile: string | null; consent_at: number | null;
+  identity_reviewed: number | null; identity_consent_at?: number | null; profile: string | null; consent_at: number | null;
   monitor_consent_at: number | null; ai_consent_at: number | null; proctor_consent_at?: number | null;
+  proctor_paused_at?: number | null; proctor_pause_reason?: string | null; proctor_incidents?: number;
+  proctor_heartbeat_at?: number | null; assessment_rules_accepted_at?: number | null;
   assessment_status: string; assessment_version?: number; assessment_started: number | null; deadline: number | null;
   completed: number | null; created_at: number
 }
@@ -63,7 +66,7 @@ type OnboardingDocument = {
   object_key:string|null; requested_at:number; submitted_at:number|null;
   reviewed_at:number|null; review_note:string|null
 }
-const allowedEvents = new Set(['focus_lost', 'focus_returned', 'visibility_hidden', 'visibility_visible', 'fullscreen_exited', 'microphone_denied', 'microphone_muted', 'audio_interrupted', 'sound_flag'])
+const allowedEvents = new Set(['focus_lost', 'focus_returned', 'visibility_hidden', 'visibility_visible', 'fullscreen_exited', 'microphone_denied', 'microphone_muted', 'audio_interrupted', 'sound_flag', 'capture_interrupted', 'clipboard_blocked'])
 const EXTRA_QUESTIONS = [
   { id: 'ava-en-1', section: 'english', topic: 'written-communication', prompt: 'Write a clear, polite email to a client explaining a missed deadline, the next action, and when they will receive an update.' },
   { id: 'ava-en-2', section: 'english', topic: 'grammar', prompt: 'Correct this sentence and explain the change: "Our team have finish the customer requests yesterday."' },
@@ -130,7 +133,9 @@ async function ensure(db: D1Database) {
       otp_count INTEGER NOT NULL DEFAULT 0, verified_at INTEGER, session_hash TEXT,
       session_expires INTEGER, identity_status TEXT NOT NULL DEFAULT 'not_submitted',
       identity_key TEXT, identity_kind TEXT, identity_submitted INTEGER, identity_reviewed INTEGER,
-      profile TEXT, consent_at INTEGER, monitor_consent_at INTEGER, ai_consent_at INTEGER,
+      identity_consent_at INTEGER, profile TEXT, consent_at INTEGER, monitor_consent_at INTEGER, ai_consent_at INTEGER,
+      proctor_paused_at INTEGER, proctor_pause_reason TEXT, proctor_incidents INTEGER NOT NULL DEFAULT 0,
+      proctor_heartbeat_at INTEGER, assessment_rules_accepted_at INTEGER,
       assessment_status TEXT NOT NULL DEFAULT 'not_started', assessment_started INTEGER,
       deadline INTEGER, completed INTEGER, created_at INTEGER NOT NULL)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_answers (
@@ -167,7 +172,18 @@ async function ensure(db: D1Database) {
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_application_links (reference_id TEXT PRIMARY KEY, session_id TEXT NOT NULL UNIQUE, email TEXT NOT NULL, created_at INTEGER NOT NULL, FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_questions (session_id TEXT NOT NULL, question_number INTEGER NOT NULL, question_id TEXT NOT NULL, prompt TEXT NOT NULL, PRIMARY KEY(session_id,question_number), FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_identity_attestations (session_id TEXT PRIMARY KEY, vendor_reference TEXT NOT NULL UNIQUE, face_score REAL NOT NULL, liveness_pass INTEGER NOT NULL, document_authentic INTEGER NOT NULL, document_name_match INTEGER NOT NULL, passport_nfc_pass INTEGER NOT NULL, status TEXT NOT NULL, checked_at INTEGER NOT NULL, FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_identity_intents (session_id TEXT PRIMARY KEY, vendor_reference TEXT NOT NULL UNIQUE, created_at INTEGER NOT NULL, FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_identity_intents (
+      session_id TEXT PRIMARY KEY, vendor_reference TEXT NOT NULL UNIQUE, created_at INTEGER NOT NULL,
+      provider_url TEXT, link_token_hash TEXT, link_expires_at INTEGER, link_used_at INTEGER,
+      provider_status TEXT NOT NULL DEFAULT 'created', attempt_count INTEGER NOT NULL DEFAULT 1,
+      FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
+    db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS ava_identity_link_token_hash
+      ON ava_screening_identity_intents(link_token_hash) WHERE link_token_hash IS NOT NULL`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_identity_provider_decisions (
+      session_id TEXT PRIMARY KEY, vendor_reference TEXT NOT NULL UNIQUE, provider_status TEXT NOT NULL,
+      decision_code INTEGER, document_type TEXT, document_country TEXT, name_match INTEGER NOT NULL DEFAULT 0,
+      decision_time INTEGER, received_at INTEGER NOT NULL,
+      FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_proctor_evidence (session_id TEXT NOT NULL, kind TEXT NOT NULL, chunk_id TEXT NOT NULL, object_key TEXT NOT NULL, recorded_at INTEGER NOT NULL, PRIMARY KEY(session_id,kind,chunk_id), FOREIGN KEY(session_id) REFERENCES ava_screening_sessions(id) ON DELETE CASCADE)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS ava_proctor_evidence_latest ON ava_screening_proctor_evidence(session_id,kind,recorded_at DESC)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS ava_screening_onboarding_documents (
@@ -191,6 +207,28 @@ async function ensure(db: D1Database) {
   catch(e) { if(!/duplicate column/i.test(String(e))) throw e }
   try { await db.prepare('ALTER TABLE ava_screening_sessions ADD COLUMN proctor_consent_at INTEGER').run() }
   catch(e) { if(!/duplicate column/i.test(String(e))) throw e }
+  for(const column of [
+    'identity_consent_at INTEGER',
+    'proctor_paused_at INTEGER',
+    'proctor_pause_reason TEXT',
+    'proctor_incidents INTEGER NOT NULL DEFAULT 0',
+    'proctor_heartbeat_at INTEGER',
+    'assessment_rules_accepted_at INTEGER',
+  ]) {
+    try { await db.prepare(`ALTER TABLE ava_screening_sessions ADD COLUMN ${column}`).run() }
+    catch(e) { if(!/duplicate column/i.test(String(e))) throw e }
+  }
+  for(const column of [
+    'provider_url TEXT',
+    'link_token_hash TEXT',
+    'link_expires_at INTEGER',
+    'link_used_at INTEGER',
+    "provider_status TEXT NOT NULL DEFAULT 'created'",
+    'attempt_count INTEGER NOT NULL DEFAULT 1',
+  ]) {
+    try { await db.prepare(`ALTER TABLE ava_screening_identity_intents ADD COLUMN ${column}`).run() }
+    catch(e) { if(!/duplicate column/i.test(String(e))) throw e }
+  }
 }
 async function get(db: D1Database, id: string): Promise<Applicant | null> {
   return db.prepare('SELECT * FROM ava_screening_sessions WHERE id = ?').bind(id).first<Applicant>()
@@ -230,6 +268,17 @@ function applicantState(row: Applicant, answers: AnswerRow[]) {
     }) : [],
   }
 }
+async function identityVerified(db:D1Database,row:Applicant):Promise<boolean> {
+  if(row.identity_status!=='approved')return false
+  const [manual,provider]=await Promise.all([
+    db.prepare('SELECT status FROM ava_screening_identity_attestations WHERE session_id=?')
+      .bind(row.id).first<{status:string}>(),
+    db.prepare('SELECT provider_status,decision_code,name_match FROM ava_screening_identity_provider_decisions WHERE session_id=?')
+      .bind(row.id).first<{provider_status:string;decision_code:number|null;name_match:number}>(),
+  ])
+  return ownedIdentityAccepted(manual?.status)||
+    (provider?.provider_status==='approved'&&provider.decision_code===9001&&provider.name_match===1)
+}
 async function state(db: D1Database, env: AvaEnv, row: Applicant) {
   // Finalize expired assessments even when candidates close the browser before submitting.
   if (row.assessment_status === 'in_progress' && row.deadline && Date.now() >= row.deadline) {
@@ -243,12 +292,41 @@ async function state(db: D1Database, env: AvaEnv, row: Applicant) {
   if(result.question && (row.assessment_version||1)>=2) {
     result.question.prompt = await questionPrompt(db,env,row,result.question.number)
   }
-  const attestation=await db.prepare('SELECT status,face_score FROM ava_screening_identity_attestations WHERE session_id=?').bind(row.id).first<{status:string;face_score:number}>()
+  const [attestation,provider,identityIntent]=await Promise.all([
+    db.prepare('SELECT status,face_score FROM ava_screening_identity_attestations WHERE session_id=?')
+      .bind(row.id).first<{status:string;face_score:number}>(),
+    db.prepare('SELECT provider_status,decision_code,name_match FROM ava_screening_identity_provider_decisions WHERE session_id=?')
+      .bind(row.id).first<{provider_status:string;decision_code:number|null;name_match:number}>(),
+    db.prepare('SELECT provider_status,link_expires_at,link_used_at,created_at FROM ava_screening_identity_intents WHERE session_id=?')
+      .bind(row.id).first<{provider_status:string;link_expires_at:number|null;link_used_at:number|null;created_at:number}>(),
+  ])
+  if(identityIntent?.provider_status==='created'&&!identityIntent.link_used_at&&
+    identityIntent.link_expires_at&&identityIntent.link_expires_at<=Date.now()){
+    await db.prepare("UPDATE ava_screening_identity_intents SET provider_status='link_expired',link_token_hash=NULL WHERE session_id=? AND provider_status='created'")
+      .bind(row.id).run()
+    await db.prepare("UPDATE ava_screening_sessions SET identity_status='needs_resubmission' WHERE id=? AND identity_status='pending_verification'")
+      .bind(row.id).run()
+    row.identity_status='needs_resubmission'
+  }else if(identityIntent?.provider_status==='created'&&identityIntent.link_used_at&&
+    Date.now()-identityIntent.link_used_at>30*60_000){
+    await db.prepare("UPDATE ava_screening_identity_intents SET provider_status='abandoned_timeout',provider_url=NULL WHERE session_id=? AND provider_status='created'")
+      .bind(row.id).run()
+    await db.prepare("UPDATE ava_screening_sessions SET identity_status='needs_resubmission' WHERE id=? AND identity_status='pending_verification'")
+      .bind(row.id).run()
+    row.identity_status='needs_resubmission'
+  }
+  const verified=await identityVerified(db,row)
   return {...result,applicationReference:link?.reference_id||null,
-    verifiedApplicantProfile:row.identity_status==='approved' && ownedIdentityAccepted(attestation?.status),
-    identityVerification:attestation?.status||'required',faceMatchScore:attestation?.status==='verified'?attestation.face_score:null,
-    identityProviderAvailable:Boolean(env.AVA_ID_BUCKET),identityMode:'operava_owned_human_review',
+    verifiedApplicantProfile:verified,
+    identityConsentGiven:Boolean(row.identity_consent_at),
+    assessmentRulesAccepted:Boolean(row.assessment_rules_accepted_at),
+    identityVerification:identityIntent?.provider_status||provider?.provider_status||attestation?.status||'required',
+    faceMatchScore:attestation?.status==='verified'?attestation.face_score:null,
+    identityProviderAvailable:veriffConfigured(env),identityMode:'veriff_hosted_mobile',
     recordingStorageReady:Boolean(env.AVA_PROCTOR_BUCKET),
+    proctorPausedAt:row.proctor_paused_at||null,
+    proctorPauseReason:row.proctor_pause_reason||null,
+    proctorIncidentCount:row.proctor_incidents||0,
     onboardingStorageReady:Boolean(env.AVA_ONBOARDING_BUCKET)}
 }
 async function questionPrompt(db:D1Database,env:AvaEnv,row:Applicant,number:number):Promise<string> {
@@ -443,13 +521,15 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (action === 'publicApplicants') {
         const offset=Math.min(10000,Math.max(0,Math.floor(Number(data?.offset)||0)))
         const result=await db.prepare(`SELECT s.id,s.name,s.email,s.role,s.created_at,s.verified_at,
-          s.assessment_status,s.assessment_started,s.completed,
+          s.assessment_status,s.assessment_started,s.completed,s.identity_status,
+          s.proctor_incidents, i.provider_status, i.link_used_at,
           CASE WHEN s.assessment_status='in_progress' AND s.deadline<=? THEN 'time_expired'
             ELSE s.assessment_status END AS current_status,
           CASE WHEN s.profile IS NOT NULL THEN 1 ELSE 0 END AS has_profile,
           COALESCE(r.review_status,'awaiting_human_review') AS review_status
           FROM ava_screening_public_accounts a JOIN ava_screening_sessions s ON s.id=a.session_id
           LEFT JOIN ava_screening_manual_reviews r ON r.session_id=s.id
+          LEFT JOIN ava_screening_identity_intents i ON i.session_id=s.id
           ORDER BY s.created_at DESC LIMIT 100 OFFSET ?`)
           .bind(Date.now(),offset).all()
         return json({ok:true,applicants:result.results||[],offset})
@@ -536,12 +616,16 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         })
         const events = (await db.prepare('SELECT event_type, COUNT(*) AS count FROM ava_screening_events WHERE session_id=? GROUP BY event_type').bind(id).all()).results || []
         const manualReview = await db.prepare('SELECT review_status, reviewer_note, reviewed_at FROM ava_screening_manual_reviews WHERE session_id=?').bind(id).first()
+        const identityProvider = await db.prepare(`SELECT vendor_reference,provider_status,decision_code,document_type,document_country,name_match,decision_time
+          FROM ava_screening_identity_provider_decisions WHERE session_id=?`).bind(id).first()
         let profile: Record<string, unknown> = {}
         try { profile = JSON.parse(applicant.profile || '{}') as Record<string, unknown> } catch { /* empty profile */ }
         return json({ ok: true, applicant: { id, name: applicant.name, email: applicant.email, role: applicant.role,
           profile, identityStatus: applicant.identity_status, identityKind: applicant.identity_kind,
           verifiedAt: applicant.verified_at, privacyConsentAt: applicant.consent_at,
           monitoringConsentAt: applicant.monitor_consent_at, aiConsentAt: applicant.ai_consent_at,
+          identityProvider,proctorIncidentCount:applicant.proctor_incidents||0,
+          proctorPauseReason:applicant.proctor_pause_reason||null,
           assessmentStatus: applicant.assessment_status === 'in_progress' && applicant.deadline && Date.now() >= applicant.deadline
             ? 'time_expired' : applicant.assessment_status,
           startedAt: applicant.assessment_started, deadline: applicant.deadline, completedAt: applicant.completed },
@@ -598,6 +682,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
           db.prepare('DELETE FROM ava_screening_identity_attestations WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_owned_identity WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_identity_intents WHERE session_id=?').bind(id),
+          db.prepare('DELETE FROM ava_screening_identity_provider_decisions WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_provider_events WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_questions WHERE session_id=?').bind(id),
           db.prepare('DELETE FROM ava_screening_application_links WHERE session_id=?').bind(id),
@@ -622,8 +707,8 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         const url = `https://www.operavaglobal.com/ava-screening/?invite=${encodeURIComponent(token)}`
         await sendEmail(env, {
           from: resolveFromEnv(env), to: [email], subject: 'OPERAVA | Your Ava Screening invitation',
-          text: `Hello ${name},\n\nYou have been invited to complete the ${ROLES[role]} screening.\n\nOpen this private invitation link within 7 days:\n${url}\n\nYou will confirm your email with a one-time code and complete identity review before the assessment.\n\nIf unexpected, ignore this email.\n\nOPERAVA Talent Acquisition`,
-          html: `<p>Hello ${escapeHtml(name)},</p><p>You are invited to complete the <strong>${escapeHtml(ROLES[role])}</strong> Ava Screening.</p><p><a href="${escapeHtml(url)}">Open your private invitation</a> (valid for 7 days)</p><p>For your security, an additional email code and human identity review are required before the timed assessment.</p><p>OPERAVA Talent Acquisition</p>`,
+          text: `Hello ${name},\n\nYou have been invited to complete the ${ROLES[role]} screening.\n\nOpen this private invitation link within 7 days:\n${url}\n\nYou will confirm your email with a one-time code, then receive a secure phone link for live government ID and selfie verification before the assessment.\n\nIf unexpected, ignore this email.\n\nOPERAVA Talent Acquisition`,
+          html: `<p>Hello ${escapeHtml(name)},</p><p>You are invited to complete the <strong>${escapeHtml(ROLES[role])}</strong> Ava Screening.</p><p><a href="${escapeHtml(url)}">Open your private invitation</a> (valid for 7 days)</p><p>For your security, email OTP and a Veriff-hosted live ID and selfie check are required before the timed assessment.</p><p>OPERAVA Talent Acquisition</p>`,
         })
         await db.prepare(`INSERT INTO ava_screening_invitations(id,email,name,role,sent_at,expires_at,invited_by)
           VALUES (?,?,?,?,?,?,?)`)
@@ -873,7 +958,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       const saved = await get(db, invite.id)
       return json({ ...(await state(db, env, saved!)), sessionToken })
     }
-    if(['state','applications','selectApplication','onboardingDocuments','submitOnboardingDocument','proctorConsent','proctorChunk','identityStart','identitySubmit'].includes(action)) await ensure(db)
+    if(['state','applications','selectApplication','onboardingDocuments','submitOnboardingDocument','proctorConsent','proctorChunk','proctorResume','proctorHeartbeat','acceptAssessmentRules','identityStart','identitySubmit'].includes(action)) await ensure(db)
     const row = await authorized(request, env, db)
     if (!row) return error('Your secure screening session is missing or expired.', 401)
     if (action === 'state') return json(await state(db, env, row))
@@ -1030,15 +1115,21 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (row.identity_key) await env.AVA_ID_BUCKET.delete(row.identity_key).catch(() => {})
       return json(await state(db, env, (await get(db, row.id))!))
     }
+    if (action === 'acceptAssessmentRules') {
+      if(data?.accepted!==true||row.assessment_status!=='not_started'||!row.profile||
+        !row.consent_at||!row.monitor_consent_at||!await identityVerified(db,row))
+        return error('Confirm the assessment rules only after completing your profile, privacy consent and verified identity.',403)
+      await db.prepare('UPDATE ava_screening_sessions SET assessment_rules_accepted_at=COALESCE(assessment_rules_accepted_at,?) WHERE id=? AND assessment_status=\'not_started\'')
+        .bind(Date.now(),row.id).run()
+      return json(await state(db,env,(await get(db,row.id))!))
+    }
     if (action === 'proctorConsent') {
       if(row.assessment_status!=='not_started'&&row.assessment_status!=='in_progress')
         return error('Assessment recording consent is closed.',409)
       if(!row.profile||!row.consent_at||!row.monitor_consent_at)
         return error('Complete your profile and monitoring consent first.',403)
       if(!env.AVA_PROCTOR_BUCKET)return error('Private recording storage is unavailable.',503)
-      const attestation=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status IN ('verified','manual_verified')")
-        .bind(row.id).first()
-      if(row.identity_status!=='approved'||!attestation)return error('OPERAVA identity review must pass before recording.',403)
+      if(!await identityVerified(db,row))return error('Verified identity is required before recording.',403)
       if(data?.recordingConsent!==true)
         return error('Explicit camera, microphone and screen recording consent is required.',403)
       await db.prepare('UPDATE ava_screening_sessions SET proctor_consent_at=? WHERE id=? AND assessment_status IN (\'not_started\',\'in_progress\')')
@@ -1048,32 +1139,117 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
     if (action === 'identityStart') {
       if(!row.profile||!row.consent_at||!row.monitor_consent_at)
         return error('Complete your profile and privacy terms first.',403)
-      if(row.assessment_status!=='not_started'||row.identity_status==='approved'||row.identity_status==='pending_review')
-        return error('Identity capture is not available in this application state.',409)
-      if(!env.AVA_ID_BUCKET)return error('Private OPERAVA identity storage is not configured.',503)
-      // Server-issued, single-use, short-lived challenge; do not log the token.
-      // It prevents stale or duplicate uploads, but does not prove true liveness.
+      if(row.assessment_status!=='not_started'||row.identity_status==='approved'||row.identity_status==='pending_review'||row.identity_status==='rejected')
+        return error('Identity verification is not available in this application state.',409)
+      if(data?.identityConsent!==true)
+        return error('Explicit consent for live ID and selfie verification is required.',403)
+      if(!veriffConfigured(env))return error('Automatic phone identity verification is not configured. Contact Talent Acquisition before continuing.',503)
       const now=Date.now()
-      const previous=await db.prepare('SELECT * FROM ava_screening_owned_identity WHERE session_id=?')
-        .bind(row.id).first<OwnedIdentity>()
-      const attempts=previous&&now-previous.issued_at<24*60*60_000?previous.attempts+1:1
-      if(attempts>5)return error('Identity capture limit reached. Contact Talent Acquisition.',429)
-      if(previous&&now-previous.issued_at<45_000)
-        return error('A live identity capture was recently started. Try again shortly.',429)
-      const challenge=crypto.randomUUID()
-      const hash=await digest(row.id+':'+challenge)
-      await db.prepare(`INSERT INTO ava_screening_owned_identity
-        (session_id,challenge_hash,issued_at,expires_at,attempts,submitted_at)
-        VALUES (?,?,?,?,?,NULL)
-        ON CONFLICT(session_id) DO UPDATE SET
-          challenge_hash=excluded.challenge_hash,issued_at=excluded.issued_at,
-          expires_at=excluded.expires_at,attempts=excluded.attempts,submitted_at=NULL`)
-        .bind(row.id,hash,now,now+OWNED_ID_TTL_MS,attempts).run()
-      return json({ok:true,mode:'operava_owned_human_review',challenge,
-        challengeCode:challenge.slice(-6).toUpperCase(),expiresAt:now+OWNED_ID_TTL_MS,
-        required:['document','selfie','motion']})
+      const previous=await db.prepare('SELECT created_at,attempt_count,provider_status,link_expires_at,link_used_at,vendor_reference,provider_url FROM ava_screening_identity_intents WHERE session_id=?')
+        .bind(row.id).first<{created_at:number;attempt_count:number;provider_status:string;link_expires_at:number|null;link_used_at:number|null;vendor_reference:string;provider_url:string|null}>()
+      const attempts=previous&&now-previous.created_at<24*60*60_000?(previous.attempt_count||1)+1:1
+      if(attempts>5)return error('Identity verification link limit reached. Contact Talent Acquisition.',429)
+      if(previous&&previous.provider_status==='created'&&now-previous.created_at<24*60*60_000&&
+        ((!previous.link_used_at&&Number(previous.link_expires_at||0)>now)||
+          (Boolean(previous.link_used_at)&&now-previous.link_used_at<30*60_000)))
+        return error('Your identity verification is already in progress. Open the secure email link on your phone and wait for the result on this page.',409)
+      if(previous&&now-previous.created_at<45_000)
+        return error('A secure verification link was recently sent. Check your email before requesting another.',429)
+
+      let profile:Record<string,unknown>={}
+      try{profile=JSON.parse(row.profile||'{}') as Record<string,unknown>}catch{/* use verified registration name */}
+      const legalName=clean(profile.fullName,120)||row.name
+      const nameParts=legalName.trim().split(/\s+/)
+      const firstName=nameParts.shift()||legalName
+      const lastName=nameParts.join(' ')
+      const publicOrigin='https://www.operavaglobal.com'
+      const callback=new URL('/ava-screening/?identity=complete',publicOrigin).toString()
+      const consentText='I consent to Veriff processing my live identity document and selfie for identity verification on behalf of OPERAVA Global Solutions. I have reviewed the Veriff privacy information and the OPERAVA Privacy Policy.'
+      const payload={verification:{
+        callback,vendorData:row.id,endUserId:row.id,
+        person:{firstName,...(lastName?{lastName}:{})},
+        consents:[{type:'general',approved:true,text:consentText,timestamp:new Date(now).toISOString()}],
+      }}
+      let reference=''
+      let providerUrl=''
+      const reuseExisting=Boolean(previous&&now-previous.created_at<6*24*60*60_000&&previous.vendor_reference&&previous.provider_url&&
+        ['resubmission_requested','link_expired','email_failed'].includes(previous.provider_status))
+      if(reuseExisting){
+        reference=previous!.vendor_reference
+        try{providerUrl=veriffHostedUrl(previous!.provider_url!)}
+        catch{return error('The saved provider session link is invalid. Contact Talent Acquisition.',502)}
+      }else{
+        let endpoint=''
+        try{endpoint=veriffApiEndpoint(env.AVA_VERIFF_BASE_URL!)}
+        catch{return error('The Veriff API base URL is not valid. Contact the system administrator.',503)}
+        let external:Response
+        try{
+          external=await fetch(endpoint,{
+            method:'POST',headers:{'X-AUTH-CLIENT':env.AVA_VERIFF_API_KEY!,'Content-Type':'application/json'},
+            body:JSON.stringify(payload),signal:AbortSignal.timeout(12000),
+          })
+        }catch{return error('The identity provider could not be reached. Please retry shortly.',503)}
+        const raw=await external.text()
+        if(raw.length>48_000)return error('The identity provider response exceeded the allowed size.',502)
+        if(!external.ok)return error('The identity provider could not create a verification session. Contact Talent Acquisition if this continues.',503)
+        const signature=external.headers.get('X-HMAC-SIGNATURE')||external.headers.get('x-hmac-signature')||''
+        const echoedKey=external.headers.get('X-AUTH-CLIENT')||external.headers.get('x-auth-client')
+        if(!signature||!constantTimeHexEqual(signature,await hmacSha256Hex(env.AVA_VERIFF_SHARED_SECRET!,raw))||
+          echoedKey!==env.AVA_VERIFF_API_KEY)
+          return error('The identity provider response could not be authenticated.',502)
+        let provider: {status?:string;verification?:{id?:string;url?:string;vendorData?:string}}
+        try{provider=JSON.parse(raw) as typeof provider}catch{return error('The identity provider returned an invalid session response.',502)}
+        reference=String(provider.verification?.id||'').trim()
+        try{providerUrl=veriffHostedUrl(String(provider.verification?.url||''))}
+        catch{return error('The identity provider returned an invalid secure phone link.',502)}
+        if(provider.status!=='success'||!reference||reference.length>120||provider.verification?.vendorData!==row.id)
+          return error('The identity provider did not return a valid session linked to this applicant.',502)
+      }
+
+      if(!reuseExisting)
+        await db.prepare('DELETE FROM ava_screening_identity_provider_decisions WHERE session_id=?').bind(row.id).run()
+      const token=createOneTimeToken(32)
+      const tokenHash=await digest(token)
+      const linkExpires=now+15*60_000
+      await db.prepare(`INSERT INTO ava_screening_identity_intents
+        (session_id,vendor_reference,created_at,provider_url,link_token_hash,link_expires_at,link_used_at,provider_status,attempt_count)
+        VALUES (?,?,?,?,?,?,NULL,'created',?)
+        ON CONFLICT(session_id) DO UPDATE SET vendor_reference=excluded.vendor_reference,
+          created_at=excluded.created_at,provider_url=excluded.provider_url,
+          link_token_hash=excluded.link_token_hash,link_expires_at=excluded.link_expires_at,
+          link_used_at=NULL,provider_status='created',attempt_count=excluded.attempt_count`)
+        .bind(row.id,reference,now,providerUrl,tokenHash,linkExpires,attempts).run()
+      const link=new URL('/api/ava-identity-link',publicOrigin)
+      link.searchParams.set('token',token)
+      await db.prepare("UPDATE ava_screening_sessions SET identity_status='pending_verification',identity_consent_at=COALESCE(identity_consent_at,?),identity_reviewed=NULL WHERE id=? AND assessment_status='not_started'")
+        .bind(now,row.id).run()
+      try{
+        await sendEmail(env,{from:resolveFromEnv(env),to:[row.email],
+          subject:'OPERAVA | Secure phone identity verification',
+          text:`Hello ${row.name},
+
+Open this email on your mobile phone and use the secure link below to verify your identity. Veriff will guide you through a live government ID/passport capture and selfie/liveness check. Use the camera when prompted; existing gallery photos are not a substitute for the live check. If your email app does not open the camera, choose Open in Safari or Chrome.
+
+${link.toString()}
+
+This link expires in 15 minutes and can be used once. Do not forward it. When you finish, keep your OPERAVA assessment open on your computer; its identity status will update automatically.
+
+If you did not request this check, ignore this message and contact OPERAVA Talent Acquisition.
+
+OPERAVA Talent Acquisition`,
+          html:`<p>Hello ${escapeHtml(row.name)},</p><p>Open this email on your mobile phone and use the secure link below to verify your identity. Veriff will guide you through a live government ID/passport capture and selfie/liveness check. Use the camera when prompted; existing gallery photos are not a substitute for the live check. If your email app does not open the camera, choose Open in Safari or Chrome.</p><p><a href="${escapeHtml(link.toString())}">Open secure phone verification</a></p><p><strong>This link expires in 15 minutes and can be used once.</strong> Do not forward it. When you finish, keep your OPERAVA assessment open on your computer; its identity status will update automatically.</p><p>If you did not request this check, ignore this message and contact OPERAVA Talent Acquisition.</p><p>OPERAVA Talent Acquisition</p>`})
+      }catch{
+        await db.prepare("UPDATE ava_screening_identity_intents SET provider_status='email_failed',link_token_hash=NULL WHERE session_id=?")
+          .bind(row.id).run()
+        await db.prepare("UPDATE ava_screening_sessions SET identity_status='needs_resubmission' WHERE id=? AND identity_status='pending_verification'")
+          .bind(row.id).run()
+        return error('The verification session was created, but its email could not be sent. Please retry or contact Talent Acquisition.',503)
+      }
+      return json({ok:true,identityStatus:'pending_verification',
+        message:'A single-use secure identity link was sent to your verified email. Open it on your phone; this desktop page will update automatically.'})
     }
     if (action === 'identitySubmit') {
+      return error('Legacy identity uploads are disabled. Use the secure Veriff phone verification link.',410)
       if(request.headers.get('Origin')!==new URL(request.url).origin)
         return error('Identity media must be submitted from this secure site.',403)
       if(!env.AVA_ID_BUCKET)return error('Private OPERAVA identity storage is unavailable.',503)
@@ -1141,8 +1317,7 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
     if (action === 'proctorChunk') {
       if(!env.AVA_PROCTOR_BUCKET) return error('Private assessment recording storage is unavailable.',503)
       if(!row.consent_at||!row.monitor_consent_at||!row.profile||!row.proctor_consent_at) return error('Explicit screen, camera and microphone recording consent is required.',403)
-      const attestation=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status IN ('verified','manual_verified')").bind(row.id).first()
-      if(row.identity_status!=='approved'||!attestation)return error('OPERAVA identity review must complete before recording.',403)
+      if(!await identityVerified(db,row))return error('Verified identity is required before recording.',403)
       if(row.assessment_status!=='not_started'&&row.assessment_status!=='in_progress') return error('Assessment is not accepting recordings.',409)
       if(row.assessment_status==='in_progress'&&(!row.deadline||Date.now()>=row.deadline))
         return error('Assessment time elapsed. Recording upload has closed.',409)
@@ -1173,9 +1348,9 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       // Fail closed: the server requires a certified identity attestation and
       // actual private live recording segments, not browser-supplied booleans.
       if (!row.profile || !row.consent_at || !row.monitor_consent_at) return error('Complete the profile and monitoring consent before starting.', 403)
+      if (!row.assessment_rules_accepted_at) return error('Read and acknowledge the assessment instructions before starting.',403)
       if (row.assessment_status !== 'not_started') return error('Assessment already started or submitted.', 409)
-      const verified=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status IN ('verified','manual_verified')").bind(row.id).first()
-      if(row.identity_status!=='approved'||!verified) return error('OPERAVA human identity review must be approved before the assessment.',403)
+      if(!await identityVerified(db,row)) return error('Verified identity must be approved before the assessment.',403)
       if(!row.proctor_consent_at)return error('Explicit camera, microphone and screen recording consent is required.',403)
       if(!env.AVA_PROCTOR_BUCKET) return error('Secure live proctor recording is not configured.',503)
       const evidence=await db.prepare("SELECT kind,MAX(recorded_at) AS last_seen FROM ava_screening_proctor_evidence WHERE session_id=? GROUP BY kind")
@@ -1184,8 +1359,8 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if(!latest.get('screen')||!latest.get('camera')||Date.now()-latest.get('screen')!>30_000||Date.now()-latest.get('camera')!>30_000)
         return error('Enable screen, camera and microphone recording and allow initial segments to save before starting.',403)
       const now = Date.now()
-      await db.prepare("UPDATE ava_screening_sessions SET assessment_status='in_progress', assessment_started=?, deadline=?, assessment_version=2 WHERE id=? AND assessment_status='not_started'")
-        .bind(now, now + ASSESSMENT_MS, row.id).run()
+      await db.prepare("UPDATE ava_screening_sessions SET assessment_status='in_progress', assessment_started=?, deadline=?, assessment_version=2,proctor_paused_at=NULL,proctor_pause_reason=NULL,proctor_incidents=0,proctor_heartbeat_at=? WHERE id=? AND assessment_status='not_started'")
+        .bind(now, now + ASSESSMENT_MS, now, row.id).run()
       return json(await state(db, env, (await get(db, row.id))!))
     }
     if (action === 'answer') {
@@ -1196,10 +1371,17 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
         return error('Assessment time has elapsed. Submitted answers remain saved.', 409)
       }
       if((row.assessment_version||1)>=2) {
+        if(row.proctor_paused_at)return error('Assessment paused after a focus or capture interruption. Restore recording and explicitly resume before answering.',409)
+        if(!row.proctor_heartbeat_at||Date.now()-row.proctor_heartbeat_at>10_000){
+          const now=Date.now()
+          await db.prepare(`UPDATE ava_screening_sessions SET proctor_paused_at=COALESCE(proctor_paused_at,?),
+            proctor_pause_reason=CASE WHEN proctor_paused_at IS NULL THEN 'heartbeat_timeout' ELSE proctor_pause_reason END,
+            proctor_incidents=CASE WHEN proctor_paused_at IS NULL THEN proctor_incidents+1 ELSE proctor_incidents END
+            WHERE id=? AND assessment_status='in_progress'`).bind(now,row.id).run()
+          return error('Proctor focus heartbeat expired. The assessment is paused; restore both recordings and explicitly resume.',409)
+        }
         if(!row.proctor_consent_at)return error('Proctoring consent is required for this assessment.',403)
-        const verified=await db.prepare("SELECT status FROM ava_screening_identity_attestations WHERE session_id=? AND status IN ('verified','manual_verified')")
-          .bind(row.id).first()
-        if(row.identity_status!=='approved'||!verified)
+        if(!await identityVerified(db,row))
           return error('Identity verification must remain approved throughout the assessment.',403)
         if(!env.AVA_PROCTOR_BUCKET)return error('Private assessment recording storage is unavailable.',503)
         const segments=await db.prepare("SELECT kind,MAX(recorded_at) AS last_seen FROM ava_screening_proctor_evidence WHERE session_id=? GROUP BY kind")
@@ -1229,14 +1411,70 @@ export const onRequestPost: PagesFunction<AvaEnv> = async (context) => {
       if (row.ai_consent_at && env.AI) context.waitUntil(maybeReview(env, db, row, current.id, actualPrompt, answer))
       return json(await state(db, env, (await get(db, row.id))!))
     }
+    if (action === 'proctorHeartbeat') {
+      if(row.assessment_status!=='in_progress'||row.proctor_paused_at)
+        return error('Assessment is not in an active recording state.',409)
+      if(!row.proctor_consent_at||!await identityVerified(db,row))
+        return error('Verified identity and recording consent are required.',403)
+      const now=Date.now()
+      await db.prepare("UPDATE ava_screening_sessions SET proctor_heartbeat_at=? WHERE id=? AND assessment_status='in_progress' AND proctor_paused_at IS NULL")
+        .bind(now,row.id).run()
+      return json({ok:true,heartbeatAt:now})
+    }
+    if (action === 'proctorResume') {
+      if(row.assessment_status!=='in_progress')
+        return error('Only an active assessment can be resumed.',409)
+      if(!row.deadline||Date.now()>=row.deadline){
+        await db.prepare("UPDATE ava_screening_sessions SET assessment_status='time_expired',completed=? WHERE id=? AND assessment_status='in_progress'")
+          .bind(Date.now(),row.id).run()
+        return error('The 45-minute assessment timer has expired. Your submitted answers remain saved.',409)
+      }
+      if(!row.proctor_consent_at||!env.AVA_PROCTOR_BUCKET||!await identityVerified(db,row))
+        return error('Verified identity, recording consent and private storage are required to resume.',403)
+      const evidence=await db.prepare("SELECT kind,MAX(recorded_at) AS last_seen FROM ava_screening_proctor_evidence WHERE session_id=? GROUP BY kind")
+        .bind(row.id).all<{kind:string;last_seen:number}>()
+      const latest=new Map((evidence.results||[]).map(item=>[item.kind,item.last_seen]))
+      const now=Date.now(),pausedAt=row.proctor_paused_at||0
+      if(!latest.get('screen')||!latest.get('camera')||
+        (pausedAt>0&&(latest.get('screen')!<=pausedAt||latest.get('camera')!<=pausedAt))||
+        now-latest.get('screen')!>30_000||now-latest.get('camera')!>30_000)
+        return error('Restore both screen and webcam/microphone recordings and wait for fresh private segments before resuming.',403)
+      if(!pausedAt){
+        // If the browser lost focus but its keepalive event was dropped, fresh
+        // private segments still prove the user restored capture. Record recovery.
+        await db.prepare('UPDATE ava_screening_sessions SET proctor_incidents=proctor_incidents+1,proctor_heartbeat_at=? WHERE id=? AND assessment_status=\'in_progress\'')
+          .bind(now,row.id).run()
+        await db.prepare('INSERT INTO ava_screening_events(session_id,event_type,occurred_at) VALUES (?,?,?)')
+          .bind(row.id,'proctor_resume_recovered',now).run()
+        return json(await state(db,env,(await get(db,row.id))!))
+      }
+      const resumed=await db.prepare("UPDATE ava_screening_sessions SET proctor_paused_at=NULL,proctor_pause_reason=NULL,proctor_heartbeat_at=? WHERE id=? AND assessment_status='in_progress' AND proctor_paused_at=?")
+        .bind(now,row.id,pausedAt).run()
+      if(!resumed.meta.changes)return error('Assessment pause changed. Refresh and retry.',409)
+      await db.prepare('INSERT INTO ava_screening_events(session_id,event_type,occurred_at) VALUES (?,?,?)')
+        .bind(row.id,'proctor_resumed',now).run()
+      return json(await state(db,env,(await get(db,row.id))!))
+    }
     if (action === 'event') {
       const event = String(data?.event || '')
       if (!allowedEvents.has(event)) return error('Unsupported monitoring event.')
       if (!row.monitor_consent_at || row.assessment_status !== 'in_progress') return error('Monitoring is not active.', 409)
+      const now=Date.now()
       await db.prepare(`INSERT INTO ava_screening_events(session_id,event_type,occurred_at)
         SELECT ?,?,? WHERE (SELECT COUNT(*) FROM ava_screening_events WHERE session_id=?) < 300`)
-        .bind(row.id, event, Date.now(), row.id).run()
-      return json({ ok: true })
+        .bind(row.id, event, now, row.id).run()
+      const pauseEvents=new Set(['focus_lost','visibility_hidden','fullscreen_exited','capture_interrupted','microphone_denied','microphone_muted','audio_interrupted'])
+      let paused=false
+      if((row.assessment_version||1)>=2&&pauseEvents.has(event)){
+        const update=await db.prepare(`UPDATE ava_screening_sessions SET
+          proctor_paused_at=COALESCE(proctor_paused_at,?),
+          proctor_pause_reason=CASE WHEN proctor_paused_at IS NULL THEN ? ELSE proctor_pause_reason END,
+          proctor_incidents=CASE WHEN proctor_paused_at IS NULL THEN proctor_incidents+1 ELSE proctor_incidents END
+          WHERE id=? AND assessment_status='in_progress' AND assessment_version>=2`)
+          .bind(now,event,row.id).run()
+        paused=Boolean(update.meta.changes)
+      }
+      return json({ok:true,paused,proctorPausedAt:paused?now:(row.proctor_paused_at||null)})
     }
     return error('Unsupported Ava Screening action.', 404)
   } catch (err) {

@@ -13,7 +13,7 @@ type Profile = { fullName: string; phone: string; education: string; experience:
 type ScreenState = {
   ok: boolean
   applicant: { name: string; email: string; role: Role; roleTitle: string }
-  identityStatus: 'not_submitted' | 'pending_review' | 'approved' | 'needs_resubmission'
+  identityStatus: 'not_submitted' | 'pending_verification' | 'pending_review' | 'approved' | 'needs_resubmission' | 'rejected'
   identityKind: string | null
   identityVerification?: string
   verifiedApplicantProfile?: boolean
@@ -21,6 +21,11 @@ type ScreenState = {
   identityProviderAvailable?: boolean
   recordingStorageReady?: boolean
   proctorConsentGiven?: boolean
+  identityConsentGiven?: boolean
+  assessmentRulesAccepted?: boolean
+  proctorPausedAt?: number | null
+  proctorPauseReason?: string | null
+  proctorIncidentCount?: number
   applicationReference?: string | null
   profile: Partial<Profile>
   consentGiven: boolean
@@ -49,7 +54,7 @@ type ApplicationRecord = {
   requiredAction: string | null; isSelected: boolean
 }
 type ApiPayload = ScreenState & {
-  error?: string; sessionToken?: string; maskedEmail?: string; turnstileSiteKey?: string;
+  error?: string; message?: string; sessionToken?: string; maskedEmail?: string; turnstileSiteKey?: string;
   applicationReference?: string | null; applications?: ApplicationRecord[]; verificationUrl?: string
   challenge?: string; challengeCode?: string; expiresAt?: number
   documents?: OnboardingRecord[]; configured?: boolean
@@ -107,6 +112,8 @@ export default function AvaScreening() {
   const [workspaceView,setWorkspaceView] = useState<'assessment'|'applications'|'documents'>('assessment')
   const [profilePage,setProfilePage] = useState(0)
   const [readyPage,setReadyPage] = useState(0)
+  const [instructionAcknowledged,setInstructionAcknowledged] = useState(false)
+  const [focusPaused,setFocusPaused] = useState(false)
   const [itemPage,setItemPage] = useState(0)
   const deckRef=useRef<HTMLDivElement|null>(null)
   const [registerName,setRegisterName] = useState('')
@@ -149,6 +156,9 @@ export default function AvaScreening() {
   const [cameraChecked,setCameraChecked] = useState(false)
   const [screenChecked,setScreenChecked] = useState(false)
   const captureActive = useRef(false)
+  const screenRef=useRef<ScreenState|null>(null)
+  const stopCaptureRef=useRef<()=>void>(()=>{})
+  const pauseEventSent=useRef(false)
   const [identityBusy,setIdentityBusy] = useState(false)
   const [identityChallenge,setIdentityChallenge]=useState<{token:string;code:string;expires:number}|null>(null)
   const [identityStep,setIdentityStep]=useState(0)
@@ -166,6 +176,7 @@ export default function AvaScreening() {
   const consentRef = useRef(false)
   const sessionRef = useRef(session)
   useEffect(() => { consentRef.current = Boolean(screen?.consentGiven && screen.assessmentStatus === 'in_progress') }, [screen])
+  useEffect(() => { screenRef.current = screen }, [screen])
   useEffect(() => { sessionRef.current = session }, [session])
 
   const submit = useCallback(async (action: string, body: Record<string, unknown> = {}, form?: FormData): Promise<ApiPayload> => {
@@ -219,6 +230,11 @@ export default function AvaScreening() {
       setPrivacyConsent(value.consentGiven)
       setMonitorConsent(value.consentGiven)
       setAiConsent(value.aiConsentGiven)
+      setIdentityConsent(Boolean(value.identityConsentGiven))
+      setInstructionAcknowledged(Boolean(value.assessmentRulesAccepted))
+      setFocusPaused(Boolean(value.proctorPausedAt)||
+        (value.assessmentStatus==='in_progress'&&value.total===30&&!captureActive.current))
+      if(!value.proctorPausedAt)pauseEventSent.current=false
       setError('')
     } catch (e) {
       if (/expired|missing|unauthorized/i.test(String(e))) {
@@ -230,6 +246,34 @@ export default function AvaScreening() {
     }
   }, [submit])
   useEffect(() => { if (session) void refresh() }, [session, refresh])
+  useEffect(()=>{
+    if(!session||screen?.identityStatus!=='pending_verification')return
+    const timer=window.setInterval(()=>void refresh(),5000)
+    return ()=>window.clearInterval(timer)
+  },[session,screen?.identityStatus,refresh])
+  useEffect(()=>{
+    if(!session||screen?.assessmentStatus!=='in_progress'||screen.total!==30)return
+    const heartbeat=()=>{
+      if(focusPaused||screen?.proctorPausedAt||document.visibilityState!=='visible'||
+        !document.hasFocus()||!document.fullscreenElement)return
+      void fetch(API,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session}`},
+        body:JSON.stringify({action:'proctorHeartbeat'})})
+        .then(response=>{
+          if(!response.ok){
+            setFocusPaused(true);setAnswer('');setAnswerSource('typed')
+            recognition.current?.stop();setIsSpeaking(false);stopCaptureRef.current()
+            setNotice('Proctor focus check failed. The assessment is paused; restore recording and resume.')
+          }
+        }).catch(()=>{
+          setFocusPaused(true);setAnswer('');setAnswerSource('typed')
+          recognition.current?.stop();setIsSpeaking(false);stopCaptureRef.current()
+          setNotice('Proctor connection was interrupted. The assessment is paused; restore recording and resume.')
+        })
+    }
+    heartbeat()
+    const timer=window.setInterval(heartbeat,3000)
+    return ()=>window.clearInterval(timer)
+  },[session,screen?.assessmentStatus,screen?.total,screen?.proctorPausedAt,focusPaused])
   useEffect(() => {
     if(screen?.applicant.email) setWorkspaceView(screen.assessmentStatus==='in_progress'?'assessment':'applications')
   },[screen?.applicant.email])
@@ -296,17 +340,46 @@ export default function AvaScreening() {
   useEffect(() => {
     const log = (event: string) => {
       if (!consentRef.current || !sessionRef.current) return
+      const pauseEvents=['focus_lost','visibility_hidden','fullscreen_exited','capture_interrupted','microphone_denied','microphone_muted','audio_interrupted']
+      const active=screenRef.current?.assessmentStatus==='in_progress'&&screenRef.current.total===30
+      if(active&&pauseEvents.includes(event)&&!pauseEventSent.current){
+        pauseEventSent.current=true
+        setFocusPaused(true)
+        setAnswer('')
+        setAnswerSource('typed')
+        recognition.current?.stop()
+        setIsSpeaking(false)
+        stopCaptureRef.current()
+        setNotice('Assessment paused. Your unsaved answer was cleared; previously submitted answers remain saved.')
+      }
       void fetch(API, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionRef.current}` }, body: JSON.stringify({ action: 'event', event }) }).catch(() => {})
     }
     const visibility = () => log(document.visibilityState === 'hidden' ? 'visibility_hidden' : 'visibility_visible')
     const blur = () => log('focus_lost')
     const focus = () => log('focus_returned')
     const changed = () => { setFullscreen(Boolean(document.fullscreenElement)); if (!document.fullscreenElement) log('fullscreen_exited') }
+    const clipboard=(event:Event)=>{
+      if(screenRef.current?.assessmentStatus==='in_progress'&&screenRef.current.total===30){
+        event.preventDefault()
+        log('clipboard_blocked')
+      }
+    }
     document.addEventListener('visibilitychange', visibility)
     window.addEventListener('blur', blur)
     window.addEventListener('focus', focus)
     document.addEventListener('fullscreenchange', changed)
-    return () => { document.removeEventListener('visibilitychange', visibility); window.removeEventListener('blur', blur); window.removeEventListener('focus', focus); document.removeEventListener('fullscreenchange', changed) }
+    document.addEventListener('copy',clipboard)
+    document.addEventListener('cut',clipboard)
+    document.addEventListener('paste',clipboard)
+    return () => {
+      document.removeEventListener('visibilitychange', visibility)
+      window.removeEventListener('blur', blur)
+      window.removeEventListener('focus', focus)
+      document.removeEventListener('fullscreenchange', changed)
+      document.removeEventListener('copy',clipboard)
+      document.removeEventListener('cut',clipboard)
+      document.removeEventListener('paste',clipboard)
+    }
   }, [])
   useEffect(() => () => {
     recognition.current?.stop()
@@ -509,20 +582,20 @@ export default function AvaScreening() {
   }
   useEffect(()=>()=>{identityCameraGeneration.current+=1;identityStream.current?.getTracks().forEach(track=>track.stop())},[])
   const requestIdentity=async()=>{
-    setIdentityBusy(true);setError('')
+    setIdentityBusy(true);setError('');setNotice('')
     try {
-      if(!identityConsent)throw Error('Review and consent to private identity photo capture first.')
-      const result=await submit('identityStart')
-      if(!result.challenge||!result.challengeCode||!result.expiresAt)
-        throw Error('Unable to obtain a secure camera challenge.')
-      setIdentityFrames({document:null,selfie:null,motion:null})
-      setIdentityCaptureMode('live_preview')
-      setIdentityStep(0)
-      setIdentityChallenge({token:result.challenge,code:result.challengeCode,expires:result.expiresAt})
-      setIdentityCameraStatus('idle')
-      setNotice('Your secure challenge is ready. Select Enable back camera to open the browser permission request, then capture your ID and two selfie moments.')
-    }catch(e){setError(e instanceof Error?e.message:'Unable to begin owned identity capture.')}
+      if(!identityConsent)throw Error('Consent to the secure Veriff ID and live selfie check before requesting your link.')
+      if(!screen?.identityProviderAvailable)throw Error('Automatic phone identity verification is not configured yet. Contact Talent Acquisition.')
+      const result=await submit('identityStart',{identityConsent:true})
+      setNotice(result.message||'A secure verification link was sent to your verified email. Open it on your phone; this desktop page will update automatically.')
+      await refresh()
+    }catch(e){setError(e instanceof Error?e.message:'Unable to send the secure phone verification link.')}
     finally{setIdentityBusy(false)}
+  }
+  const acceptAssessmentRules=async()=>{
+    if(!instructionAcknowledged){setError('Read the instructions and confirm that you understand the assessment rules.');return}
+    const ok=await perform(()=>submit('acceptAssessmentRules',{accepted:true}),'Assessment rules acknowledged. Continue to device permissions.')
+    if(ok)setReadyPage(2)
   }
   const captureIdentity=async()=>{
     setIdentityBusy(true);setError('')
@@ -644,6 +717,7 @@ export default function AvaScreening() {
     setProctorReady(false)
     setProctorSaved({camera:false,screen:false})
   }
+  stopCaptureRef.current=stopCapture
   useEffect(() => {
     setProctorSupport(inspectProctorSupport())
     const recheck=()=>setProctorSupport(inspectProctorSupport())
@@ -686,7 +760,7 @@ export default function AvaScreening() {
     recorders.current.length===2&&recorders.current.every(r=>r.state==='recording'))
   const startCapture = async () => {
     if(!recordingConsent){setError('Explicit recording consent is required.');return}
-    if(!screen?.verifiedApplicantProfile){setError('OPERAVA human identity approval is required before recording.');return}
+    if(!screen?.verifiedApplicantProfile){setError('Verified identity is required before recording.');return}
     if(!screen?.recordingStorageReady){setError('Secure private recording storage is not configured.');return}
     if(!proctorCameraReady||!preparedCamera.current||
       !proctorTrackIsLive(preparedCamera.current,'video')||
@@ -706,8 +780,11 @@ export default function AvaScreening() {
       if(!proctorTrackIsLive(display,'video'))
         throw Error('Screen capture did not become active. Select Share in the browser dialog.')
       const surface=display.getVideoTracks()[0]?.getSettings().displaySurface
-      if(surface&&surface!=='monitor')
-        throw Error('Share your entire display, not a tab or single application window.')
+      if(surface!=='monitor'){
+        display.getTracks().forEach(track=>track.stop())
+        display=null
+        throw Error('Select Entire Screen / Monitor in the browser sharing dialog. Tabs and individual application windows are not accepted.')
+      }
       if(!proctorTrackIsLive(webcam,'video')||!proctorTrackIsLive(webcam,'audio'))
         throw Error('Your webcam or microphone disconnected while screen sharing was enabled.')
       source='upload'
@@ -717,8 +794,11 @@ export default function AvaScreening() {
       captureActive.current=true
       const onLost=()=>{
         if(!captureActive.current)return
+        if(screenRef.current?.assessmentStatus==='in_progress')
+          void submit('event',{event:'capture_interrupted'}).catch(()=>{})
         stopCapture()
-        setError('One of the live media permissions ended. Restore webcam, microphone and screen capture to continue.')
+        setFocusPaused(screenRef.current?.assessmentStatus==='in_progress')
+        setError('A required camera, microphone or screen stream ended. The assessment is paused; restore all three permissions before resuming.')
       }
       for(const track of [...display.getTracks(),...webcam.getTracks()]){
         track.addEventListener('ended',onLost,{once:true})
@@ -791,16 +871,36 @@ export default function AvaScreening() {
     }finally{setProctorBusy(false)}
   }
   const beginAssessment = async () => {
+    if(!instructionAcknowledged||!screen?.assessmentRulesAccepted){
+      setError('Read and acknowledge the assessment rules before starting.')
+      return
+    }
     if(!screen?.verifiedApplicantProfile||!proctorReady||!proctorSaved.camera||!proctorSaved.screen||!isCaptureLive()){
       setError('Allow screen, webcam and microphone recording and wait until both streams are securely saved.')
       return
     }
-    const ok = await perform(() => submit('begin'), 'Your 45-minute assessment has started.')
-    if (ok && document.fullscreenEnabled) {
-      try { await document.documentElement.requestFullscreen() } catch { /* Fullscreen is optional; record only actual exits. */ }
+    if(!document.fullscreenEnabled){
+      setError('This browser does not support the required full-screen assessment mode. Use a current desktop browser.')
+      return
     }
+    try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen()}
+    catch{setError('Full-screen mode is required. Allow full-screen mode and try again.');return}
+    const ok = await perform(() => submit('begin'), 'Your 45-minute assessment has started.')
+    if(ok){setFocusPaused(false);pauseEventSent.current=false}
+  }
+  const resumeAssessment=async()=>{
+    if(!proctorReady||!proctorSaved.camera||!proctorSaved.screen||!isCaptureLive()){
+      setError('Restore screen, webcam and microphone recording and wait for both private segments before resuming.')
+      return
+    }
+    const ok=await perform(()=>submit('proctorResume'),'Assessment resumed. Your unsaved response was reset; submitted answers remain saved.')
+    if(ok){setFocusPaused(false);pauseEventSent.current=false}
   }
   const sendAnswer = async () => {
+    if(screen?.proctorPausedAt||focusPaused){
+      setError('The assessment is paused. Restore recording and explicitly resume before submitting an answer.')
+      return
+    }
     if(screen?.total===30&&(!proctorReady||!proctorSaved.camera||!proctorSaved.screen||!isCaptureLive())){
       setError('Screen, webcam and microphone recording must remain active before answering.')
       return
@@ -865,6 +965,22 @@ export default function AvaScreening() {
   const visibleApplications=applications.slice(itemPage,itemPage+1)
   const visibleDocuments=documents.slice(itemPage,itemPage+1)
 
+  if(params.get('identity')==='complete'){
+    return (
+      <div className="ava-screening">
+        <div className="ava-wrap">
+          <section className="ava-identity-return" role="status">
+            <div className="ava-check-icon"><ShieldCheck size={28}/></div>
+            <p className="ava-label">IDENTITY SUBMISSION RECEIVED</p>
+            <h1>Return to your computer</h1>
+            <p>Your phone verification has been submitted to the identity provider. Return to the desktop browser where you started Ava Assessment. That page will update automatically when the final verification decision is received.</p>
+            <p className="ava-muted">A submitted check is not the same as an approved check. You may close this phone page once you have returned to your desktop.</p>
+            <Link className="ava-secondary" to="/ava-screening/">Open the applicant portal</Link>
+          </section>
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="ava-screening">
       <div className="ava-wrap">
@@ -992,79 +1108,70 @@ export default function AvaScreening() {
               <p className="ava-label">03 / SECURE PRE-ASSESSMENT CHECKLIST</p>
               <h2>Your assessment, securely.</h2>
               <p className="ava-muted">The 45-minute assessment has 30 questions: 15 role-specific and 15 English reading/writing. A new question is presented only after the previous response. Resume an existing assessment without resetting the timer.</p>
-              <div className="ava-slide-progress" aria-label={`Readiness page ${readyPage+1} of 2`}>{[0,1].map(i=><span key={i} className={i<=readyPage?'is-complete':''}/>)}</div>
+              <div className="ava-slide-progress" aria-label={`Readiness page ${readyPage+1} of 3`}>{[0,1,2].map(i=><span key={i} className={i<=readyPage?'is-complete':''}/>)}</div>
               <div className="ava-readiness-grid">
                 {readyPage===0 && <article className="ava-check-card">
                   <div className="ava-check-icon"><ShieldCheck size={24}/></div>
-                  <h3>01 · Verify your identity</h3>
-                  <p>OPERAVA verifies identity using its own secure camera capture and authorized human reviewers. A live camera photo of your ID and two selfie moments are required. This is visual identity review, not government-certified document authentication or spoof-proof liveness.</p>
-                  <p className={screen?.verifiedApplicantProfile?'ava-status-good':'ava-status-warn'}>{screen?.verifiedApplicantProfile?'OPERAVA identity reviewed · Approved':screen?.identityStatus==='pending_review'?'Under private human review':screen?.identityStatus==='needs_resubmission'?'Resubmission requested':'Required · Not yet reviewed'}</p>
-                  {!screen?.verifiedApplicantProfile&&!identityChallenge&&screen?.identityStatus!=='pending_review'&&<>
-                    <label className="ava-field">Identity document<select value={identityDocType} onChange={e=>setIdentityDocType(e.target.value as typeof identityDocType)}>
-                      <option value="national_id">National ID</option><option value="passport">Passport</option><option value="drivers_license">Driver’s licence</option>
-                    </select></label>
-                    <label className="ava-check"><input type="checkbox" checked={identityConsent} onChange={e=>setIdentityConsent(e.target.checked)}/><span>I consent to taking and privately storing three camera photos of my identity document and face, exclusively for authorized OPERAVA human identity review, subject to the <Link to="/privacy" target="_blank">Privacy Policy</Link>. The stored images automatically expire after 30 days. I understand automated biometric matching is not used.</span></label>
-                    <div className="ava-camera-preflight" role="status" aria-label="Camera browser compatibility">
-                      <span className={identityBrowser?.secureContext&&identityBrowser?.available&&identityBrowser?.policyAllowed?'ava-status-good':'ava-status-warn'}>
-                        {identityBrowser
-                          ? !identityBrowser.secureContext?'Camera unavailable: HTTPS required'
-                          : !identityBrowser.available?'Camera unavailable in this browser'
-                          : !identityBrowser.policyAllowed?'Camera blocked by website permissions policy'
-                          : 'Browser camera API supported'
-                          : 'Checking browser camera support…'}
-                      </span>
-                      <span>Permission: {identityBrowser?.permission==='granted'?'allowed':identityBrowser?.permission==='denied'?'blocked':identityBrowser?.permission==='prompt'?'ask on use':'not reported (normal on some browsers)'}</span>
-                      <button className="ava-text-button" type="button" onClick={()=>void inspectIdentityBrowser()}>Recheck browser permissions</button>
-                    </div>
-                    <button type="button" className="ava-secondary" disabled={identityBusy||!identityConsent||!screen?.identityProviderAvailable||identityBrowser?.secureContext===false||identityBrowser?.available===false||identityBrowser?.policyAllowed===false} onClick={()=>void requestIdentity()}><Smartphone size={16}/>{identityBusy?'Creating secure challenge…':'Continue to secure camera check'}</button>
+                  <h3>01 · Verify your identity on your phone</h3>
+                  <p>Start here on your computer. OPERAVA will email a private, single-use verification link to your verified email address. Open that email on your phone and follow Veriff’s live camera flow to capture your government ID and complete a live selfie/liveness check.</p>
+                  <p className={screen?.verifiedApplicantProfile?'ava-status-good':'ava-status-warn'}>
+                    {screen?.verifiedApplicantProfile?'Identity verified · You may continue':
+                      screen?.identityStatus==='pending_verification'&&screen?.identityVerification==='review'?'Provider review in progress · Waiting for the final decision':
+                      screen?.identityStatus==='pending_verification'?'Secure link sent · Waiting for phone verification':
+                      screen?.identityStatus==='pending_review'?'Additional review is required':
+                      screen?.identityStatus==='needs_resubmission'?'A new identity verification attempt is required':
+                      screen?.identityStatus==='rejected'?'Identity verification was not approved · Contact Talent Acquisition':
+                      'Required · Not yet verified'}
+                  </p>
+                  {!screen?.verifiedApplicantProfile&&screen?.identityProviderAvailable&&<>
+                    <label className="ava-check"><input type="checkbox" checked={identityConsent} onChange={e=>setIdentityConsent(e.target.checked)}/>
+                      <span>I consent to sharing my name and email with Veriff and to Veriff processing my government ID and live selfie/video for identity and liveness verification on behalf of OPERAVA. I have read the <a href="https://www.veriff.com/privacy" target="_blank" rel="noreferrer">Veriff privacy information</a> and the <Link to="/privacy" target="_blank">OPERAVA Privacy Policy</Link>. OPERAVA receives the verification decision and limited status metadata; the identity media is processed by Veriff under its service and retention terms.</span></label>
+                    <button type="button" className="ava-primary" disabled={identityBusy||!identityConsent||screen?.identityStatus==='pending_verification'||screen?.identityStatus==='pending_review'||screen?.identityStatus==='rejected'} onClick={()=>void requestIdentity()}>
+                      <MailCheck size={16}/>{identityBusy?'Sending secure link…':'Email me a secure phone verification link'}<ChevronRight size={17}/>
+                    </button>
                   </>}
-                  {identityChallenge&&screen?.identityStatus!=='pending_review'&&<div className="ava-owned-id">
-                    <p className="ava-label">ONE-TIME CAPTURE CHALLENGE · {identityChallenge.code}</p>
-                    <p>{['Hold the document flat in the camera with all edges visible. Avoid glare and reflections.','Look directly at the camera for a neutral selfie.','Turn your face slightly to one side and take a second selfie.','Review and submit all three camera frames.'][identityStep]}</p>
-                    <div className="ava-camera-stepper" aria-label="Identity camera progress">{['ID document','Neutral selfie','Turned selfie'].map((label,index)=><span key={label} className={index<identityStep?'is-complete':index===identityStep?'is-current':''}>{index<identityStep?'✓':index+1} · {label}</span>)}</div>
-                    {identityStep<3?<><div className="ava-camera-preview">
-                      <video ref={identityVideo} data-facing={identityStep===0?'environment':'user'} playsInline autoPlay muted aria-label="Live identity verification camera preview"/>
-                      {identityCameraStatus!=='ready'&&<div className="ava-camera-placeholder" aria-live="polite">{identityCameraStatus==='requesting'?'Waiting for camera permission and live video…':identityCameraStatus==='interrupted'?'Camera connection interrupted':identityCameraStatus==='blocked'?'Camera blocked or preview unavailable':'Enable camera to start a live preview'}</div>}
-                    </div>
-                    <p className={identityCameraStatus==='ready'&&cameraIsLive(identityStream.current)?'ava-status-good':'ava-status-warn'} role="status">
-                      {identityCameraStatus==='ready'&&cameraIsLive(identityStream.current)
-                        ? 'Camera is active ✓ · A live frame is detected. Capture the image to move to the next step.'
-                        : identityCameraStatus==='requesting'?'Requesting camera access from your browser…'
-                        : identityCameraStatus==='blocked'||identityCameraStatus==='interrupted'
-                          ? 'Camera not ready. Review browser and operating-system camera settings, then retry.'
-                          : 'Camera not enabled yet. Select the button below to request permission.'}
-                    </p>
-                    <div className="ava-slide-actions">
-                      <button type="button" className="ava-secondary" disabled={identityBusy||identityCameraStatus==='requesting'} onClick={()=>void startIdentityCamera(identityStep===0?'environment':'user')}>
-                        <MonitorCheck size={16}/>{identityCameraStatus==='requesting'?'Opening camera…':identityCameraStatus==='ready'?'Restart camera':identityStep===0?'Enable back camera':'Enable front camera'}
-                      </button>
-                      <button type="button" className="ava-primary" disabled={identityBusy||identityCameraStatus!=='ready'||!cameraIsLive(identityStream.current)} onClick={()=>void captureIdentity()}>
-                        {identityBusy?'Capturing…':['Capture ID & next','Capture first selfie & next','Capture turned selfie & review'][identityStep]} <ChevronRight size={16}/>
-                      </button>
-                    </div>
-                    {(identityCameraStatus==='blocked'||identityCameraStatus==='unsupported'||identityBrowser?.permission==='denied')&&<p className="ava-camera-help">Camera access blocked? Open the camera icon or site settings beside your browser address bar, select <strong>Allow</strong> for Camera, check your phone or computer privacy settings, then retry. If camera capture is unsupported, update your browser or use the latest Chrome, Edge, Firefox, or Safari outside an in-app browser.</p>}
-                    <div className="ava-native-capture">
-                      <input ref={identityNativeInput} type="file" accept="image/*" capture={identityStep===0?'environment':'user'}
-                        aria-label={identityStep===0?'Device camera ID photo':'Device camera selfie photo'}
-                        onChange={event=>{const photo=event.target.files?.[0]||null;event.target.value='';void captureNativeIdentityFile(photo)}}/>
-                      <button type="button" className="ava-secondary" disabled={identityBusy} onClick={()=>identityNativeInput.current?.click()}>
-                        <Smartphone size={16}/>Use device camera instead
-                      </button>
-                      <p className="ava-muted">Alternative for phones or browsers with a blocked live preview. Some devices may also offer an existing photo; OPERAVA reviewers assess these images manually, not as validated liveness.</p>
-                    </div>
-                    <button type="button" className="ava-text-button" disabled={identityBusy} onClick={()=>void inspectIdentityBrowser()}>Check browser and permission status</button></>:<>
-                        <p className="ava-status-good">Three separate camera images captured for authorized human review. No automated identity approval will occur.</p>
-                        <button type="button" className="ava-primary" disabled={identityBusy} onClick={()=>void submitIdentity()}>{identityBusy?'Submitting securely…':'Submit identity for human verification'}<ChevronRight size={16}/></button>
-                      </>}
-                    <button type="button" className="ava-text-button" onClick={()=>{stopIdentityCamera();setIdentityChallenge(null);setIdentityFrames({document:null,selfie:null,motion:null})}}>Cancel and clear camera captures</button>
+                  {!screen?.identityProviderAvailable&&!screen?.verifiedApplicantProfile&&<p className="ava-small-warning">Automatic identity verification is not connected yet. The assessment remains locked until OPERAVA configures its Veriff integration. Please contact Talent Acquisition; do not send ID photos by ordinary email.</p>}
+                  {screen?.identityStatus==='pending_verification'&&!screen?.verifiedApplicantProfile&&<div className="ava-invitation" role="status">
+                    <Smartphone size={20}/><span>Open your email on your phone and tap the secure link. It expires after 15 minutes and can be used once. Keep this desktop page open; it checks for the provider result automatically every five seconds. If the link expires before you use it, request a new one.</span>
                   </div>}
-                  {!screen?.identityProviderAvailable && <p className="ava-small-warning">OPERAVA private identity evidence storage is unavailable. Ask Talent Acquisition to enable the secure verification service.</p>}
-                  <button type="button" className="ava-text-button" onClick={() => void refresh()}>Refresh verified profile</button>
-                  <div className="ava-slide-actions"><button type="button" className="ava-primary" disabled={Boolean(identityChallenge)} onClick={()=>{stopIdentityCamera();setReadyPage(1)}}>Next: proctor permissions <ChevronRight size={17}/></button></div>
+                  {screen?.identityStatus==='needs_resubmission'&&<p className="ava-muted">The previous provider attempt was not approved or needs another capture. Review your email and document quality, then request a fresh secure link. If the provider declined your identity, contact Talent Acquisition.</p>}
+                  {screen?.identityStatus==='pending_review'&&<p className="ava-muted">Additional review is required. The assessment remains locked until Talent Acquisition resolves the exception.</p>}
+                  {screen?.identityStatus==='rejected'&&<p className="ava-muted">The provider did not approve this identity. Contact Talent Acquisition; another verification link cannot be requested from this account.</p>}
+                  <button type="button" className="ava-text-button" onClick={()=>void refresh()}>Refresh verification status</button>
+                  <div className="ava-slide-actions">
+                    <button type="button" className="ava-primary" disabled={!screen?.verifiedApplicantProfile} onClick={()=>setReadyPage(1)}>Next: assessment rules <ChevronRight size={17}/></button>
+                  </div>
                 </article>}
                 {readyPage===1 && <article className="ava-check-card">
+                  <div className="ava-check-icon"><ShieldCheck size={24}/></div>
+                  <h3>02 · Assessment instructions and prohibited conduct</h3>
+                  <p>Read these rules before starting. The assessment is timed, individually completed and monitored for integrity. Your submitted answers are saved; an unfinished answer is not.</p>
+                  <div className="ava-instruction-columns">
+                    <section><h4>What you must do</h4><ul>
+                      <li>Stay alone in a quiet, well-lit room and remain visible to the webcam.</li>
+                      <li>Keep the same assessment page active, share your entire display, and keep your camera and microphone enabled.</li>
+                      <li>Answer every question independently and in your own words.</li>
+                      <li>Keep your internet connection and power stable; contact Talent Acquisition if a technical issue prevents you from continuing.</li>
+                    </ul></section>
+                    <section><h4>What you must not do</h4><ul>
+                      <li>Do not switch tabs, browser windows, applications or desktops during the assessment.</li>
+                      <li>Do not use another phone, computer, person, notes, websites, search engines or AI tools for assistance.</li>
+                      <li>Do not copy, paste, cut, share or externally record assessment content.</li>
+                      <li>Do not mute the microphone, cover the camera, stop screen sharing or leave the assessment room.</li>
+                    </ul></section>
+                  </div>
+                  <div className="ava-invitation"><TriangleAlert size={19}/><span>A detected window/tab focus loss, hidden page, full-screen exit or recording interruption automatically pauses the assessment and clears the current unsaved answer. Previously submitted answers stay saved. The 45-minute timer continues. You must restore all permissions and explicitly resume. Repeated incidents are recorded for recruiter review.</span></div>
+                  <p className="ava-muted">Browser monitoring detects supported focus and visibility changes; it cannot guarantee detection of every operating-system action, external device or screenshot. Do not attempt to bypass the rules.</p>
+                  <label className="ava-check"><input type="checkbox" checked={instructionAcknowledged} onChange={e=>setInstructionAcknowledged(e.target.checked)}/>
+                    <span>I have read and understood the assessment instructions and prohibited conduct. I agree to follow them throughout the assessment.</span></label>
+                  <div className="ava-slide-actions">
+                    <button type="button" className="ava-secondary" onClick={()=>setReadyPage(0)}>Previous: identity</button>
+                    <button type="button" className="ava-primary" disabled={busy||!instructionAcknowledged} onClick={()=>void acceptAssessmentRules()}>I understand — continue to permissions <ChevronRight size={17}/></button>
+                  </div>
+                </article>}
+                {readyPage===2 && <article className="ava-check-card">
                   <div className="ava-check-icon"><MonitorCheck size={24}/></div>
-                  <h3>02 · Grant proctor permissions</h3>
+                  <h3>03 · Grant proctor permissions</h3>
                   <p>Record your entire screen, webcam and microphone throughout the assessment. If permission is denied, revoked, or storage is interrupted, you cannot begin or continue. Use the tests below to check your browser without uploading media.</p>
                   <div className="ava-proctor-browser-check" role="status">
                     <strong>Browser capture compatibility</strong>
@@ -1094,12 +1201,12 @@ export default function AvaScreening() {
                   {!screen?.recordingStorageReady && <p className="ava-small-warning">Private recording storage is not configured. Capture remains disabled for your privacy.</p>}
                   {!screen?.verifiedApplicantProfile && <p className="ava-small-warning">OPERAVA identity review must be approved before starting continuous recording. Use the local permission diagnostics above to check device compatibility.</p>}
                   {proctorReady && <button type="button" className="ava-text-button" onClick={stopCapture}>Stop recording</button>}
-                  <div className="ava-slide-actions"><button type="button" className="ava-secondary" onClick={()=>setReadyPage(0)}>Previous: identity</button></div>
+                  <div className="ava-slide-actions"><button type="button" className="ava-secondary" onClick={()=>setReadyPage(1)}>Previous: instructions</button></div>
                 </article>}
               </div>
-              {readyPage===1 && <div className="ava-readiness-footer">
-                <div><strong>03 · Ready to proceed?</strong><p>Your secure server enforces identity verification and saved live capture segments. Unverified or unsupported browsers cannot begin.</p></div>
-                <button type="button" className="ava-primary" disabled={busy||!screen?.verifiedApplicantProfile||!proctorReady||!proctorSaved.camera||!proctorSaved.screen}
+              {readyPage===2 && <div className="ava-readiness-footer">
+                <div><strong>04 · Ready to proceed?</strong><p>Your secure server enforces identity verification and saved live capture segments. Unverified or unsupported browsers cannot begin.</p></div>
+                <button type="button" className="ava-primary" disabled={busy||!screen?.verifiedApplicantProfile||!screen?.assessmentRulesAccepted||!proctorReady||!proctorSaved.camera||!proctorSaved.screen}
                   onClick={() => void beginAssessment()}>{busy?'Starting…':'Begin Ava Assessment'}<ChevronRight size={17}/></button>
               </div>}
             </div>}
@@ -1117,15 +1224,19 @@ export default function AvaScreening() {
                   <span style={{width:`${((screen?.answered || 0) / (screen?.total || 1)) * 100}%`}} />
                 </div>
               </div>
-              {screen?.total===30 && (!proctorReady||!proctorSaved.camera||!proctorSaved.screen||!isCaptureLive()) ? <div className="ava-proctor-reconnect" role="status">
-                <MonitorCheck size={24}/><h2>Restore assessment permissions</h2>
-                <p>The timer continues, but questions and answer submission are paused until live screen, webcam and microphone recording is restored. Browsers require you to approve screen sharing again.</p>
+              {screen?.total===30 && (focusPaused||Boolean(screen.proctorPausedAt)||!proctorReady||!proctorSaved.camera||!proctorSaved.screen||!isCaptureLive()) ? <div className="ava-proctor-reconnect" role="status">
+                <MonitorCheck size={24}/><h2>{focusPaused||screen.proctorPausedAt?'Assessment paused — focus or capture change detected':'Restore assessment permissions'}</h2>
+                <p>{focusPaused||screen.proctorPausedAt
+                  ? 'The current unsaved answer has been cleared and reset. Previously submitted answers remain saved. Your 45-minute timer continues. Return to this assessment window, restore the required recordings, and explicitly resume.'
+                  : 'The timer continues, but questions and answer submission are paused until live screen, webcam and microphone recording is restored. Browsers require you to approve screen sharing again.'}</p>
                 <label className="ava-check"><input type="checkbox" checked={recordingConsent} onChange={e=>setRecordingConsent(e.target.checked)}/><span>I consent to continuing screen, webcam and microphone recording for this assessment.</span></label>
                 <div className="ava-proctor-device-steps">
                   <button type="button" className="ava-secondary" disabled={proctorBusy||!recordingConsent||!screen?.verifiedApplicantProfile||!screen.recordingStorageReady} onClick={()=>void prepareProctorCamera()}>{proctorCameraReady?'Webcam & microphone active ✓':'1 · Enable webcam & microphone'}</button>
                   <button type="button" className="ava-primary" disabled={proctorBusy||!proctorCameraReady||!proctorSupport?.screen} onClick={()=>void startCapture()}>2 · Restore entire screen sharing <ChevronRight size={17}/></button>
                 </div>
-                <p className="ava-muted">{proctorReady?'Capture restarted; waiting for private recordings to save.':'No recording permission means no further assessment answers.'}</p>
+                <p className="ava-muted">{proctorReady&&proctorSaved.camera&&proctorSaved.screen?'Fresh private recordings are saved. You can now resume.':'No recording permission means no further assessment answers.'}</p>
+                {(focusPaused||Boolean(screen.proctorPausedAt))&&<button type="button" className="ava-primary" disabled={busy||proctorBusy||!proctorReady||!proctorSaved.camera||!proctorSaved.screen||!isCaptureLive()} onClick={()=>void resumeAssessment()}>Resume assessment <ChevronRight size={17}/></button>}
+                {Boolean(screen.proctorIncidentCount)&&<p className="ava-muted">Recorded proctor interruptions: {screen.proctorIncidentCount}</p>}
               </div> : <>
                 <div className="ava-ai-conversation" aria-label="AVA questions and instructions">
                   <div className="ava-ai-message ava-ai-message--instructions">
@@ -1245,7 +1356,7 @@ export default function AvaScreening() {
         <div className="ava-app-support"><LockKeyhole size={13} aria-hidden="true" /> Secure email OTP sign-in · For assistance, email <a href="mailto:talents@operavaglobal.com">talents@operavaglobal.com</a></div>
         </div>
         </div>
-      </div>
+        </div>
     </div>
   )
 }

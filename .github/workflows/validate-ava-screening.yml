@@ -15,7 +15,15 @@ on:
       - 'src/App.tsx'
       - 'functions/api/ava-screening.ts'
       - 'functions/api/ava-identity-callback.ts'
+      - 'functions/api/ava-identity-link.ts'
+      - 'functions/lib/avaVeriff.ts'
       - 'functions/lib/avaAccess.ts'
+      - 'tests/avaMobileIdentityProctor.test.mjs'
+      - 'tests/avaVeriff.test.mjs'
+      - 'src/site/content/legal/privacy.ts'
+      - 'docs/AVA-SCREENING.md'
+      - 'AVA-INSTRUCTIONS/LEGAL/privacy-policy.md'
+      - '.env.example'
       - 'functions/recruitment-admin/**'
       - 'public/media/ava-assessment-*.svg'
       - 'db/submissions.sql'
@@ -42,8 +50,16 @@ on:
       - 'tests/avaCameraBrowser.test.mjs'
       - 'src/pages/RecruitmentAdmin.*'
       - 'functions/api/ava-screening.ts'
+      - 'functions/api/ava-identity-callback.ts'
+      - 'functions/api/ava-identity-link.ts'
+      - 'functions/lib/avaVeriff.ts'
       - 'functions/recruitment-admin/**'
       - 'tests/avaProductionSmoke.mjs'
+      - 'tests/avaMobileIdentityProctor.test.mjs'
+      - 'tests/avaVeriff.test.mjs'
+      - 'src/site/content/legal/privacy.ts'
+      - 'docs/AVA-SCREENING.md'
+      - '.env.example'
       - '.github/workflows/validate-ava-screening.yml'
   workflow_dispatch:
 
@@ -66,7 +82,7 @@ jobs:
       - name: Build Cloudflare Pages frontend
         run: npm run build:pages
       - name: AVA portal security and feature regression contracts
-        run: node --experimental-strip-types --test tests/avaV3Contracts.test.mjs tests/avaHorizontalFlow.test.mjs tests/avaViewportProctor.test.mjs tests/avaOwnedIdentity.test.mjs tests/avaCameraBrowser.test.mjs tests/avaCaptureRecovery.test.mjs
+        run: node --experimental-strip-types --test tests/avaV3Contracts.test.mjs tests/avaHorizontalFlow.test.mjs tests/avaViewportProctor.test.mjs tests/avaOwnedIdentity.test.mjs tests/avaCameraBrowser.test.mjs tests/avaCaptureRecovery.test.mjs tests/avaMobileIdentityProctor.test.mjs tests/avaVeriff.test.mjs
       - name: Non-invasive production Ava API smoke
         if: github.event_name != 'pull_request'
         run: node tests/avaProductionSmoke.mjs
