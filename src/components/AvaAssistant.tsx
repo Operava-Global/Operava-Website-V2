@@ -350,8 +350,8 @@ export default function AvaAssistant() {
         aria-label={isOpen ? 'Close AVA assistant' : 'Open AVA assistant'}
         aria-expanded={isOpen}
       >
-        <MessageCircle className="h-4 w-4 text-accent" />
-        <span>AVA</span>
+        {isOpen ? <X className="h-4 w-4 text-accent" /> : <MessageCircle className="h-4 w-4 text-accent" />}
+        <span>{isOpen ? "CLOSE" : "AVA"}</span>
       </button>
 
       <aside
