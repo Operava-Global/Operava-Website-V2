@@ -1,5 +1,5 @@
-/** Local OPERAVA brand mark. Keep chat avatars same-origin to avoid external image/CDN failures. */
-export const OPERAVA_LOGO_CDN = '/favicon-512.png'
+/** Use the exact same animated robot artwork as the floating AVA launcher. */
+export const OPERAVA_LOGO_CDN = '/ava-assistant-robot.svg'
 
 interface AvaVideoAvatarProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | number
@@ -16,8 +16,7 @@ const SIZE_MAP = {
 } as const
 
 /**
- * AVA avatar — locally served PNG OPERAVA brand mark (no SVG decoding or external CDN dependency).
- * Soft breathe + gentle wave only. No glow, no drop-shadow, no highlight inside or around.
+ * AVA chat avatar — the same animated robot SVG used by the floating launcher.
  * xl is 52px on mobile, 80px from sm+ breakpoints.
  */
 export default function AvaVideoAvatar({
