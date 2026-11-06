@@ -165,6 +165,16 @@ const IT_KEYWORDS = [
   'build an app',
   'web app',
   'api integration',
+  'automation',
+  'workflow',
+  'business process automation',
+  'rpa',
+  'ai automation',
+  'email automation',
+  'lead automation',
+  'document automation',
+  'hr automation',
+  'reporting automation',
 ]
 
 // Topic keywords for BPO & Operations
@@ -301,6 +311,15 @@ function detectCareerPosition(q: string): string | undefined {
 }
 
 function detectITService(q: string): string | undefined {
+  if (q.includes('ai automation') || q.includes('generative ai')) return 'AI Automation'
+  if (q.includes('customer service automation') || q.includes('customer support automation')) return 'Customer Service Automation'
+  if (q.includes('email automation') || q.includes('automate email')) return 'Email Automation'
+  if (q.includes('lead automation') || q.includes('sales automation') || q.includes('crm automation')) return 'Lead & Sales Automation'
+  if (q.includes('data reporting automation') || q.includes('reporting automation') || q.includes('dashboard automation')) return 'Data & Reporting Automation'
+  if (q.includes('document automation') || q.includes('automate document')) return 'Document Automation'
+  if (q.includes('hr automation') || q.includes('workforce automation') || q.includes('employee lifecycle')) return 'HR & Workforce Automation'
+  if (q.includes('business process automation') || q.includes('bpa') || hasTerm(q, 'rpa')) return 'Business Process Automation'
+  if (q.includes('workflow') || q.includes('automate') || q.includes('automation')) return 'Workflow Automation'
   if (q.includes('web') || q.includes('mobile') || hasTerm(q, 'ios') || hasTerm(q, 'android')) {
     return 'Web & Mobile Application Development'
   }
