@@ -37,6 +37,7 @@ const brands: Brand[] = [
   { name: 'ShopeePay', asset: '/assets/logos/shopeepay.webp', displayWidth: 543 },
   { name: 'GrabPay', asset: '/assets/logos/grabpay.webp', displayWidth: 481 },
   { name: 'Stripe', asset: '/assets/logos/stripe.svg' },
+  { name: 'Additional trusted brand', asset: '/media/IMG_1850.png' },
 ]
 
 export default function EcosystemLogos() {
