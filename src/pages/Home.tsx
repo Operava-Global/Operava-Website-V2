@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Code2, Headset, Workflow } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { usePageMeta } from '../site/seo'
 import { Img, NumberPanel, StoryCard, CtaBanner, SectionHead, OutlineButton } from '../site/ui'
@@ -7,6 +8,7 @@ import { industries } from '../site/content/industries'
 import { COMPANY, STATEMENT } from '../site/content/company'
 import { itServices, bpoServices } from '../data/services'
 import { automationServices } from '../data/automationServices'
+import DisplayCards from '../components/ui/display-cards'
 
 interface Slide {
   kicker: string
@@ -246,16 +248,39 @@ export default function Home() {
           }
           note="Technology, outsourcing and automation — structured from one professional to multiple teams."
         />
-        <div className="reveal home-card-glow rounded-[12px]">
-          <NumberPanel
-            cols="lg:grid-cols-4"
-            items={[
-              { n: 'Information Technology', d: `${itServices.length} services to build, modernize and connect your digital operations.`, to: '/services/it' },
-              { n: 'Business Process Outsourcing', d: `${bpoServices.length} services that run defined business processes with skilled people.`, to: '/services/bpo' },
-              { n: 'Automation', d: `${automationServices.length} automation services that remove repetitive manual work.`, to: '/services/automation' },
-              { n: 'Engagement Models', d: 'Dedicated teams, project delivery or staff augmentation — sized to your needs.', to: '/services/engagement-models' },
+        <div className="reveal home-card-glow rounded-[12px] border border-neutral-900 bg-[var(--surface)]/40 px-4 py-8 sm:px-8 lg:px-10">
+          <DisplayCards
+            cards={[
+              {
+                title: 'Information Technology',
+                description: `${itServices.length} services to build, modernize and connect your digital operations.`,
+                date: '01 · IT services',
+                href: '/services/it',
+                icon: <Code2 className="size-4" />,
+                className: '[grid-area:stack] hover:-translate-y-8',
+              },
+              {
+                title: 'Business Process Outsourcing',
+                description: `${bpoServices.length} services delivered by skilled professionals across customer and back-office operations.`,
+                date: '02 · Global BPO',
+                href: '/services/bpo',
+                icon: <Headset className="size-4" />,
+                className: '[grid-area:stack] translate-y-8 sm:translate-x-10 sm:translate-y-8 hover:-translate-y-1',
+              },
+              {
+                title: 'Intelligent Automation',
+                description: `${automationServices.length} services to connect workflows and reduce repetitive work.`,
+                date: '03 · Automation',
+                href: '/services/automation',
+                icon: <Workflow className="size-4" />,
+                className: '[grid-area:stack] translate-y-16 sm:translate-x-20 sm:translate-y-16 hover:translate-y-10',
+              },
             ]}
           />
+          <div className="mt-3 flex flex-col gap-3 border-t border-neutral-800 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm leading-relaxed text-neutral-400">Choose a delivery model that fits the work — from one professional to a dedicated team.</p>
+            <Link to="/services/engagement-models" className="shrink-0 text-[11px] font-semibold uppercase tracking-widest text-accent hover:text-white transition-colors">Explore engagement models <span className="arrow-nudge">→</span></Link>
+          </div>
         </div>
       </section>
 
