@@ -1,19 +1,17 @@
 "use client"
 
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowUpRight, Sparkles } from 'lucide-react'
+import { ArrowUpRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface DisplayCardProps {
   className?: string
-  icon?: ReactNode
   image?: string
   imageAlt?: string
   title?: string
   description?: string
   date?: string
-  iconClassName?: string
   titleClassName?: string
   href?: string
 }
@@ -25,13 +23,11 @@ interface DisplayCardsProps {
 
 function DisplayCard({
   className,
-  icon = <Sparkles className="size-5" />,
   image,
   imageAlt,
   title = 'Featured',
   description = 'Discover amazing content',
   date = 'Just now',
-  iconClassName,
   titleClassName,
   href,
   active,
@@ -71,10 +67,7 @@ function DisplayCard({
             />
           </div>
         )}
-        <div className="flex w-full items-center gap-3 sm:gap-4">
-          <span className={cn('inline-flex size-10 shrink-0 items-center justify-center rounded-2xl border border-accent/25 bg-accent/10 text-accent shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_8px_18px_-12px_rgba(139,92,246,.8)] transition-all duration-500 group-data-[active=true]:rotate-[-8deg] group-data-[active=true]:scale-110 group-data-[active=true]:bg-accent/20 sm:size-11', iconClassName)}>
-            {icon}
-          </span>
+        <div className="flex w-full items-center">
           <p className={cn('max-w-[19rem] text-xs font-semibold leading-snug tracking-tight text-[var(--text)] sm:text-lg', titleClassName)}>{title}</p>
         </div>
         <p className="max-w-[25rem] pr-8 text-xs leading-relaxed text-[var(--text)]/75 sm:text-sm">{description}</p>
