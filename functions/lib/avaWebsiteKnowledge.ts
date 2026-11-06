@@ -32,6 +32,12 @@ const serviceKnowledge = (service: (typeof itServices)[number] | (typeof bpoServ
   return lines.filter(Boolean).join('\n')
 }
 
+const servicesKnowledge = [
+  ...itServices.map((service) => serviceKnowledge(service, 'IT')),
+  ...bpoServices.map((service) => serviceKnowledge(service, 'BPO')),
+  ...automationServices.map((service) => serviceKnowledge(service, 'Automation')),
+]
+
 const industryKnowledge = industries.map((industry) => [
   `[INDUSTRY] ${industry.name}: ${clean(industry.short)}`,
   clean(industry.intro),
@@ -70,7 +76,7 @@ const generalKnowledge = [
 export const AVA_WEBSITE_KNOWLEDGE = [
   ...generalKnowledge,
   ...engagementKnowledge,
-  ...serviceKnowledge.map((entry) => entry),
+  ...servicesKnowledge,
   ...industryKnowledge,
   ...careerKnowledge,
   ...faqKnowledge,
