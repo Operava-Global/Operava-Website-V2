@@ -1,6 +1,5 @@
-/** Official OPERAVA mark (Cloudinary) — used for AVA. Exact transparent PNG, no effects. */
-export const OPERAVA_LOGO_CDN =
-  'https://res.cloudinary.com/b5i5bwwa/image/upload/c_fit,w_256,h_256,f_png,q_auto/Operava%20Logo.png'
+/** Local OPERAVA brand mark. Keep chat avatars same-origin to avoid external image/CDN failures. */
+export const OPERAVA_LOGO_CDN = '/favicon.svg'
 
 interface AvaVideoAvatarProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | number
@@ -17,7 +16,7 @@ const SIZE_MAP = {
 } as const
 
 /**
- * AVA avatar — official OPERAVA logo exactly as on Cloudinary (transparent PNG).
+ * AVA avatar — locally served OPERAVA brand mark (no external CDN dependency).
  * Soft breathe + gentle wave only. No glow, no drop-shadow, no highlight inside or around.
  * xl is 52px on mobile, 80px from sm+ breakpoints.
  */
