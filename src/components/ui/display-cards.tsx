@@ -23,7 +23,7 @@ interface DisplayCardsProps {
 
 function DisplayCard({
   className,
-  icon = <Sparkles className="size-4" />,
+  icon = <Sparkles className="size-5" />,
   title = 'Featured',
   description = 'Discover amazing content',
   date = 'Just now',
@@ -36,12 +36,10 @@ function DisplayCard({
   return (
     <article
       data-active={active}
+      style={{ animation: active ? 'operava-card-pop 680ms cubic-bezier(.2,.85,.25,1) both' : undefined }}
       className={cn(
-        'group relative flex h-40 w-[min(22rem,calc(100vw-3rem))] flex-col justify-between overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 shadow-[0_18px_30px_-18px_rgba(0,0,0,.7),0_5px_12px_-7px_rgba(0,0,0,.5)] transition-[transform,box-shadow,border-color,filter] duration-500 ease-out [backface-visibility:hidden] before:pointer-events-none before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-br before:from-white/[.11] before:via-transparent before:to-black/[.16] before:content-[\'\'] after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-2/3 after:bg-gradient-to-l after:from-[var(--surface)]/60 after:to-transparent after:content-[\'\']',
-        '[transform:rotateX(5deg)_rotateY(-7deg)_translateZ(0)] hover:border-accent/50',
-        active
-          ? 'z-30 scale-[1.045] !border-accent/70 !shadow-[0_35px_55px_-22px_rgba(0,0,0,.8),0_0_0_1px_rgba(139,92,246,.22)] [transform:translateZ(70px)_rotateX(0deg)_rotateY(0deg)]'
-          : 'z-10 hover:[transform:translateZ(22px)_rotateX(1deg)_rotateY(-2deg)]',
+        'group relative flex min-h-[15.5rem] w-full flex-col justify-between overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-7 shadow-[0_16px_32px_-20px_rgba(0,0,0,.72),0_5px_14px_-8px_rgba(0,0,0,.45)] transition-[transform,box-shadow,border-color,filter] duration-500 ease-[cubic-bezier(.2,.75,.25,1)] [backface-visibility:hidden] [transform:perspective(1100px)_rotateX(2deg)_rotateY(-1deg)] hover:-translate-y-1 hover:border-accent/60 hover:shadow-[0_24px_40px_-22px_rgba(0,0,0,.8)] before:pointer-events-none before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-br before:from-white/[.12] before:via-transparent before:to-black/[.18] before:content-[\'\'] after:pointer-events-none after:absolute after:inset-0 after:rounded-2xl after:bg-[radial-gradient(circle_at_85%_15%,rgba(139,92,246,.16),transparent_42%)] after:opacity-70 after:transition-opacity after:duration-500',
+        active && 'z-20 !-translate-y-2 !scale-[1.035] !border-accent/80 !shadow-[0_34px_55px_-24px_rgba(0,0,0,.82),0_0_0_1px_rgba(139,92,246,.28),0_0_36px_-14px_rgba(139,92,246,.55)] [transform:perspective(1100px)_translateZ(48px)_rotateX(0deg)_rotateY(0deg)] after:opacity-100',
         className,
       )}
     >
@@ -49,24 +47,32 @@ function DisplayCard({
         type="button"
         onClick={onActivate}
         aria-pressed={active}
-        aria-label={`${active ? 'Collapse' : 'Pop out'} ${title} card`}
-        className="relative z-10 flex min-h-0 flex-1 cursor-pointer flex-col items-start justify-between text-left outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]"
+        aria-label={`${active ? 'Collapse' : 'Expand'} ${title} card`}
+        className="relative z-10 flex min-h-[10rem] flex-1 cursor-pointer flex-col items-start justify-between gap-5 text-left outline-none focus-visible:rounded-xl focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--surface)]"
       >
-        <div className="flex items-center gap-3">
-          <span className={cn('inline-flex size-9 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent shadow-inner', iconClassName)}>
+        <div className="flex w-full items-center gap-4">
+          <span className={cn('inline-flex size-12 shrink-0 items-center justify-center rounded-2xl border border-accent/25 bg-accent/10 text-accent shadow-[inset_0_1px_0_rgba(255,255,255,.12),0_8px_18px_-12px_rgba(139,92,246,.8)] transition-all duration-500 group-data-[active=true]:rotate-[-8deg] group-data-[active=true]:scale-110 group-data-[active=true]:bg-accent/20', iconClassName)}>
             {icon}
           </span>
-          <p className={cn('text-base font-semibold tracking-tight text-[var(--text)] sm:text-lg', titleClassName)}>{title}</p>
+          <p className={cn('max-w-[19rem] text-base font-semibold leading-snug tracking-tight text-[var(--text)] sm:text-lg', titleClassName)}>{title}</p>
+          <span className="ml-auto hidden text-accent/70 transition-transform duration-500 group-data-[active=true]:translate-x-1 group-data-[active=true]:-translate-y-1 sm:inline-flex">
+            <ArrowUpRight className="size-4" />
+          </span>
         </div>
-        <p className="max-w-[19rem] text-sm leading-relaxed text-[var(--text)]/75">{description}</p>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-500">{date}</p>
+        <p className="max-w-[25rem] pr-5 text-sm leading-relaxed text-[var(--text)]/75">{description}</p>
+        <div className="flex w-full items-end justify-between gap-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-500">{date}</p>
+          <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-accent/80 transition-all duration-300 group-data-[active=true]:tracking-[0.22em]">
+            {active ? 'Selected' : 'Tap to explore'}
+          </span>
+        </div>
       </button>
       {href && (
         <Link
           to={href}
           aria-label={`Explore ${title}`}
           title={`Explore ${title}`}
-          className="absolute bottom-3 right-3 z-20 inline-flex size-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:translate-x-0.5 hover:border-accent hover:bg-accent hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+          className="absolute bottom-5 right-5 z-20 inline-flex size-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] shadow-lg transition-all duration-300 hover:-translate-y-1 hover:translate-x-1 hover:scale-105 hover:border-accent hover:bg-accent hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
         >
           <ArrowUpRight className="size-4" />
         </Link>
@@ -83,21 +89,18 @@ export default function DisplayCards({ cards, className }: DisplayCardsProps) {
       description: 'Build, modernize and connect digital operations.',
       date: '01 · IT services',
       href: '/services/it',
-      className: '[grid-area:stack]',
     },
     {
       title: 'Business Process Outsourcing',
       description: 'Run customer, technical and back-office operations.',
       date: '02 · Global BPO',
       href: '/services/bpo',
-      className: '[grid-area:stack] translate-x-8 translate-y-8',
     },
     {
       title: 'Intelligent Automation',
       description: 'Connect workflows and reduce repetitive work.',
       date: '03 · Automation',
       href: '/services/automation',
-      className: '[grid-area:stack] translate-x-16 translate-y-16',
     },
   ]
 
@@ -105,11 +108,21 @@ export default function DisplayCards({ cards, className }: DisplayCardsProps) {
 
   return (
     <div
-      className={cn('grid min-h-[19rem] w-full [grid-template-areas:"stack"] place-items-center [perspective:1200px] [transform-style:preserve-3d] py-5 sm:min-h-[20rem]', className)}
+      className={cn('grid w-full grid-cols-1 gap-5 py-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 lg:gap-7 [perspective:1400px] [transform-style:preserve-3d]', className)}
       onKeyDown={(event) => {
         if (event.key === 'Escape') setActiveIndex(null)
       }}
     >
+      <style>{`
+        @keyframes operava-card-pop {
+          0% { filter: brightness(1); }
+          35% { filter: brightness(1.12); }
+          100% { filter: brightness(1); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          [data-active="true"] { animation: none !important; }
+        }
+      `}</style>
       {displayCards.map((cardProps, index) => (
         <DisplayCard
           key={cardProps.title ?? index}
