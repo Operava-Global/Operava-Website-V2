@@ -16,7 +16,6 @@ import {
   FileText,
   MessageCircle,
 } from 'lucide-react'
-import { generateAvaHumanResponse } from '../utils/avaConversationEngine'
 import { detectTopicRoute, type RouteAction } from '../utils/avaRouting'
 import {
   wantsDocumentVerification,
@@ -292,20 +291,25 @@ export default function AvaAssistant() {
       text: m.text,
     }))
 
-    let reply = generateAvaHumanResponse(query).text
+    let reply = ''
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: query, history: historyPayload }),
       })
-      if (res.ok) {
-        const data = await res.json()
-        if (data?.text && !data.fallback) reply = data.text as string
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || typeof data?.text !== 'string' || !data.text.trim()) {
+        throw new Error(typeof data?.error === 'string' ? data.error : 'AVA could not reach the AI service. Please try again.')
       }
-    } catch {
-      // local knowledge fallback
+      reply = data.text.trim()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'AVA is temporarily unavailable. Please try again.'
+      pushAva(message)
+      setIsThinking(false)
+      return
     }
+    setIsThinking(false)
 
     const topicRoute = detectTopicRoute(query, reply)
     if (topicRoute && topicRoute.isDirectIntent) {
