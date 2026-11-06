@@ -17,6 +17,7 @@ import {
   MessageCircle,
 } from 'lucide-react'
 import { generateAvaHumanResponse } from '../utils/avaConversationEngine'
+import { AVA_AVATAR_SRC } from './avaAvatarImage'
 import { detectTopicRoute, type RouteAction } from '../utils/avaRouting'
 import {
   wantsDocumentVerification,
@@ -125,17 +126,8 @@ function renderMessageText(text: string, isUser = false) {
 
 function AvaHumanAvatar({ size = 'h-8 w-8' }: { size?: string }) {
   return (
-    <span className={`relative inline-flex ${size} shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#A000F0]/50 bg-[#21102d]`} aria-label="AVA assistant avatar" role="img">
-      <svg viewBox="0 0 48 48" className="h-full w-full" aria-hidden="true">
-        <circle cx="24" cy="24" r="24" fill="#2b123b" />
-        <path d="M8 48c1.8-9.4 7.1-14 16-14s14.2 4.6 16 14" fill="#A000F0" />
-        <path d="M14 19c0-9 4.2-14 10-14s10 5 10 14v5c0 8-4.4 13-10 13s-10-5-10-13z" fill="#f0bd9f" />
-        <path d="M12 22c-1.8-10 2.6-18 12-18 9.3 0 14.1 7.4 12 18l-2.5-5.5c-4.6.4-9.4-1.4-12.7-4.7-1.2 3.9-4.1 6.5-8.8 7.2z" fill="#29202a" />
-        <path d="M16.5 23.5h2M29.5 23.5h2" stroke="#39242a" strokeWidth="1.6" strokeLinecap="round" />
-        <path d="M21 30c1.8 1.5 4.2 1.5 6 0" fill="none" stroke="#a95e62" strokeWidth="1.4" strokeLinecap="round" />
-        <path d="M18 36c2 2 10 2 12 0l3 3-9 5-9-5z" fill="#f0bd9f" />
-        <path d="M8 48c1.8-8.8 7.2-13.2 16-13.2S38.2 39.2 40 48" fill="#A000F0" />
-      </svg>
+    <span className={`inline-flex ${size} shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#A000F0]/60 bg-[#21102d]`}>
+      <img src={AVA_AVATAR_SRC} alt="AVA assistant" className="h-full w-full object-cover" loading="lazy" />
     </span>
   )
 }
@@ -369,7 +361,7 @@ export default function AvaAssistant() {
         aria-label={isOpen ? 'Close AVA assistant' : 'Open AVA assistant'}
         aria-expanded={isOpen}
       >
-        {isOpen ? <X className="h-4 w-4 text-accent" /> : <MessageCircle className="h-4 w-4 text-accent" />}
+        {isOpen ? <X className="h-4 w-4 text-accent" /> : <img src={AVA_AVATAR_SRC} alt="" className="h-7 w-7 rounded-full object-cover" />}
       </button>
 
       <aside
