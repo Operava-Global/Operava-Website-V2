@@ -349,11 +349,11 @@ export default function AvaAssistant() {
           aria-label="Open AVA assistant"
         >
           <img
-            src="/favicon.svg"
+            src="/ava-assistant-robot.svg"
             alt=""
-            width={52}
-            height={52}
-            className="h-[52px] w-[52px] object-contain select-none"
+            width={64}
+            height={64}
+            className="h-16 w-16 object-contain select-none"
             loading="eager"
             decoding="async"
             aria-hidden="true"
