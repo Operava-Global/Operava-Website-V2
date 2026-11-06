@@ -36,7 +36,7 @@ export default function SiteFooter() {
             to="/trustpilot-review"
             aria-label="Read OPERAVA reviews on Trustpilot"
             title="OPERAVA on Trustpilot"
-            className="mt-7 inline-flex items-center rounded-lg border border-neutral-700 bg-white px-4 py-3 transition-transform duration-300 hover:-translate-y-1 hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+            className="mt-7 inline-flex w-fit max-w-full self-start justify-self-start ml-0 mr-auto items-center rounded-lg border border-neutral-700 bg-white px-4 py-3 text-left transition-transform duration-300 hover:-translate-y-1 hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
           >
             <img src="/media/trustpilot_transparent.webp" alt="Trustpilot reviews" width="164" height="42" loading="lazy" className="w-[164px] h-auto object-contain" />
           </Link>
