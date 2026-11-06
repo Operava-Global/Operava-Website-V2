@@ -1,7 +1,6 @@
 import express, { type Request as ExpressRequest, type Response as ExpressResponse } from 'express'
 import path from 'path'
 import { createServer as createViteServer } from 'vite'
-import { GoogleGenAI } from '@google/genai'
 import { clientConfirmationEmail, clientConfirmationText, applicantConfirmationEmail, applicantConfirmationText, type FormEnv } from './functions/lib/formCore.ts'
 import { onRequestPost as formsStartHandler } from './functions/api/forms/start.ts'
 import { onRequestPost as formsVerifyHandler } from './functions/api/forms/verify.ts'
@@ -60,37 +59,6 @@ function bridgePagesFunction(
       res.status(500).json({ error: 'Unable to process this request.' })
     }
   }
-}
-
-const SYSTEM_INSTRUCTION = `You are AVA, the virtual intelligence assistant for OPERAVA Global Solutions.
-
-CRITICAL BEHAVIOR AND RULES:
-1. ANSWER DIRECTLY: Answer the user's question directly, clearly, and conversationally right in the chat. Do NOT use pre-templated routing links or tell the user to navigate to specific URLs or pages (e.g., never say "Go to /services/it" or "Click here"). Provide the actual facts, explanations, instructions, and information directly in the conversation.
-2. HUMAN & NATURAL: Speak naturally like a thoughtful, smart human assistant. Be warm, polite, and helpful. Use natural contractions (I'm, we'll, it's, you're). Avoid robotic formulas, repetition, and scripted boilerplate.
-3. CONCISE & COMFORTABLE SPACING: Structure your response with short paragraphs (1-3 paragraphs) and comfortable line breaks. Use bullet points only when they genuinely improve readability. Keep explanations concise unless the user asks for in-depth details.
-4. NO DECORATIVE FORMATTING: Do NOT use decorative separators like '***' or '---'. Do not overuse bold text or emojis.
-5. NO REPETITIVE CLOSINGS: Do not end every message with repetitive closings like "Let me know if you need anything else" or "I hope this helps". Only close when it feels natural.
-6. OPERAVA AUTHORITATIVE KNOWLEDGE (DERIVED FROM OFFICIAL COMPANY PROFILE & KNOWLEDGE BASE):
-- Company: OPERAVA Global Solutions is a Philippine-based technology, workforce, and Business Process Outsourcing (BPO) company.
-`
-
-let genAIClient: GoogleGenAI | null = null
-
-function getGenAI(): GoogleGenAI | null {
-  if (!process.env.GEMINI_API_KEY) {
-    return null
-  }
-  if (!genAIClient) {
-    genAIClient = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        },
-      },
-    })
-  }
-  return genAIClient
 }
 
 const EMAIL_RE =
@@ -225,56 +193,14 @@ async function startServer() {
     }
   })
 
-  app.post('/api/chat', async (req, res) => {
-    try {
-      const { message, history } = req.body
-
-      if (!message || typeof message !== 'string') {
-        res.status(400).json({ error: 'Message is required' })
-        return
-      }
-
-      const ai = getGenAI()
-
-      if (ai) {
-        const contents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = []
-
-        if (Array.isArray(history)) {
-          for (const item of history.slice(-6)) {
-            if (item.text && (item.role === 'user' || item.role === 'model')) {
-              contents.push({
-                role: item.role,
-                parts: [{ text: item.text }],
-              })
-            }
-          }
-        }
-
-        contents.push({
-          role: 'user',
-          parts: [{ text: message }],
-        })
-
-        const response = await ai.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: contents,
-          config: {
-            systemInstruction: SYSTEM_INSTRUCTION,
-            temperature: 0.7,
-            topP: 0.9,
-          },
-        })
-
-        const text = response.text || ''
-        res.json({ text })
-        return
-      }
-
-      res.json({ fallback: true })
-    } catch (err: unknown) {
-      console.error('Gemini chat error:', err)
-      res.json({ fallback: true })
-    }
+  // The Express preview has no Cloudflare Workers AI binding. Return a
+  // controlled service-unavailable response so the AVA UI uses its existing
+  // local conversation fallback instead of a second, divergent AI provider.
+  app.post('/api/chat', (_req, res) => {
+    res.status(503).json({
+      error: 'Workers AI is available in the Cloudflare Pages runtime. Using the local AVA fallback in this preview.',
+      code: 'WORKERS_AI_RUNTIME_UNAVAILABLE',
+    })
   })
 
   const isProduction =
