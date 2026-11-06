@@ -32,6 +32,14 @@ export default function SiteFooter() {
           <a href={`mailto:${COMPANY.email.hello}`} className="mt-6 inline-block text-xs text-neutral-400 hover:text-white transition-colors">
             {COMPANY.email.hello}
           </a>
+          <Link
+            to="/trustpilot-review"
+            aria-label="Read OPERAVA reviews on Trustpilot"
+            title="OPERAVA on Trustpilot"
+            className="mt-7 inline-flex items-center rounded-lg border border-neutral-700 bg-white px-4 py-3 transition-transform duration-300 hover:-translate-y-1 hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+          >
+            <img src="/media/trustpilot_transparent.webp" alt="Trustpilot reviews" width="164" height="42" loading="lazy" className="w-[164px] h-auto object-contain" />
+          </Link>
         </div>
         {FOOTER_COLUMNS.map((col) => (
           <div key={col.heading}>
