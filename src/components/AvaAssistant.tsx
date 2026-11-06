@@ -1,4 +1,3 @@
-import { generateAvaHumanResponse } from '../utils/avaConversationEngine'
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
@@ -301,15 +300,21 @@ export default function AvaAssistant() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok || typeof data?.text !== 'string' || !data.text.trim()) {
-        throw new Error(typeof data?.error === 'string' ? data.error : 'AVA could not reach the AI service. Please try again.')
+        const detail = typeof data?.error === 'string' ? data.error : 'AVA could not reach Cloudflare Workers AI.'
+        const code = typeof data?.code === 'string' ? data.code : `HTTP_${res.status}`
+        throw new Error(`${detail} (${code})`)
       }
       reply = data.text.trim()
     } catch (error) {
-      // Keep the established local conversation engine as a resilience fallback.
-      console.warn('AVA Workers AI unavailable; using local conversation fallback:', error)
-      reply = generateAvaHumanResponse(query).text
+      // Never present a local scripted answer as if it came from the AI worker.
+      // A visible failure lets visitors retry instead of silently masking an outage.
+      console.error('AVA Cloudflare Workers AI request failed:', error)
+      const detail = error instanceof Error ? error.message : 'Connection to Cloudflare Workers AI failed.'
+      pushAva(`I'm sorry — I'm having trouble connecting to my AI service right now. Please try again in a moment.\\n\\nTechnical detail: ${detail}`)
+      return
+    } finally {
+      setIsThinking(false)
     }
-    setIsThinking(false)
 
     const topicRoute = detectTopicRoute(query, reply)
     if (topicRoute && topicRoute.isDirectIntent) {
@@ -317,7 +322,6 @@ export default function AvaAssistant() {
     } else {
       pushAva(reply, topicRoute ? { routeAction: topicRoute } : undefined)
     }
-    setIsThinking(false)
   }
 
   const handleReset = () => {
