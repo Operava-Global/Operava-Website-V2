@@ -17,7 +17,6 @@ import {
   MessageCircle,
 } from 'lucide-react'
 import { generateAvaHumanResponse } from '../utils/avaConversationEngine'
-import { AVA_AVATAR_SRC } from './avaAvatarImage'
 import { detectTopicRoute, type RouteAction } from '../utils/avaRouting'
 import {
   wantsDocumentVerification,
@@ -126,8 +125,14 @@ function renderMessageText(text: string, isUser = false) {
 
 function AvaHumanAvatar({ size = 'h-8 w-8' }: { size?: string }) {
   return (
-    <span className={`inline-flex ${size} shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#A000F0]/60 bg-[#21102d]`}>
-      <img src={AVA_AVATAR_SRC} alt="AVA assistant" className="h-full w-full object-cover" loading="lazy" />
+    <span className={`inline-flex ${size} shrink-0 items-center justify-center`}>
+      <img
+        src="/assets/logos/purple_girl_assistant_transparent_slow.gif"
+        alt="AVA assistant"
+        className="h-full w-full object-contain"
+        loading="eager"
+        decoding="async"
+      />
     </span>
   )
 }
