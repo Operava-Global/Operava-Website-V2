@@ -214,8 +214,9 @@ export default function Academy() {
           </SmartLink>
         </div>
         <div className="lg:col-span-7 bg-[#0a0a0a] border border-neutral-900 rounded-[12px] p-6 sm:p-8 lg:p-12">
-          <h3 className="text-[24px] font-black uppercase leading-none">Enrollment &amp; details inquiry</h3>
-          <p className="mt-3 mb-8 text-sm text-neutral-500">Course enrollment, training enrollment, or questions about programs and certifications.</p>
+          <Kicker className="mb-3">Secure form · email verified</Kicker>
+          <h2 className="text-[26px] lg:text-[32px] font-black uppercase leading-[0.95] mb-4">Enrollment &amp; details inquiry</h2>
+          <p className="mb-8 text-sm text-neutral-500">Course enrollment, training enrollment, or questions about programs and certifications.</p>
           <AcademyEnrollmentForm />
         </div>
       </section>

@@ -322,12 +322,17 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     let emailWarning: string | undefined
     const careerDeliveryWarnings: string[] = []
     const from = senderFor(formType, env)
+    const confirmationBcc = isAcademy
+      ? env.ACADEMY_INBOX || ACADEMY_INBOX_DEFAULT
+      : isPartnership
+        ? env.PARTNERS_INBOX || 'partners@operavaglobal.com'
+        : undefined
 
     try {
       await sendEmail(env, {
         from,
         to: [email],
-        ...(isAcademy ? { bcc: [env.ACADEMY_INBOX || ACADEMY_INBOX_DEFAULT] } : {}),
+        ...(confirmationBcc ? { bcc: [confirmationBcc] } : {}),
         subject,
         html,
         text,
