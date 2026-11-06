@@ -6,8 +6,8 @@
 import { COMPANY, OVERVIEW, PILLARS, PRINCIPLES, WORKING_PHILOSOPHY, DELIVERY_MODELS, ENGAGEMENT_MODELS, ENGAGEMENT_STEPS, REGISTRATION, REMOTE, HIRING_STEPS, CAREER_PERKS, FAQ_GROUPS } from '../../src/site/content/company'
 import { industries } from '../../src/site/content/industries'
 import { SERVICE_REFERENCES } from '../../src/site/content/serviceReferences'
-import { itServices } from '../../src/data/itServices'
-import { bpoServices } from '../../src/data/bpoServices'
+import { itServices, bpoServices } from '../../src/data/services'
+import { SEARCH_INDEX } from '../../src/site/searchIndex'
 import { automationServices } from '../../src/data/automationServices'
 import { CAREER_POSITIONS, SKILLS_SPECIALIZATIONS } from '../../src/data/careersData'
 
@@ -73,7 +73,13 @@ const generalKnowledge = [
   `[CAREER EXPERIENCE] ${CAREER_PERKS.map((perk) => `${perk.n}: ${clean(perk.d)}`).join('; ')}`,
 ]
 
+const siteDirectoryKnowledge = [
+  '[PUBLIC WEBSITE DIRECTORY] The following pages are published on operavaglobal.com. Recommend the most relevant page when useful; do not claim a page contains details beyond its indexed description.',
+  ...SEARCH_INDEX.map((entry) => `[${entry.section} PAGE] ${entry.title} — ${clean(entry.text)} URL: https://www.operavaglobal.com${entry.path}`),
+]
+
 export const AVA_WEBSITE_KNOWLEDGE = [
+  ...siteDirectoryKnowledge,
   ...generalKnowledge,
   ...engagementKnowledge,
   ...servicesKnowledge,
