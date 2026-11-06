@@ -123,18 +123,37 @@ function renderMessageText(text: string, isUser = false) {
   )
 }
 
+function AvaHumanAvatar({ size = 'h-8 w-8' }: { size?: string }) {
+  return (
+    <span className={`relative inline-flex ${size} shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#A000F0]/50 bg-[#21102d]`} aria-label="AVA assistant avatar" role="img">
+      <svg viewBox="0 0 48 48" className="h-full w-full" aria-hidden="true">
+        <circle cx="24" cy="24" r="24" fill="#2b123b" />
+        <path d="M8 48c1.8-9.4 7.1-14 16-14s14.2 4.6 16 14" fill="#A000F0" />
+        <path d="M14 19c0-9 4.2-14 10-14s10 5 10 14v5c0 8-4.4 13-10 13s-10-5-10-13z" fill="#f0bd9f" />
+        <path d="M12 22c-1.8-10 2.6-18 12-18 9.3 0 14.1 7.4 12 18l-2.5-5.5c-4.6.4-9.4-1.4-12.7-4.7-1.2 3.9-4.1 6.5-8.8 7.2z" fill="#29202a" />
+        <path d="M16.5 23.5h2M29.5 23.5h2" stroke="#39242a" strokeWidth="1.6" strokeLinecap="round" />
+        <path d="M21 30c1.8 1.5 4.2 1.5 6 0" fill="none" stroke="#a95e62" strokeWidth="1.4" strokeLinecap="round" />
+        <path d="M18 36c2 2 10 2 12 0l3 3-9 5-9-5z" fill="#f0bd9f" />
+        <path d="M8 48c1.8-8.8 7.2-13.2 16-13.2S38.2 39.2 40 48" fill="#A000F0" />
+      </svg>
+    </span>
+  )
+}
 function AvaThinkingWaves() {
   return (
+    <>
+    <style>{`@keyframes ava-line-motion { 0%, 100% { opacity: .25; transform: translateX(0); } 45% { opacity: 1; transform: translateX(5px); } } .ava-thinking-line { animation: ava-line-motion 1.05s ease-in-out infinite; } @media (prefers-reduced-motion: reduce) { .ava-thinking-line { animation: none; opacity: .75; } }`}</style>
     <div className="flex gap-2.5 justify-start animate-fade-in" aria-live="polite" aria-label="AVA is thinking">
-      <span className="mt-0.5 shrink-0 flex h-7 w-7 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-[10px] font-bold tracking-wide text-accent">A</span>
+      <AvaHumanAvatar size="h-8 w-8" />
       <div className="min-w-[148px] px-3.5 py-3 bg-[#111] border border-neutral-800">
         <div className="flex flex-col justify-center gap-[5px] h-7 w-28">
-          <span className="block h-0.5 w-full bg-accent animate-pulse" />
-          <span className="block h-0.5 w-3/4 bg-accent animate-pulse" />
-          <span className="block h-0.5 w-1/2 bg-accent animate-pulse" />
+          <span className="ava-thinking-line block h-0.5 w-full bg-accent" style={{ animationDelay: "0ms" }} />
+          <span className="ava-thinking-line block h-0.5 w-3/4 bg-accent" style={{ animationDelay: "220ms" }} />
+          <span className="ava-thinking-line block h-0.5 w-1/2 bg-accent" style={{ animationDelay: "440ms" }} />
         </div>
       </div>
     </div>
+    </>
   )
 }
 
@@ -363,7 +382,7 @@ export default function AvaAssistant() {
       >
       <header className="flex items-center justify-between gap-2 px-4 py-3 border-b border-accent bg-black text-white">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-xs font-bold tracking-wide text-accent">A</span>
+          <AvaHumanAvatar size="h-9 w-9" />
           <div className="min-w-0">
             <p className="text-sm font-black uppercase tracking-widest truncate">AVA</p>
             <p className="text-[10px] tracking-widest uppercase text-neutral-500 truncate">OPERAVA assistant</p>
@@ -385,7 +404,7 @@ export default function AvaAssistant() {
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3 bg-black">
         {messages.map((m) => (
           <div key={m.id} className={`flex gap-2 ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-            {m.sender === 'ava' && <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-[10px] font-bold text-accent">A</span>}
+            {m.sender === 'ava' && <span className="mt-0.5"><AvaHumanAvatar size="h-7 w-7" /></span>}
             <div className={`max-w-[85%] px-3.5 py-2.5 ${m.sender === 'user' ? 'bg-accent-solid text-white' : 'bg-[#111] border border-neutral-800 text-neutral-200'}`}>
               {renderMessageText(m.text, m.sender === 'user')}
               <div className="mt-1.5 flex items-center justify-between gap-2">
