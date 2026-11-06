@@ -257,7 +257,6 @@ export default function Home() {
                 href: '/services/it',
                 image: '/Meta_AI_it_element_transparent_20261106_220514.webp',
                 imageAlt: 'Illustration representing information technology and cloud systems',
-                icon: <Code2 className="size-4" />,
               },
               {
                 title: 'Business Process Outsourcing',
@@ -266,7 +265,6 @@ export default function Home() {
                 href: '/services/bpo',
                 image: '/Meta_AI_bpo_element_transparent_20261106_220522.webp',
                 imageAlt: 'Illustration representing customer support and business process outsourcing',
-                icon: <Headset className="size-4" />,
               },
               {
                 title: 'Intelligent Automation',
@@ -275,7 +273,6 @@ export default function Home() {
                 href: '/services/automation',
                 image: '/Meta_AI_robot_element_transparent_20261106_220519.webp',
                 imageAlt: 'Illustration representing intelligent automation and AI workflows',
-                icon: <Workflow className="size-4" />,
               },
             ]}
           />
