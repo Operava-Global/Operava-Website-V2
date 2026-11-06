@@ -4,20 +4,20 @@
 /* Dark mode uses charcoal canvases rather than pure black.
    Preserve black photographic overlays and translucent scrims for image readability. */
 html:not([data-theme="light"]) {
-  --bg:#1b1b21; --surface:#24242b; --surface-2:#2b2b33;
-  --border:#3b3b46;
+  --bg:#26262d; --surface:#303039; --surface-2:#393943;
+  --border:#4a4a56;
 }
 html:not([data-theme="light"]),
-html:not([data-theme="light"]) body { background:#1b1b21; }
-html:not([data-theme="light"]) #site-shell { background:#1b1b21!important; }
-html:not([data-theme="light"]) #site-shell :is(.bg-black,.bg-neutral-950) { background-color:#24242b!important; }
-html:not([data-theme="light"]) #site-shell .bg-neutral-900 { background-color:#2b2b33!important; }
+html:not([data-theme="light"]) body { background:#26262d; }
+html:not([data-theme="light"]) #site-shell { background:#26262d!important; }
+html:not([data-theme="light"]) #site-shell :is(.bg-black,.bg-neutral-950) { background-color:#303039!important; }
+html:not([data-theme="light"]) #site-shell .bg-neutral-900 { background-color:#393943!important; }
 html:not([data-theme="light"]) #site-shell :is([class*="bg-[#0a0a0a]"],[class*="bg-[#0f0f0f]"],[class*="bg-[#0c0c12]"],[class*="bg-[#111]"]) {
   background-color:#24242b!important;
 }
-html:not([data-theme="light"]) .site-header { background:rgba(29,29,36,.95); }
-html:not([data-theme="light"]) .site-header--scrolled { background:rgba(33,33,41,.96); }
-html:not([data-theme="light"]) .site-mega-menu { background:rgba(36,36,43,.97)!important; }
+html:not([data-theme="light"]) .site-header { background:rgba(43,43,52,.94); }
+html:not([data-theme="light"]) .site-header--scrolled { background:rgba(49,49,59,.96); }
+html:not([data-theme="light"]) .site-mega-menu { background:rgba(52,52,63,.97)!important; }
 
 html[data-theme="light"] {
   color-scheme: light;
