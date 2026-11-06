@@ -346,12 +346,11 @@ export default function AvaAssistant() {
         ref={drawerHolderRef}
         type="button"
         onClick={() => (isOpen ? setIsOpen(false) : handleOpen())}
-        className={`fixed right-0 top-1/2 z-[61] flex -translate-y-1/2 items-center gap-2 rounded-l-lg border border-r-0 border-neutral-700 bg-[#151515] px-3 py-3 text-xs font-semibold tracking-[0.16em] text-neutral-200 shadow-lg transition-colors hover:border-accent hover:bg-[#202020] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+        className="fixed right-0 top-1/2 z-[61] flex h-14 w-8 -translate-y-1/2 items-center justify-center rounded-l-lg border border-r-0 border-neutral-700 bg-[#151515] p-1 text-neutral-200 shadow-lg transition-colors hover:border-accent hover:bg-[#202020] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         aria-label={isOpen ? 'Close AVA assistant' : 'Open AVA assistant'}
         aria-expanded={isOpen}
       >
         {isOpen ? <X className="h-4 w-4 text-accent" /> : <MessageCircle className="h-4 w-4 text-accent" />}
-        <span>{isOpen ? "CLOSE" : "AVA"}</span>
       </button>
 
       <aside
