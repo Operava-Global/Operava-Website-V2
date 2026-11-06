@@ -1,3 +1,5 @@
+import { AVA_WEBSITE_KNOWLEDGE } from '../lib/avaWebsiteKnowledge'
+
 interface Env {
   AI: Ai
   GEMINI_API_KEY?: string // legacy; no longer required
@@ -29,7 +31,11 @@ Do not repeat the user's question.
 If more detail is needed, keep it under three short blocks of content.
 
 KNOWLEDGE BOUNDARY
-Answer ONLY from OPERAVA controlled knowledge below. Do not invent prices, client names, salaries, exact SLAs, or unpublished facts. If unknown: say you can connect them with the team.
+Answer ONLY from OPERAVA controlled knowledge below, including the website-sourced knowledge catalogue. Do not invent prices, client names, salaries, exact SLAs, certifications, guarantees, customer results, or unpublished facts. Treat illustrative scenarios as examples, not proof of completed client work. If a detail is not in the knowledge, say you can connect the user with the team.
+
+=== LIVE WEBSITE CONTENT KNOWLEDGE (SOURCE: PUBLIC WEBSITE CONTENT MODULES) ===
+${AVA_WEBSITE_KNOWLEDGE}
+
 
 === COMPANY ===
 OPERAVA Global Solutions. Duly incorporated and registered under the laws of the Republic of the Philippines with the Securities and Exchange Commission, under Registration No. 2026080262213-03. The company also maintains its applicable BIR taxpayer obligations. Motto: "We Operate in Advance." Remote-first global delivery. Formula: Businesses + Technology + Talent + Process. Office: Pagudpud, Ilocos Norte 2919, Philippines.
