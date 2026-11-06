@@ -22,15 +22,15 @@
   --color-brand-violet: #9860ee;
   --color-brand-magenta: #c04cf0;
 
-  --color-surface: #303039;
-  --color-surface-2: #393943;
+  --color-surface: #3A3A44;
+  --color-surface-2: #454550;
 }
 
 :root {
-  --bg: #26262d;
-  --surface: #303039;
-  --surface-2: #393943;
-  --border: #4a4a56;
+  --bg: #303038;
+  --surface: #3A3A44;
+  --surface-2: #454550;
+  --border: #595965;
   --text: #fff;
   --muted: #888;
   --accent: #9f67ff;
@@ -48,7 +48,7 @@ html {
 
 html,
 body {
-  background: #26262d;
+  background: #303038;
 }
 
 body {
@@ -69,11 +69,11 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #35353e;
+  background: #41414C;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-track {
-  background: #26262d;
+  background: #303038;
 }
 
 /* Film grain overlay */
