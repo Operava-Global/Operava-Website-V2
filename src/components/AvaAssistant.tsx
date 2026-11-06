@@ -290,7 +290,7 @@ export default function AvaAssistant() {
 
     setIsThinking(true)
 
-    const historyPayload = [...messages, userMsg].slice(-8).map((m) => ({
+    const historyPayload = messages.slice(-7).map((m) => ({
       role: m.sender === 'user' ? ('user' as const) : ('model' as const),
       text: m.text,
     }))
