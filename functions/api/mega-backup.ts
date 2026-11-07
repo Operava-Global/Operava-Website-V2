@@ -1,11 +1,7 @@
 /**
- * POST /api/mega-backup
- * Pages Function — JSON or plain-text uploads to OPERAVA MEGA folders.
- * Secrets: MEGA_EMAIL, MEGA_PASSWORD
- * Auth: MEGA_BACKUP_SHARED_SECRET (preferred), or legacy BACKUP_SHARED_SECRET / MEGA_BACKUP_SECRET, or OTP_SECRET (admin)
+ * Private backup receiver. Writes require a valid server-side bearer secret.
+ * No public GET discovery or metadata response is provided.
  */
-
-import { MEGA_FOLDERS } from '../lib/megaFolders'
 import {
   megaCredentialsConfigured,
   uploadJsonToMega,
@@ -25,7 +21,12 @@ interface Env extends MegaCredentialsEnv {
 function json(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'X-Robots-Tag': 'noindex, nofollow, noarchive',
+      'Referrer-Policy': 'no-referrer',
+    },
   })
 }
 
@@ -45,31 +46,12 @@ function authorized(request: Request, env: Env): boolean {
   return candidates.some((s) => s === token)
 }
 
-export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
-  return json({
-    service: 'operava-mega-backup',
-    runtime: 'cloudflare-pages-function',
-    status: 'ok',
-    folders: Object.values(MEGA_FOLDERS),
-    megaConfigured: megaCredentialsConfigured(env),
-  })
-}
+export const onRequestGet: PagesFunction<Env> = async () =>
+  json({ error: 'Not found.' }, 404)
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
-  if (!authorized(request, env)) {
-    return json(
-      {
-        success: false,
-        error:
-          'Unauthorized. Set Authorization: Bearer <MEGA_BACKUP_SHARED_SECRET or OTP_SECRET>.',
-      },
-      401,
-    )
-  }
-
-  if (!megaCredentialsConfigured(env)) {
-    return json({ success: false, error: 'MEGA credentials are not configured.' }, 503)
-  }
+  if (!authorized(request, env)) return json({ success: false, error: 'Unauthorized.' }, 401)
+  if (!megaCredentialsConfigured(env)) return json({ success: false, error: 'Backup service is unavailable.' }, 503)
 
   let body: {
     folder?: string
@@ -103,8 +85,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     })
     return json(result)
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Upload failed'
-    console.error('mega-backup failed', message)
-    return json({ success: false, error: message }, 500)
+    console.error('mega-backup failed', error instanceof Error ? error.message : 'unknown')
+    return json({ success: false, error: 'Backup request failed.' }, 500)
   }
 }
