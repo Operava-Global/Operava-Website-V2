@@ -50,9 +50,48 @@ const QUICK_TOPICS: QuickTopic[] = [
   { label: 'Verify document', query: 'I want to verify a document reference ID', icon: FileText },
 ]
 
-function renderInline(str: string, isUser = false) {
-  const parts = str.split(/(\*\*.*?\*\*)/g)
+function renderInline(str: string, isUser = false, onNavigate?: (to: string) => void) {
+  const parts = str.split(/(\\[[^\\]]+\\]\\([^)]+\\)|https?:\\/\\/[^\\s<>()]+|\\*\\*.*?\\*\\*)/g)
   return parts.map((part, idx) => {
+    const markdownLink = part.match(/^\\[([^\\]]+)\\]\\(([^)]+)\\)$/)
+    const plainUrl = /^https?:\\/\\//i.test(part)
+    if (markdownLink || plainUrl) {
+      const label = markdownLink?.[1] || (() => {
+        try {
+          const url = new URL(part.replace(/[),.!?]+$/, ''))
+          const path = url.pathname.replace(/\\/$/, '')
+          if (/\\/apply/.test(path)) return 'Apply for a Job'
+          if (/\\/careers/.test(path)) return 'Jobs'
+          if (/\\/quote/.test(path)) return 'Inquire for a Service'
+          if (/\\/services/.test(path)) return 'Services'
+          if (/\\/contact/.test(path)) return 'Contact OPERAVA'
+          if (/philgeps/i.test(url.hostname)) return 'PhilGEPS'
+          if (/sec\\.gov/i.test(url.hostname)) return 'Philippine SEC'
+          return 'Open official page'
+        } catch { return 'Open page' }
+      })()
+      const href = (markdownLink?.[2] || part).trim()
+      let destination = href
+      try {
+        const parsed = new URL(href, window.location.origin)
+        if (parsed.origin === window.location.origin || parsed.hostname === 'www.operavaglobal.com' || parsed.hostname === 'operavaglobal.com') {
+          destination = parsed.pathname + parsed.search + parsed.hash
+        } else {
+          destination = parsed.href
+        }
+      } catch { return null }
+      const internal = destination.startsWith('/')
+      return (
+        <button
+          key={idx}
+          type="button"
+          onClick={() => internal ? onNavigate?.(destination) : window.open(destination, '_blank', 'noopener,noreferrer')}
+          className="my-1 inline-flex items-center gap-2 border border-accent/60 bg-accent/10 px-3 py-2 text-[11px] font-bold text-white transition-colors hover:bg-accent-solid hover:border-accent"
+        >
+          {label}
+        </button>
+      )
+    }
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
         <strong key={idx} className={isUser ? 'font-semibold text-white' : 'font-semibold text-white'}>
@@ -64,33 +103,33 @@ function renderInline(str: string, isUser = false) {
   })
 }
 
-function renderMessageText(text: string, isUser = false) {
-  const paragraphs = text.split(/\n\n+/)
+function renderMessageText(text: string, isUser = false, onNavigate?: (to: string) => void) {
+  const paragraphs = text.split(/\\n\\n+/)
   return (
     <div className="space-y-2.5 text-xs sm:text-[13px] leading-relaxed break-words font-normal">
       {paragraphs.map((para, pIdx) => {
-        const lines = para.split('\n')
+        const lines = para.split('\\n')
         if (
           lines.some(
             (l) =>
               l.trim().startsWith('• ') ||
               l.trim().startsWith('- ') ||
               l.trim().startsWith('a. ') ||
-              /^\d+\.\s/.test(l.trim()),
+              /^\\d+\\.\\s/.test(l.trim()),
           )
         ) {
           return (
             <div key={pIdx} className="space-y-1.5">
               {lines.map((line, lIdx) => {
                 const trimmed = line.trim()
-                const numMatch = trimmed.match(/^(\d+)\.\s*(.*)$/)
+                const numMatch = trimmed.match(/^(\\d+)\\.\\s*(.*)$/)
                 if (numMatch) {
                   return (
                     <div key={lIdx} className="flex items-start gap-2">
                       <span className={isUser ? 'font-semibold text-violet-200 shrink-0' : 'font-semibold text-accent shrink-0'}>
                         {numMatch[1]}.
                       </span>
-                      <span>{renderInline(numMatch[2], isUser)}</span>
+                      <span>{renderInline(numMatch[2], isUser, onNavigate)}</span>
                     </div>
                   )
                 }
@@ -98,11 +137,11 @@ function renderMessageText(text: string, isUser = false) {
                   return (
                     <div key={lIdx} className="flex items-start gap-2">
                       <span className={isUser ? 'w-1.5 h-1.5 bg-violet-200 shrink-0 mt-1.5' : 'w-1.5 h-1.5 bg-accent shrink-0 mt-1.5'} />
-                      <span>{renderInline(trimmed.replace(/^[•\-]\s*/, ''), isUser)}</span>
+                      <span>{renderInline(trimmed.replace(/^[•\\-]\\s*/, ''), isUser, onNavigate)}</span>
                     </div>
                   )
                 }
-                return <p key={lIdx}>{renderInline(line, isUser)}</p>
+                return <p key={lIdx}>{renderInline(line, isUser, onNavigate)}</p>
               })}
             </div>
           )
@@ -111,7 +150,7 @@ function renderMessageText(text: string, isUser = false) {
           <p key={pIdx}>
             {lines.map((line, lIdx) => (
               <span key={lIdx}>
-                {renderInline(line, isUser)}
+                {renderInline(line, isUser, onNavigate)}
                 {lIdx < lines.length - 1 && <br />}
               </span>
             ))}
@@ -320,7 +359,7 @@ export default function AvaAssistant() {
     if (topicRoute && topicRoute.isDirectIntent) {
       pushAva(reply, { routeAction: topicRoute, showChoice: true })
     } else {
-      pushAva(reply, topicRoute ? { routeAction: topicRoute } : undefined)
+      pushAva(reply, topicRoute ? { routeAction: topicRoute, showChoice: true } : undefined)
     }
   }
 
@@ -411,7 +450,7 @@ export default function AvaAssistant() {
           <div key={m.id} className={`flex gap-2 ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
             {m.sender === 'ava' && <span className="mt-0.5"><AvaHumanAvatar size="h-7 w-7" /></span>}
             <div className={`max-w-[85%] px-3.5 py-2.5 ${m.sender === 'user' ? 'bg-accent-solid text-white' : 'bg-[#111] border border-neutral-800 text-neutral-200'}`}>
-              {renderMessageText(m.text, m.sender === 'user')}
+              {renderMessageText(m.text, m.sender === 'user', handleRoute)}
               <div className="mt-1.5 flex items-center justify-between gap-2">
                 <span className={`text-[10px] ${m.sender === 'user' ? 'text-violet-200' : 'text-neutral-500'}`}>{m.timestamp}</span>
                 {m.sender === 'ava' && (
@@ -421,9 +460,22 @@ export default function AvaAssistant() {
                 )}
               </div>
               {m.showChoice && m.routeAction && (
-                <div className="mt-2 flex flex-col gap-1.5">
-                  <button type="button" onClick={() => handleRoute(m.routeAction!.to)} className="text-[11px] tracking-widest uppercase font-bold bg-white text-black hover:bg-accent-solid hover:text-white px-3 py-2 text-left transition-colors">
-                    Open form on website
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const action = m.routeAction!
+                      if (action.kind === 'CAREERS') handleRoute(action.isDirectIntent ? action.to : '/careers')
+                      else if (action.kind === 'SERVICES') handleRoute(action.isDirectIntent ? action.to : '/services')
+                      else handleRoute('/contact')
+                    }}
+                    className="inline-flex items-center justify-center border border-accent bg-accent-solid px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-wide text-white transition-colors hover:bg-[#8700cc]"
+                  >
+                    {m.routeAction.kind === 'CAREERS'
+                      ? (m.routeAction.isDirectIntent ? 'Apply for a Job' : 'Jobs')
+                      : m.routeAction.kind === 'SERVICES'
+                        ? (m.routeAction.isDirectIntent ? 'Inquire for a Service' : 'Services')
+                        : 'Contact OPERAVA'}
                   </button>
                 </div>
               )}
@@ -436,6 +488,8 @@ export default function AvaAssistant() {
 
       <div className="px-3 pt-2 pb-1 border-t border-neutral-900 bg-[#0a0a0a]">
         <div className="flex gap-1.5 overflow-x-auto pb-2 ava-horizontal-scroll">
+          <button type="button" onClick={() => handleRoute('/services')} className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-medium text-neutral-300 border border-neutral-800 hover:border-accent hover:text-white">Services</button>
+          <button type="button" onClick={() => handleRoute('/careers')} className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-medium text-neutral-300 border border-neutral-800 hover:border-accent hover:text-white">Jobs</button>
           {QUICK_TOPICS.map((t) => {
             const Icon = t.icon
             return (
