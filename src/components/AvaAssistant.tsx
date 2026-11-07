@@ -165,11 +165,13 @@ function AvaHumanAvatar({ size = 'h-8 w-8' }: { size?: string }) {
   return (
     <span className={`inline-flex ${size} shrink-0 items-center justify-center`}>
       <img
-        src="/assets/logos/purple_girl_assistant_transparent_slow.gif"
+        src="/assets/logos/purple_girl_assistant_transparent_slow.gif?v=3b776883"
         alt="AVA assistant"
-        className="h-full w-full object-contain"
+        className="h-full w-full object-contain [transform:translateZ(0)]"
         loading="eager"
-        decoding="async"
+        decoding="sync"
+        fetchPriority="high"
+        draggable={false}
       />
     </span>
   )
