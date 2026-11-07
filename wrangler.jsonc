@@ -9,6 +9,9 @@
   "ai": {
     "binding": "AI"
   },
+  "services": [
+    { "binding": "OPERAVA_API", "service": "operava-api" }
+  ],
   "r2_buckets": [
     { "binding": "AVA_PROCTOR_BUCKET", "bucket_name": "operava-ava-proctor-evidence" },
     { "binding": "AVA_ID_BUCKET", "bucket_name": "operava-ava-identity-evidence" }
