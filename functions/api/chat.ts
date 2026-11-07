@@ -1,7 +1,7 @@
 import { AVA_WEBSITE_KNOWLEDGE } from '../lib/avaWebsiteKnowledge'
 
 interface Env {
-  AI: Ai
+  OPERAVA_API: Fetcher
 }
 
 type ChatTurn = { role: 'user' | 'model'; text: string }
@@ -54,7 +54,7 @@ const json = (body: Record<string, unknown>, status = 200) =>
   })
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
-  if (!env.AI) return json({ error: 'AVA AI service is not configured.', code: 'AI_NOT_CONFIGURED' }, 503)
+  if (!env.OPERAVA_API) return json({ error: 'AVA AI Worker service is not connected.', code: 'AI_WORKER_NOT_CONFIGURED' }, 503)
 
   let body: { message?: unknown; history?: unknown }
   try {
@@ -87,24 +87,36 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   ]
 
   try {
-    const result = await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
-      messages,
-      temperature: 0.45,
-      max_tokens: 800,
-    }) as { response?: unknown; result?: unknown }
-
-    const text = typeof result?.response === 'string' ? result.response.trim()
-      : typeof result?.result === 'string' ? result.result.trim()
-      : ''
-
-    if (!text) {
-      return json({ error: 'AVA received an empty response from the AI service. Please try again.', code: 'AI_EMPTY_RESPONSE' }, 502)
+    const upstream = await env.OPERAVA_API.fetch('https://operava-api/ava/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages }),
+    })
+    const result = await upstream.json().catch(() => ({})) as {
+      text?: unknown
+      error?: unknown
+      code?: unknown
+      provider?: unknown
+      model?: unknown
     }
 
-    return json({ text, provider: 'cloudflare-workers-ai', model: '@cf/meta/llama-3.3-70b-instruct-fp8-fast' })
+    if (!upstream.ok || typeof result.text !== 'string' || !result.text.trim()) {
+      const code = typeof result.code === 'string' ? result.code : `AI_WORKER_HTTP_${upstream.status}`
+      console.error('AVA AI Worker returned an error:', code, result.error)
+      return json({
+        error: typeof result.error === 'string' ? result.error : 'AVA AI Worker could not complete the request.',
+        code,
+      }, upstream.status >= 400 && upstream.status <= 599 ? upstream.status : 502)
+    }
+
+    return json({
+      text: result.text.trim(),
+      provider: typeof result.provider === 'string' ? result.provider : 'cloudflare-workers-ai',
+      model: typeof result.model === 'string' ? result.model : '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+    })
   } catch (error) {
     // Log a concise server-side diagnostic; never expose provider details to visitors.
-    console.error('AVA Workers AI request failed:', error instanceof Error ? error.message : String(error))
-    return json({ error: 'AVA is temporarily unable to reach its AI service. Please try again in a moment.', code: 'AI_UPSTREAM_ERROR' }, 502)
+    console.error('AVA AI Worker connection failed:', error instanceof Error ? error.message : String(error))
+    return json({ error: 'AVA is temporarily unable to connect to the OPERAVA AI Worker. Please try again in a moment.', code: 'AI_WORKER_CONNECTION_ERROR' }, 502)
   }
 }
