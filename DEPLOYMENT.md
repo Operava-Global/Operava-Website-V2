@@ -41,7 +41,7 @@ Git-connected Pages deploys main automatically. The manual GitHub workflow is an
 The repository currently has no npm lockfile, so the workflow uses npm install rather than npm ci.
 
 ## Verification
-Check /api/health for binding and email readiness. A successful site deployment alone does not prove email delivery.
+The public /api/health route is a minimal liveness check only and intentionally does not disclose binding, secret, database or email readiness. Verify configuration through the authenticated Cloudflare dashboard. A successful site deployment alone does not prove email delivery.
 Do not send test submissions to customers. Validate OTP delivery with an authorised test address after SMTP secrets are configured.
 
 ## Current form-submission rules
