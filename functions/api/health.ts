@@ -1,52 +1,16 @@
-interface Env {
-  SES_SMTP_USERNAME?: string
-  SES_SMTP_PASSWORD?: string
-  OTP_SECRET?: string
-  AI?: unknown
-  RESUMES_BUCKET?: unknown
-  SUBMISSIONS_DB?: D1Database
-  MEGA_EMAIL?: string
-  MEGA_PASSWORD?: string
-  MEGA_BACKUP_URL?: string
-  MEGA_BACKUP_SHARED_SECRET?: string
-  /** @deprecated use MEGA_BACKUP_SHARED_SECRET */
-  MEGA_BACKUP_SECRET?: string
-  /** @deprecated use MEGA_BACKUP_SHARED_SECRET */
-  BACKUP_SHARED_SECRET?: string
-}
-
-export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
-  const megaEmail = env.MEGA_EMAIL && String(env.MEGA_EMAIL).trim()
-  const megaPassword = env.MEGA_PASSWORD && String(env.MEGA_PASSWORD).trim().length >= 4
-  const megaUrl = env.MEGA_BACKUP_URL && String(env.MEGA_BACKUP_URL).trim().startsWith('http')
-  const megaSecret =
-    (env.MEGA_BACKUP_SHARED_SECRET && String(env.MEGA_BACKUP_SHARED_SECRET).trim().length >= 16) ||
-    (env.MEGA_BACKUP_SECRET && String(env.MEGA_BACKUP_SECRET).trim().length >= 16) ||
-    (env.BACKUP_SHARED_SECRET && String(env.BACKUP_SHARED_SECRET).trim().length >= 16)
-
-  const body = {
-    status: 'ok',
-    platform: 'Cloudflare Pages Functions',
-    service: 'OPERAVA Global Solutions Edge API',
-    timestamp: new Date().toISOString(),
-    bindings: {
-      sesSmtpConfigured: Boolean(env.SES_SMTP_USERNAME && env.SES_SMTP_PASSWORD),
-      otpSecretConfigured: Boolean(env.OTP_SECRET && String(env.OTP_SECRET).trim().length >= 32),
-      aiBound: Boolean(env.AI),
-      resumesBucketBound: Boolean(env.RESUMES_BUCKET),
-      d1Bound: Boolean(env.SUBMISSIONS_DB),
-      submissionsDbBound: Boolean(env.SUBMISSIONS_DB),
-      megaCredentialsConfigured: Boolean(megaEmail && megaPassword),
-      megaBackupWebhookConfigured: Boolean(megaUrl && megaSecret),
-      megaBackupSecretConfigured: Boolean(megaSecret),
-    },
-  }
-
-  return new Response(JSON.stringify(body), {
+/**
+ * Public liveness endpoint.
+ * Deliberately reveals no binding names, secret readiness, database state,
+ * storage configuration, service topology, or account metadata.
+ */
+export const onRequestGet: PagesFunction = async () => new Response(
+  JSON.stringify({ status: 'ok' }),
+  {
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-store',
-      'Access-Control-Allow-Origin': '*',
+      'X-Robots-Tag': 'noindex, nofollow, noarchive',
+      'Referrer-Policy': 'no-referrer',
     },
-  })
-}
+  },
+)
