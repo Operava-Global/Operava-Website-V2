@@ -133,6 +133,9 @@ export const ENGAGEMENT_STEPS = [
 
 /** Corporate registration (profile §2, §7, §21) */
 export const REGISTRATION = {
+  philgeps: [
+    'OPERAVA GLOBAL SOLUTIONS OPC is a PhilGEPS Registered Supplier. Registration was approved on October 28, 2026, with Red membership. Do not describe this as Platinum membership or as a government endorsement.',
+  ],
   sec: [
     REGISTRATION_STATEMENT,
     'The SEC is the Philippine government agency responsible for the registration and regulation of corporations and other entities within its jurisdiction. OPERAVA’s corporate registration establishes the company as a Philippine corporation and provides the legal corporate framework under which it conducts its authorized business activities.',
