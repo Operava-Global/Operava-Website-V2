@@ -51,22 +51,22 @@ const QUICK_TOPICS: QuickTopic[] = [
 ]
 
 function renderInline(str: string, isUser = false, onNavigate?: (to: string) => void) {
-  const parts = str.split(/(\\[[^\\]]+\\]\\([^)]+\\)|https?:\\/\\/[^\\s<>()]+|\\*\\*.*?\\*\\*)/g)
+  const parts = str.split(/(\[[^\]]+\]\([^)]+\)|https?:\/\/[^\s<>()]+|\*\*.*?\*\*)/g)
   return parts.map((part, idx) => {
-    const markdownLink = part.match(/^\\[([^\\]]+)\\]\\(([^)]+)\\)$/)
-    const plainUrl = /^https?:\\/\\//i.test(part)
+    const markdownLink = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
+    const plainUrl = /^https?:\/\//i.test(part)
     if (markdownLink || plainUrl) {
       const label = markdownLink?.[1] || (() => {
         try {
           const url = new URL(part.replace(/[),.!?]+$/, ''))
-          const path = url.pathname.replace(/\\/$/, '')
-          if (/\\/apply/.test(path)) return 'Apply for a Job'
-          if (/\\/careers/.test(path)) return 'Jobs'
-          if (/\\/quote/.test(path)) return 'Inquire for a Service'
-          if (/\\/services/.test(path)) return 'Services'
-          if (/\\/contact/.test(path)) return 'Contact OPERAVA'
+          const path = url.pathname.replace(/\/$/, '')
+          if (/\/apply/.test(path)) return 'Apply for a Job'
+          if (/\/careers/.test(path)) return 'Jobs'
+          if (/\/quote/.test(path)) return 'Inquire for a Service'
+          if (/\/services/.test(path)) return 'Services'
+          if (/\/contact/.test(path)) return 'Contact OPERAVA'
           if (/philgeps/i.test(url.hostname)) return 'PhilGEPS'
-          if (/sec\\.gov/i.test(url.hostname)) return 'Philippine SEC'
+          if (/sec\.gov/i.test(url.hostname)) return 'Philippine SEC'
           return 'Open official page'
         } catch { return 'Open page' }
       })()
@@ -104,25 +104,25 @@ function renderInline(str: string, isUser = false, onNavigate?: (to: string) => 
 }
 
 function renderMessageText(text: string, isUser = false, onNavigate?: (to: string) => void) {
-  const paragraphs = text.split(/\\n\\n+/)
+  const paragraphs = text.split(/\n\n+/)
   return (
     <div className="space-y-2.5 text-xs sm:text-[13px] leading-relaxed break-words font-normal">
       {paragraphs.map((para, pIdx) => {
-        const lines = para.split('\\n')
+        const lines = para.split('\n')
         if (
           lines.some(
             (l) =>
               l.trim().startsWith('• ') ||
               l.trim().startsWith('- ') ||
               l.trim().startsWith('a. ') ||
-              /^\\d+\\.\\s/.test(l.trim()),
+              /^\d+\.\s/.test(l.trim()),
           )
         ) {
           return (
             <div key={pIdx} className="space-y-1.5">
               {lines.map((line, lIdx) => {
                 const trimmed = line.trim()
-                const numMatch = trimmed.match(/^(\\d+)\\.\\s*(.*)$/)
+                const numMatch = trimmed.match(/^(\d+)\.\s*(.*)$/)
                 if (numMatch) {
                   return (
                     <div key={lIdx} className="flex items-start gap-2">
@@ -137,7 +137,7 @@ function renderMessageText(text: string, isUser = false, onNavigate?: (to: strin
                   return (
                     <div key={lIdx} className="flex items-start gap-2">
                       <span className={isUser ? 'w-1.5 h-1.5 bg-violet-200 shrink-0 mt-1.5' : 'w-1.5 h-1.5 bg-accent shrink-0 mt-1.5'} />
-                      <span>{renderInline(trimmed.replace(/^[•\\-]\\s*/, ''), isUser, onNavigate)}</span>
+                      <span>{renderInline(trimmed.replace(/^[•\-]\s*/, ''), isUser, onNavigate)}</span>
                     </div>
                   )
                 }
