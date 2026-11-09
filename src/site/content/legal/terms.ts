@@ -14,7 +14,7 @@ export const TERMS_AND_CONDITIONS: LegalDoc = {
    "blocks": [
     {
      "t": "p",
-     "text": "OPERAVA Global Solutions is a Philippine-based technology, workforce, and Business Process Outsourcing organization focused on Information Technology, digital services, cloud-related solutions, business operations, customer service, data processing, and remote professional services."
+     "text": "OPERAVA GLOBAL SOLUTIONS OPC, operating under the brand name OPERAVA Global Solutions, is a Philippine-based technology, workforce, and Business Process Outsourcing organization focused on Information Technology, digital services, cloud-related solutions, business operations, customer service, data processing, and remote professional services."
     },
     {
      "t": "p",
