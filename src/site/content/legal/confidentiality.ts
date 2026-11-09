@@ -13,7 +13,7 @@ export const CONFIDENTIALITY_POLICY: LegalDoc = {
   source: 'OPERAVA Confidentiality Policy',
   sections: [
     { num: '1', title: 'Purpose and Commitment', blocks: [
-      { t: 'p', text: 'OPERAVA Global Solutions (OPERAVA) recognizes that its technology, outsourcing, workforce and business operations may involve confidential information belonging to clients, customers, applicants, employees, contractors, suppliers, business partners and OPERAVA itself. This Policy establishes minimum rules for receiving, accessing, using, storing, disclosing, returning and securely disposing of such information.' },
+      { t: 'p', text: 'OPERAVA GLOBAL SOLUTIONS OPC, operating under the brand name OPERAVA Global Solutions (OPERAVA), recognizes that its technology, outsourcing, workforce and business operations may involve confidential information belonging to clients, customers, applicants, employees, contractors, suppliers, business partners and OPERAVA itself. This Policy establishes minimum rules for receiving, accessing, using, storing, disclosing, returning and securely disposing of such information.' },
       { t: 'p', text: 'Confidentiality is a continuing responsibility. Access to information is permitted only for an authorized business purpose and only to the extent necessary for the assigned role or service.' }
     ]},
     { num: '2', title: 'Who Must Follow This Policy', blocks: [
