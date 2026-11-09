@@ -89,7 +89,8 @@ export default function LegalPage({ doc, intro, crumb, related }: { doc: LegalDo
         <div className="mt-8 max-w-[760px] text-neutral-400 leading-relaxed reveal">{intro}</div>
         <dl className="mt-10 grid grid-cols-2 lg:grid-cols-4 gap-6 reveal">
           {[
-            ['Entity', 'OPERAVA Global Solutions'],
+            ['Entity', 'OPERAVA GLOBAL SOLUTIONS OPC'],
+            ['SEC registration', '2026080262213-03'],
             ['Effective date', doc.effective],
             ['Jurisdiction', doc.jurisdiction],
             ['Questions', doc.contact],
