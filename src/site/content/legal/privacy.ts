@@ -3,7 +3,7 @@ import type { LegalDoc } from './types'
 /** Generated from the previous Privacy Policy page (References/OPERAVA_Privacy_Policy.txt). */
 export const PRIVACY_POLICY: LegalDoc = {
  "title": "Privacy Policy",
- "effective": "17 August 2026",
+ "effective": "9 November 2026",
  "jurisdiction": "Republic of the Philippines (RA 10173)",
  "contact": "compliance@operavaglobal.com",
  "source": "References/OPERAVA_Privacy_Policy.txt",
@@ -209,7 +209,7 @@ export const PRIVACY_POLICY: LegalDoc = {
     },
     {
      "t": "p",
-     "text": "Retention periods may differ for recruitment, employment, client, accounting/tax, service, security, contract, and legal records. OPERAVA should maintain an internal retention schedule."
+     "text": "Retention periods may differ for recruitment, employment, client, accounting/tax, service, security, contract, and legal records. OPERAVA maintains and reviews a retention schedule for the categories of records it controls. The applicable period depends on the collection purpose, contract, legal and tax requirements, security needs, dispute limitation periods, and any lawful hold. Specific retention criteria are communicated in the relevant collection notice or contract where practicable."
     },
     {
      "t": "p",
@@ -308,7 +308,7 @@ export const PRIVACY_POLICY: LegalDoc = {
    "blocks": [
     {
      "t": "p",
-     "text": "OPERAVA should maintain a designated privacy contact or Data Protection Officer where required or appropriate."
+     "text": "Privacy and data-protection requests are coordinated through the OPERAVA Compliance Team. OPERAVA is responsible for designating and maintaining the accountable Data Protection Officer or privacy compliance contact required by applicable National Privacy Commission rules. The public privacy contact channel is listed below."
     },
     {
      "t": "contact",
@@ -476,6 +476,40 @@ export const PRIVACY_POLICY: LegalDoc = {
      "t": "p",
      "text": "Applicants may direct questions or privacy requests, including requests concerning identity verification or assessment recordings, to compliance@operavaglobal.com. Requests will be handled subject to applicable identity-verification, legal, contractual, security, and retention requirements."
     }
+   ]
+  },
+  {
+   "num": "33",
+   "title": "Personal Data Breach Notification",
+   "blocks": [
+    { "t": "p", "text": "OPERAVA maintains procedures to identify, contain, investigate, document and remediate suspected personal data breaches. A breach is assessed under the Data Privacy Act, its Implementing Rules and Regulations, and applicable National Privacy Commission issuances." },
+    { "t": "p", "text": "Where the legal notification threshold is met, OPERAVA will notify the National Privacy Commission and affected data subjects within the period required by law, generally within seventy-two (72) hours from knowledge of, or reasonable belief that, a notifiable personal data breach has occurred. The notification threshold is not every security incident; it depends on the categories of data, unauthorized acquisition and likelihood of serious harm. Further information may be supplied as permitted or required by NPC rules." },
+    { "t": "p", "text": "Where OPERAVA acts as a personal information processor for a client, it will notify the relevant client/controller without undue delay under the applicable data-processing agreement so that the controller can assess and meet its own notification duties." }
+   ]
+  },
+  {
+   "num": "34",
+   "title": "International Transfers and Remote Access",
+   "blocks": [
+    { "t": "p", "text": "OPERAVA may use cloud hosting, email, identity verification, collaboration, payment, customer support, analytics, security and other providers that process or access information in the Philippines or other countries. Remote access by authorized personnel or providers may also occur across borders." },
+    { "t": "p", "text": "Before a transfer or cross-border access, OPERAVA will assess the purpose, data categories, recipient, applicable legal requirements and available safeguards. Safeguards may include contractual confidentiality and data-processing terms, access restrictions, encryption, transfer controls and vendor due diligence. A transfer does not remove OPERAVA's accountability for processing within its legal role." }
+   ]
+  },
+  {
+   "num": "35",
+   "title": "Automated Processing and AI-Assisted Services",
+   "blocks": [
+    { "t": "p", "text": "Some services may use automated tools or artificial intelligence to assist with customer communications, workflow routing, quality checks, transcription, document processing, recruitment screening or assessment administration. The specific tool, purpose, categories of data and role of the system depend on the service." },
+    { "t": "p", "text": "Where profiling or automated processing is used in a way that is subject to specific notice or data-subject rights, OPERAVA will provide the information required by applicable law. AI outputs may be inaccurate and are not automatically treated as final hiring, eligibility, credit, legal or other consequential decisions. Human review is applied where required by law, contract or the relevant process." }
+   ]
+  },
+  {
+   "num": "36",
+   "title": "Privacy Governance and Contact",
+   "blocks": [
+    { "t": "p", "text": "OPERAVA is responsible for appropriate privacy governance for processing under its control, including assigning accountability, maintaining records of processing where required, evaluating privacy risks, training authorized personnel, reviewing processors and safeguards, and maintaining procedures for data-subject requests and security incidents." },
+    { "t": "p", "text": "For a privacy request, identify the relevant website, service, form or client engagement and describe the request. Do not send passwords, one-time codes or unnecessary identity documents by ordinary email. OPERAVA may request proportionate identity verification through a secure channel." },
+    { "t": "contact", "lines": ["OPERAVA Global Solutions", "Compliance Team"], "email": "compliance@operavaglobal.com" }
    ]
   }
  ]
