@@ -312,6 +312,7 @@ export const FOOTER_COLUMNS: { heading: string; links: NavLink[] }[] = [
       { label: 'Terms & Conditions', to: '/terms' },
       { label: 'Refund Policy', to: '/refund-policy' },
       { label: 'Cookie Policy', to: '/cookie-policy' },
+      { label: 'Confidentiality Policy', to: '/confidentiality' },
     ],
   },
 ]
