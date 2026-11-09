@@ -14,7 +14,7 @@ export const REFUND_POLICY: LegalDoc = {
    "blocks": [
     {
      "t": "p",
-     "text": "This Refund Policy (the “Policy”) explains how OPERAVA Global Solutions (“OPERAVA,” “we,” “us,” or “our”) handles refund requests, cancellations, service credits, service-quality concerns, billing errors, payment disputes, and related matters. Duly incorporated and registered under the laws of the Republic of the Philippines with the Securities and Exchange Commission, under Registration No. 2026080262213-03."
+     "text": "This Refund Policy (the “Policy”) explains how OPERAVA GLOBAL SOLUTIONS OPC, operating under the brand name OPERAVA Global Solutions (“OPERAVA,” “we,” “us,” or “our”) handles refund requests, cancellations, service credits, service-quality concerns, billing errors, payment disputes, and related matters. Duly incorporated and registered under the laws of the Republic of the Philippines with the Securities and Exchange Commission, under Registration No. 2026080262213-03."
     },
     {
      "t": "p",
