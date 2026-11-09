@@ -3,7 +3,7 @@ import type { LegalDoc } from './types'
 /** Generated from the previous Refund Policy page (References/refund_policy.txt). */
 export const REFUND_POLICY: LegalDoc = {
  "title": "Refund Policy",
- "effective": "25 August 2026",
+ "effective": "9 November 2026",
  "jurisdiction": "Republic of the Philippines",
  "contact": "cs@operavaglobal.com",
  "source": "References/refund_policy.txt",
@@ -1618,6 +1618,23 @@ export const REFUND_POLICY: LegalDoc = {
      "t": "p",
      "text": "If Client does not agree with this Policy, Client should not proceed with a purchase, Subscription, or new Service order. This acknowledgment does not waive any right or remedy that cannot lawfully be waived."
     }
+   ]
+  },
+  {
+   "num": "50",
+   "title": "Philippine Consumer and Online Transaction Law",
+   "blocks": [
+    { "t": "p", "text": "This Policy is intended to operate consistently with the Consumer Act of the Philippines (Republic Act No. 7394), the Internet Transactions Act of 2023 (Republic Act No. 11967) and its implementing rules, the Civil Code, the Electronic Commerce Act (Republic Act No. 8792), and other applicable laws, to the extent each law applies to the transaction and service concerned." },
+    { "t": "p", "text": "The Internet Transactions Act applies to covered internet transactions and covered online merchants, digital platforms and other actors within the statute's defined scope. It does not automatically convert every negotiated business-to-business outsourcing or professional-services contract into a consumer transaction. The Consumer Act's protections likewise apply according to its statutory scope and the nature and purpose of the transaction." },
+    { "t": "p", "text": "Nothing in this Policy waives a mandatory right to repair, replacement, refund, price reduction, cancellation, damages or other remedy available under applicable law. Where this Policy and mandatory law conflict, mandatory law controls." }
+   ]
+  },
+  {
+   "num": "51",
+   "title": "Transparent Refund Decisions",
+   "blocks": [
+    { "t": "p", "text": "OPERAVA will communicate the outcome of a refund request and, where reasonably practicable, the reasons for approval, partial approval or denial, the calculation of any approved amount, and any available correction, reperformance, credit or escalation option. Any deduction must have a lawful and contractual basis, be reasonably related to work performed or costs properly incurred, and not defeat a mandatory consumer remedy." },
+    { "t": "p", "text": "A client may request review of a refund decision through the customer support or escalation channel identified in this Policy. A request for internal review does not suspend or shorten any statutory filing period or prevent a client from using a payment-provider, regulatory or judicial remedy." }
    ]
   }
  ]
