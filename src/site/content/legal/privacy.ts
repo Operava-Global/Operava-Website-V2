@@ -14,7 +14,7 @@ export const PRIVACY_POLICY: LegalDoc = {
    "blocks": [
     {
      "t": "p",
-     "text": "OPERAVA respects privacy and seeks to collect only information reasonably necessary for identified and legitimate purposes, use it appropriately, protect it through reasonable safeguards, and retain it only as long as necessary or legally required."
+     "text": "OPERAVA GLOBAL SOLUTIONS OPC, operating under the brand name OPERAVA Global Solutions (OPERAVA), respects privacy and seeks to collect only information reasonably necessary for identified and legitimate purposes, use it appropriately, protect it through reasonable safeguards, and retain it only as long as necessary or legally required."
     },
     {
      "t": "p",
