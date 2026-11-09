@@ -38,6 +38,7 @@ const Privacy = lazy(() => import('./pages/Privacy'))
 const Terms = lazy(() => import('./pages/Terms'))
 const RefundPolicy = lazy(() => import('./pages/RefundPolicy'))
 const CookiePolicy = lazy(() => import('./pages/CookiePolicy'))
+const Confidentiality = lazy(() => import('./pages/Confidentiality'))
 const Academy = lazy(() => import('./pages/Academy'))
 const Learning = lazy(() => import('./pages/Learning'))
 const OutsourcingRisks = lazy(() => import('./pages/OutsourcingRisks'))
@@ -117,6 +118,7 @@ export default function App() {
             <Route path="/refundpolicy" element={<RefundPolicy />} />
             <Route path="/refund" element={<RefundPolicy />} />
             <Route path="/cookie-policy" element={<CookiePolicy />} />
+            <Route path="/confidentiality" element={<Confidentiality />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
