@@ -7,7 +7,7 @@ import { CONSENT_KEY, readConsent, clearConsent } from '../site/consent'
 /** Cookie Policy — expands Privacy Policy §15 (Cookies) for this website. */
 const COOKIE_POLICY: LegalDoc = {
   title: 'Cookie Policy',
-  effective: '17 August 2026',
+  effective: '9 November 2026',
   jurisdiction: 'Republic of the Philippines (RA 10173)',
   contact: 'compliance@operavaglobal.com',
   source: 'Privacy Policy §15',
