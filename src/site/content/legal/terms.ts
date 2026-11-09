@@ -3,7 +3,7 @@ import type { LegalDoc } from './types'
 /** Generated from the previous Terms & Conditions page (References/OPERAVA_Terms_and_Conditions.txt). */
 export const TERMS_AND_CONDITIONS: LegalDoc = {
  "title": "Terms & Conditions",
- "effective": "17 August 2026",
+ "effective": "9 November 2026",
  "jurisdiction": "Republic of the Philippines",
  "contact": "hello@operavaglobal.com",
  "source": "References/OPERAVA_Terms_and_Conditions.txt",
@@ -422,6 +422,31 @@ export const TERMS_AND_CONDITIONS: LegalDoc = {
      "t": "p",
      "text": "This document is a general framework and is not a substitute for a signed client service agreement, employment agreement, NDA, data-processing agreement, or other legally required document."
     }
+   ]
+  },
+  {
+   "num": "32",
+   "title": "Applicable Philippine Legal Framework",
+   "blocks": [
+    { "t": "p", "text": "These Terms are intended to operate consistently with applicable Philippine law, including the Civil Code of the Philippines (Republic Act No. 386), the Data Privacy Act of 2012 (Republic Act No. 10173) and its implementing rules, the Electronic Commerce Act of 2000 (Republic Act No. 8792), the Intellectual Property Code (Republic Act No. 8293), and applicable consumer-protection laws, including the Consumer Act of the Philippines (Republic Act No. 7394) and the Internet Transactions Act of 2023 (Republic Act No. 11967) where the transaction falls within their respective scope." },
+    { "t": "p", "text": "Employment, recruitment, independent-contractor and workforce engagements are also subject to the applicable labor, tax, social legislation and regulations, and their specific written agreements. Nothing in these website Terms determines employment status contrary to the actual relationship or mandatory law." },
+    { "t": "p", "text": "If a mandatory law grants a right or remedy that cannot be excluded, these Terms do not waive or restrict that right. The applicable statute and competent authority determine the scope of any mandatory protection." }
+   ]
+  },
+  {
+   "num": "33",
+   "title": "Electronic Communications and Contract Formation",
+   "blocks": [
+    { "t": "p", "text": "Where legally valid and appropriate, quotations, notices, purchase orders, approvals, invoices, service records, consents and agreements may be exchanged and retained electronically. Electronic data messages, electronic documents and electronic signatures may have legal effect in accordance with Republic Act No. 8792 and other applicable law." },
+    { "t": "p", "text": "A website inquiry, request for quotation, application, email or automated acknowledgment is not by itself an acceptance of an order, a promise to provide a service, an employment offer or a binding service-level commitment. A commercial engagement is formed only when the parties complete the applicable acceptance process, which may include a signed agreement, accepted statement of work, purchase order acceptance or other legally sufficient confirmation." }
+   ]
+  },
+  {
+   "num": "34",
+   "title": "Online Transactions and Consumer Rights",
+   "blocks": [
+    { "t": "p", "text": "For online transactions that fall within the scope of the Internet Transactions Act of 2023 and its implementing rules, OPERAVA will provide applicable seller or service-provider information, material transaction terms, price and payment information, delivery or performance details, cancellation information and consumer remedies as required by law." },
+    { "t": "p", "text": "Where a transaction is a consumer transaction covered by the Consumer Act or other mandatory consumer law, statutory rights and remedies prevail over any inconsistent provision of these Terms. Business-to-business service engagements are governed by their applicable contracts and laws, subject to mandatory rules." }
    ]
   }
  ]
