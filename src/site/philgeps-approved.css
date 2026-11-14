@@ -198,7 +198,7 @@ html[data-theme="light"] .pg-approved {
 
 /* Wider screens: panorama layout. */
 @media (min-width: 768px) {
-  .pg-stage { aspect-ratio: 2400 / 960; }
+  .pg-stage {\n    display: block;\n    visibility: visible;\n    width: 100%;\n    min-height: clamp(300px, 38vw, 520px);\n    aspect-ratio: 2400 / 960;\n  }\n  .pg-buildings { display: block; visibility: visible; width: 100%; height: 100%; object-fit: cover; object-position: center; }\n  .pg-head, .pg-logo-link { visibility: visible; opacity: 1; }\n  .pg-caption { display: block; visibility: visible; }
   /* Desktop only: reduce the PhilGEPS logo to half width while keeping it centered in its right-side area. */
   .pg-logo-link { left: 57.083%; top: 15.625%; width: 25.833%; }
   .pg-head {
