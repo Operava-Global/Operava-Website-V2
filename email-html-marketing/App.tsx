@@ -1,7 +1,7 @@
 import React from "react";
-import heroUrl from "container:///mnt/data/src/assets/0eaaabe8d2e5d9f6-operava_hero.png";
-import specialistUrl from "container:///mnt/data/src/assets/2d71eead6d18f1e9-operava_ai_specialist.png";
-import futureUrl from "container:///mnt/data/src/assets/5d5075bb5016bc1a-operava_future.png";
+import heroUrl from "./assets/0eaaabe8d2e5d9f6-operava_hero.png";
+import specialistUrl from "./assets/2d71eead6d18f1e9-operava_ai_specialist.png";
+import futureUrl from "./assets/5d5075bb5016bc1a-operava_future.png";
 
 const mailtoKeep =
   "mailto:careers@yourdomain.com?subject=Keep%20my%20profile%20on%20file%20-%20AI%20Specialist%20%2F%20Engineer";
