@@ -17,7 +17,12 @@ email-html-marketing/
     ├── 0eaaabe8d2e5d9f6-operava_hero.png
     ├── 2d71eead6d18f1e9-operava_ai_specialist.png
     ├── 5d5075bb5016bc1a-operava_future.png
-    └── supplemental WebP images
+    ├── 12a55ecd7a76734b-image_20261114_082603.webp
+    ├── 951e26451b507c7d-image_20261114_082606.webp
+    ├── c3030fc0862f72c4-image_20261114_082607.webp
+    ├── OPERAVA_Business_Automation_with_Confidentiality.pdf
+    ├── OPERAVA_Business_Outsourcing_with_Confidentiality.pdf
+    └── OPERAVA_IT_Services_with_Confidentiality.pdf
 ```
 
 The three PNG images listed above are used by `App.tsx`. The imports are relative to this folder (for example, `./assets/...`) so they do not depend on a local container or machine-specific path. The existing supplemental WebP assets and three Operava service collateral PDFs are retained in this folder. The PDFs are not currently linked from the React preview component.
