@@ -1,5 +1,14 @@
 name: Deploy OPERAVA Website V2 (Business Cloudflare only)
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/pages/Home.tsx'
+      - 'src/components/ui/display-cards.tsx'
+      - 'public/media/services/**'
+      - 'wrangler.jsonc'
+      - 'db/submissions.sql'
+      - '.github/workflows/deploy-operava-business-pages.yml'
   workflow_dispatch:
 permissions:
   contents: read
