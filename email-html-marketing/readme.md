@@ -20,7 +20,7 @@ email-html-marketing/
     └── supplemental WebP images
 ```
 
-The three PNG images listed above are used by `App.tsx`. The imports are relative to this folder (for example, `./assets/...`) so they do not depend on a local container or machine-specific path. The existing supplemental WebP assets are retained.
+The three PNG images listed above are used by `App.tsx`. The imports are relative to this folder (for example, `./assets/...`) so they do not depend on a local container or machine-specific path. The existing supplemental WebP assets and three Operava service collateral PDFs are retained in this folder. The PDFs are not currently linked from the React preview component.
 
 ## Content placeholders
 
