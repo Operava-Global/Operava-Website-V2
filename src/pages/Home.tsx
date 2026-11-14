@@ -95,9 +95,9 @@ export default function Home() {
     <>
       {/* HERO */}
       <section className="px-6 lg:px-12 pt-10 lg:pt-16 pb-12">
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-8 items-stretch">
-          <div className="min-w-0 flex flex-col justify-between lg:pr-6">
-            <h1 className="min-w-0 max-w-full text-[clamp(2rem,3.6vw,4.5rem)] font-black uppercase leading-[0.9] tracking-[-0.04em] [word-break:normal] [overflow-wrap:normal]">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,9fr)_minmax(0,11fr)] gap-8 items-stretch">
+          <div className="min-w-0 [container-type:inline-size] flex flex-col justify-between">
+            <h1 className="block min-w-0 max-w-full text-[clamp(2.25rem,14cqi,8rem)] font-black uppercase leading-[0.9] tracking-[-0.04em] [word-break:normal] [overflow-wrap:normal]">
               {['Operate,', 'Automate,', 'Accelerate.'].map((w, n) => (
                 <span key={w} className="line-mask whitespace-nowrap">
                   <span className={`line-rise whitespace-nowrap ${n === 2 ? 'text-neutral-600' : ''}`} style={{ ['--d' as string]: `${0.15 + n * 0.12}s` }}>
