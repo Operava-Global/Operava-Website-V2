@@ -1,5 +1,6 @@
 "use client"
 
+import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
 export interface DisplayCardProps {
@@ -19,7 +20,7 @@ interface DisplayCardsProps {
   className?: string
 }
 
-function DisplayCard({ className, image, video, imageAlt, title = 'OPERAVA service' }: DisplayCardProps) {
+function DisplayCard({ className, image, video, imageAlt, title = 'OPERAVA service', href }: DisplayCardProps) {
   return (
     <article
       className={cn(
@@ -59,6 +60,18 @@ function DisplayCard({ className, image, video, imageAlt, title = 'OPERAVA servi
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(20,12,40,.28)] via-transparent to-transparent"
       />
+      {href ? (
+        <Link
+          to={href}
+          aria-label={`Explore ${title} services`}
+          className="absolute bottom-3 right-3 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/35 bg-[var(--accent)] text-white shadow-lg transition-all duration-300 hover:scale-110 hover:bg-[var(--accent-hover,var(--accent))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M7 17 17 7" />
+            <path d="M8 7h9v9" />
+          </svg>
+        </Link>
+      ) : null}
     </article>
   )
 }
