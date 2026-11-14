@@ -95,12 +95,12 @@ export default function Home() {
     <>
       {/* HERO */}
       <section className="px-6 lg:px-12 pt-10 lg:pt-16 pb-12">
-        <div className="flex flex-col lg:flex-row gap-8 lg:gap-0 items-stretch">
-          <div className="lg:w-[40%] flex flex-col justify-between lg:pr-8">
-            <h1 className="text-[48px] sm:text-[64px] lg:text-[length:min(6.6vw,108px)] font-black uppercase leading-[0.85] tracking-[-0.04em]">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-8 items-stretch">
+          <div className="min-w-0 flex flex-col justify-between lg:pr-6">
+            <h1 className="min-w-0 max-w-full text-[clamp(2rem,3.6vw,4.5rem)] font-black uppercase leading-[0.9] tracking-[-0.04em] [word-break:normal] [overflow-wrap:normal]">
               {['Operate,', 'Automate,', 'Accelerate.'].map((w, n) => (
-                <span key={w} className="line-mask">
-                  <span className={`line-rise ${n === 2 ? 'text-neutral-600' : ''}`} style={{ ['--d' as string]: `${0.15 + n * 0.12}s` }}>
+                <span key={w} className="line-mask whitespace-nowrap">
+                  <span className={`line-rise whitespace-nowrap ${n === 2 ? 'text-neutral-600' : ''}`} style={{ ['--d' as string]: `${0.15 + n * 0.12}s` }}>
                     {w}
                   </span>
                 </span>
@@ -120,7 +120,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="lg:w-[60%] relative hero-in" style={{ ['--d' as string]: '0.3s' }}>
+          <div className="min-w-0 w-full relative hero-in" style={{ ['--d' as string]: '0.3s' }}>
             <div aria-hidden className="hero-aura absolute -inset-10 pointer-events-none" />
             <div
               className="relative h-[680px] lg:h-[700px] bg-[#0f0f0f] rounded-[12px] border border-neutral-900 overflow-hidden glow"
