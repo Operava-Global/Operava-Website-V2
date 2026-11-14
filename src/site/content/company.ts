@@ -156,7 +156,7 @@ export const REGISTRATION = {
     { label: 'Securities and Exchange Commission', href: 'https://www.sec.gov.ph/' },
     { label: 'SEC eSPARC registration', href: 'https://esparc.sec.gov.ph/' },
     { label: 'Bureau of Internal Revenue', href: 'https://www.bir.gov.ph/' },
-    { label: 'BIR eTINQuery', href: 'https://etinquery.bir.gov.ph/init.do?app=tinquery' },
+    { label: 'PhilGEPS', href: 'https://www.philgeps.gov.ph/' },
   ],
 }
 
