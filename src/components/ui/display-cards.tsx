@@ -60,6 +60,7 @@ function DisplayCard({
           controls={false}
           disablePictureInPicture
           disableRemotePlayback
+          onLoadedMetadata={(event) => { event.currentTarget.playbackRate = 0.5 }}
           tabIndex={-1}
           draggable={false}
           className="pointer-events-none absolute inset-0 z-0 h-full w-full select-none object-cover object-center"
