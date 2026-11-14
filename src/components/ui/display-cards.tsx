@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 export interface DisplayCardProps {
   className?: string
   image?: string
+  video?: string
   imageAlt?: string
   title?: string
   description?: string
@@ -24,6 +25,7 @@ interface DisplayCardsProps {
 function DisplayCard({
   className,
   image,
+  video,
   imageAlt,
   title = 'Featured',
   description = 'Discover amazing content',
@@ -55,16 +57,38 @@ function DisplayCard({
         aria-label={`${active ? 'Collapse' : 'Bring forward'} ${title} card`}
         className="relative z-10 flex min-h-[13rem] flex-1 cursor-pointer flex-col items-start justify-between gap-5 text-left outline-none focus-visible:rounded-xl focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--surface)]"
       >
-        {image && (
-          <div className="relative -mx-1 flex h-24 w-full items-center justify-center overflow-visible sm:h-32">
-            <img
-              src={image}
-              alt={imageAlt ?? ''}
-              aria-hidden={imageAlt ? undefined : true}
-              loading="lazy"
-              decoding="async"
-              className="h-full w-full object-contain object-center drop-shadow-[0_14px_22px_rgba(0,0,0,.32)] transition-transform duration-700 ease-out group-data-[active=true]:scale-110"
-            />
+        {(video || image) && (
+          <div className="relative -mx-1 flex h-24 w-full items-center justify-center overflow-hidden rounded-xl sm:h-32">
+            {video ? (
+              <video
+                src={video}
+                aria-label={imageAlt ?? title}
+                muted
+                autoPlay
+                loop
+                playsInline
+                preload="auto"
+                controls={false}
+                disablePictureInPicture
+                disableRemotePlayback
+                onLoadedMetadata={(event) => {
+                  const media = event.currentTarget
+                  media.defaultPlaybackRate = 0.5
+                  media.playbackRate = 0.5
+                  void media.play().catch(() => {})
+                }}
+                className="h-full w-full object-contain drop-shadow-[0_14px_22px_rgba(0,0,0,.32)] transition-transform duration-700 ease-out group-data-[active=true]:scale-110"
+              />
+            ) : (
+              <img
+                src={image}
+                alt={imageAlt ?? ''}
+                aria-hidden={imageAlt ? undefined : true}
+                loading="lazy"
+                decoding="async"
+                className="h-full w-full object-contain object-center drop-shadow-[0_14px_22px_rgba(0,0,0,.32)] transition-transform duration-700 ease-out group-data-[active=true]:scale-110"
+              />
+            )}
           </div>
         )}
         <div className="flex w-full items-center">
