@@ -73,15 +73,6 @@ function DisplayCard({
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-[rgba(20,12,40,.24)] via-transparent to-transparent"
       />
-      <span
-        aria-hidden="true"
-        className="absolute bottom-3 right-3 z-10 inline-flex size-10 items-center justify-center rounded-full border border-white/35 bg-[var(--accent)] text-white shadow-lg transition-all duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:scale-110 group-focus-visible:outline group-focus-visible:outline-2 group-focus-visible:outline-white sm:bottom-4 sm:right-4 sm:size-11"
-      >
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M7 17 17 7" />
-          <path d="M8 7h9v9" />
-        </svg>
-      </span>
     </>
   )
 
