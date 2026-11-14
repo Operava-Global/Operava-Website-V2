@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --page: #EFE9F8;
+  --card: #FFFFFF;
+  --ink: #20172E;
+  --muted: #5E5470;
+  --soft: #F3EEFB;
+  --lavender: #EADFFB;
+  --line: #E3DAF2;
+  --purple: #2B1055;
+  --purple-2: #4B21A3;
+  --violet: #6D3FC9;
+  --lilac: #8F67E8;
+  --gold: #C9A86A;
+  --gold-soft: #F7EEDD;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #120B1F;
+    --card: #1C1330;
+    --ink: #F1EBFB;
+    --muted: #BFB2D6;
+    --soft: #2A1D45;
+    --lavender: #2A1D45;
+    --line: #3A2A5C;
+    --gold-soft: #33271A;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.font-display { font-family: Georgia, "Times New Roman", serif; }
+.email-shadow { box-shadow: 0 24px 60px rgba(43, 16, 85, 0.16), 0 4px 18px rgba(43, 16, 85, 0.08); }
+.hero-overlay { background: linear-gradient(112deg, rgba(24, 8, 54, 0.92) 0%, rgba(43, 16, 85, 0.78) 48%, rgba(109, 63, 201, 0.58) 100%); }
+.drop-cap::first-letter {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 3.35rem;
+  line-height: 0.82;
+  float: left;
+  padding: 0.35rem 0.65rem 0 0;
+  color: #6D3FC9;
+  font-weight: 400;
+}
+.btn-premium {
+  background: linear-gradient(135deg, #5B2BB8 0%, #6D3FC9 100%);
+  box-shadow: 0 12px 24px rgba(91, 43, 184, 0.28);
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+.btn-premium:hover { transform: translateY(-1px); filter: brightness(1.07); box-shadow: 0 16px 30px rgba(91, 43, 184, 0.34); }
+.btn-premium:active { transform: translateY(0); }
+.link-underline { text-decoration: underline; text-underline-offset: 4px; }
+@media (max-width: 620px) {
+  .drop-cap::first-letter { font-size: 2.9rem; }
+}
