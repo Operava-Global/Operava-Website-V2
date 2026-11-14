@@ -7,7 +7,6 @@ import { industries } from '../site/content/industries'
 import { COMPANY, STATEMENT } from '../site/content/company'
 import { itServices, bpoServices } from '../data/services'
 import { automationServices } from '../data/automationServices'
-import DisplayCards from '../components/ui/display-cards'
 
 interface Slide {
   kicker: string
@@ -247,39 +246,51 @@ export default function Home() {
           }
           note="Technology, outsourcing and automation — structured from one professional to multiple teams."
         />
-        <div className="reveal home-card-glow rounded-[12px] border border-neutral-900 bg-[var(--surface)]/40 px-4 py-8 sm:px-8 lg:px-10">
-          <DisplayCards
-            cards={[
-              {
-                title: 'Information Technology',
-                description: `${itServices.length} services to build, modernize and connect your digital operations.`,
-                date: '01 · IT services',
-                href: '/services/it',
-                image: '/Meta_AI_it_element_transparent_20261106_220514.webp',
-                imageAlt: 'Illustration representing information technology and cloud systems',
-              },
-              {
-                title: 'Business Process Outsourcing',
-                description: `${bpoServices.length} services delivered by skilled professionals across customer and back-office operations.`,
-                date: '02 · Global BPO',
-                href: '/services/bpo',
-                image: '/Meta_AI_bpo_element_transparent_20261106_220522.webp',
-                imageAlt: 'Illustration representing customer support and business process outsourcing',
-              },
-              {
-                title: 'Intelligent Automation',
-                description: `${automationServices.length} services to connect workflows and reduce repetitive work.`,
-                date: '03 · Automation',
-                href: '/services/automation',
-                image: '/Meta_AI_robot_element_transparent_20261106_220519.webp',
-                imageAlt: 'Illustration representing intelligent automation and AI workflows',
-              },
-            ]}
-          />
-          <div className="mt-3 flex flex-col gap-3 border-t border-neutral-800 pt-5 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm leading-relaxed text-neutral-400">Choose a delivery model that fits the work — from one professional to a dedicated team.</p>
-            <Link to="/services/engagement-models" className="shrink-0 text-[11px] font-semibold uppercase tracking-widest text-accent hover:text-white transition-colors">Explore engagement models <span className="arrow-nudge">→</span></Link>
-          </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {[
+            {
+              label: 'Information Technology',
+              href: '/services/it',
+              video: '/media/services/OPERAVA_ALIGNED_1_IT_Data_Network.mp4',
+            },
+            {
+              label: 'Business Process Outsourcing',
+              href: '/services/bpo',
+              video: '/media/services/OPERAVA_FINAL_V4_2_Outsourcing_Globe_Lines_Only.mp4',
+            },
+            {
+              label: 'Intelligent Automation',
+              href: '/services/automation',
+              video: '/media/services/OPERAVA_STABLE_3_Automation_Workflow.mp4',
+            },
+          ].map((item) => (
+            <Link
+              key={item.label}
+              to={item.href}
+              aria-label={`Explore ${item.label}`}
+              className="group relative block aspect-[4/5] overflow-hidden rounded-[12px] border border-neutral-800 bg-[#080808] home-card-glow focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+            >
+              <video
+                className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                src={item.video}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                controls={false}
+                disablePictureInPicture
+                disableRemotePlayback
+                onLoadedMetadata={(event) => {
+                  const video = event.currentTarget
+                  video.playbackRate = 0.5
+                  video.defaultPlaybackRate = 0.5
+                  void video.play().catch(() => {})
+                }}
+              />
+              <span className="absolute inset-0 bg-black/10 transition-colors group-hover:bg-black/0" aria-hidden="true" />
+            </Link>
+          ))}
         </div>
       </section>
 
