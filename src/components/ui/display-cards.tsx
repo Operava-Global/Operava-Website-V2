@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
 
 export interface DisplayCardProps {
@@ -30,9 +31,11 @@ function DisplayCard({
   href,
   active,
   style,
+  onActivate,
 }: DisplayCardProps & {
   active: boolean
   style: CSSProperties
+  onActivate: () => void
 }) {
   const cardContent = (
     <>
@@ -48,7 +51,9 @@ function DisplayCard({
           controls={false}
           disablePictureInPicture
           disableRemotePlayback
-          onLoadedMetadata={(event) => { event.currentTarget.playbackRate = 0.5 }}
+          onLoadedMetadata={(event) => { event.currentTarget.playbackRate = 0.5; void event.currentTarget.play().catch(() => {}) }}
+          onPause={(event) => { if (document.visibilityState === 'visible') void event.currentTarget.play().catch(() => {}) }}
+          onEnded={(event) => { event.currentTarget.currentTime = 0; void event.currentTarget.play().catch(() => {}) }}
           tabIndex={-1}
           draggable={false}
           className="pointer-events-none absolute inset-0 z-0 h-full w-full select-none object-cover object-center"
@@ -87,21 +92,38 @@ function DisplayCard({
     className,
   )
 
-  if (!href) {
-    return <article data-active={active} style={style} className={cardClassName}>{cardContent}</article>
-  }
-
   return (
-    <Link
-      to={href}
-      aria-label={`Explore ${title} services`}
-      title={`Explore ${title} services`}
+    <article
       data-active={active}
       style={style}
       className={cardClassName}
+      role="button"
+      tabIndex={0}
+      aria-label={`Bring ${title} card to front`}
+      onClick={onActivate}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onActivate()
+        }
+      }}
     >
       {cardContent}
-    </Link>
+      {href ? (
+        <Link
+          to={href}
+          aria-label={`Explore ${title} services`}
+          title={`Explore ${title} services`}
+          onClick={(event) => event.stopPropagation()}
+          className="absolute bottom-3 right-3 z-20 inline-flex size-10 items-center justify-center rounded-full border border-white/35 bg-[var(--accent)] text-white shadow-lg transition-all duration-300 hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white sm:bottom-4 sm:right-4 sm:size-11"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="size-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M7 17 17 7" />
+            <path d="M8 7h9v9" />
+          </svg>
+        </Link>
+      ) : null}
+    </article>
   )
 }
 
@@ -112,6 +134,7 @@ export default function DisplayCards({ cards, className }: DisplayCardsProps) {
     { title: 'Intelligent Automation', description: 'Connect workflows and reduce repetitive work.', date: '03 · Automation', href: '/services/automation' },
   ]
   const displayCards = cards ?? defaultCards
+  const [activeIndex, setActiveIndex] = useState(0)
 
   return (
     <div className={cn('relative mx-auto my-5 grid w-full max-w-5xl grid-cols-1 items-stretch gap-4 md:block md:h-[28rem] md:[perspective:1400px] md:[transform-style:preserve-3d]', className)}>
@@ -129,11 +152,12 @@ export default function DisplayCards({ cards, className }: DisplayCardsProps) {
         <DisplayCard
           key={cardProps.title ?? index}
           {...cardProps}
-          active={index === 0}
+          active={index === activeIndex}
+          onActivate={() => setActiveIndex(index)}
           style={{
             '--card-left': `calc(${index} * 33% - 16%)`,
-            zIndex: displayCards.length - index,
-            animation: index === 0 ? 'operava-card-pop 680ms cubic-bezier(.2,.85,.25,1) both' : undefined,
+            zIndex: index === activeIndex ? displayCards.length + 10 : displayCards.length - index,
+            animation: index === activeIndex ? 'operava-card-pop 680ms cubic-bezier(.2,.85,.25,1) both' : undefined,
           } as CSSProperties}
         />
       ))}
