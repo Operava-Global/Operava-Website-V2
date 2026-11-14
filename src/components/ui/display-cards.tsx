@@ -81,7 +81,7 @@ function DisplayCard({
   )
 
   const cardClassName = cn(
-    'group relative isolate block aspect-video w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[0_18px_38px_-20px_rgba(0,0,0,.75),0_7px_18px_-10px_rgba(0,0,0,.5)] transition-[left,transform,box-shadow,border-color,filter] duration-700 ease-[cubic-bezier(.2,.85,.25,1)] [backface-visibility:hidden] md:absolute md:top-2 md:w-[66%] md:[transform:perspective(1200px)_rotateY(-5deg)_rotateX(2deg)]',
+    'group relative isolate block aspect-video w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[0_18px_38px_-20px_rgba(0,0,0,.75),0_7px_18px_-10px_rgba(0,0,0,.5)] transition-[left,transform,box-shadow,border-color,filter] duration-700 ease-[cubic-bezier(.2,.85,.25,1)] [backface-visibility:hidden] md:absolute md:top-2 md:left-[var(--card-left)] md:w-[66%] md:[transform:perspective(1200px)_rotateY(-5deg)_rotateX(2deg)]',
     active && 'md:!z-50 md:!-translate-y-5 md:!scale-[1.045] md:!border-accent/80 md:!shadow-[0_38px_65px_-24px_rgba(0,0,0,.85),0_0_0_1px_rgba(139,92,246,.32),0_0_42px_-12px_rgba(139,92,246,.6)] md:[transform:perspective(1200px)_translateZ(90px)_rotateY(0deg)_rotateX(0deg)]',
     'hover:-translate-y-1 hover:border-accent/50 hover:shadow-[0_26px_48px_-20px_rgba(0,0,0,.8)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4',
     className,
