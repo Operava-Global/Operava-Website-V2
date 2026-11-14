@@ -25,6 +25,31 @@ email-html-marketing/
     └── OPERAVA_IT_Services_with_Confidentiality.pdf
 ```
 
+Image Positioning 
+
+```text
+├── email/  <- SEPARATE FOLDER ON WEBSITE ROOT - for applicant email only
+│   ├── index.html
+│   └── assets/
+│       ├── operava_hero.png          <- 0eaa...hero.png
+│       ├── operava_ai_specialist.png <- 2d71...ai_specialist.png
+│       └── operava_future.png        <- 5d507...future.png
+│
+├── assets/
+│   ├── pdfs/  <- SERVICE COLLATERAL - NOT in email
+│   │   ├── IT-Services.pdf
+│   │   ├── Business-Outsourcing.pdf
+│   │   └── Business-Automation.pdf
+│   │
+│   └── archive/  <- NOT USED - keep for backup only
+│       ├── 2026-11-14_xxx.webp
+│       ├── 2026-11-14_yyy.webp
+│       └── 2026-11-14_zzz.webp
+│
+├── App.tsx
+└── README.md
+```
+
 The three PNG images listed above are used by `App.tsx`. The imports are relative to this folder (for example, `./assets/...`) so they do not depend on a local container or machine-specific path. The existing supplemental WebP assets and three Operava service collateral PDFs are retained in this folder. The PDFs are not currently linked from the React preview component.
 
 ## Content placeholders
